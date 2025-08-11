@@ -3,1568 +3,1860 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบจัดการป้ายราคา (Price Tag Management)</title>
-    
-    <!-- External Libraries: Tailwind CSS, SheetJS (for Excel), jsPDF (for PDF) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-    <!-- Google Fonts: Kanit & Prompt -->
+    <title>ProPlugin - Price Tag Management</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    <!-- Custom Styles -->
     <style>
-        /*
-         * README / INSTRUCTIONS
-         * =====================
-         *
-         * 1. HOW TO USE:
-         * - Save this entire file as `index.html`.
-         * - Open it in a web browser (like Chrome, Firefox).
-         * - The application is now running locally.
-         *
-         * 2. HOW TO REPLACE EXCEL DATA:
-         * - Log in as 'admin1' or 'host1'.
-         * - Go to the 'ตั้งค่า' (Settings) panel.
-         * - Under 'จัดการข้อมูล' (Data Management), click 'Choose File' next to 'นำเข้า Excel' and select your .xlsx file.
-         * - The app will automatically parse the columns based on the specified headers.
-         * - The app looks for headers like 'Item No.', 'Description', 'Details', 'Normal Price', 'Promotion Price', 'Flagship Price / Website', 'Dealer Price', 'Marketplace Price', 'Expire Date', and 'GP%'.
-         *
-         * 3. HOW TO DEPLOY TO GITHUB PAGES / VERCEL:
-         * - GitHub Pages:
-         * a. Create a new public repository on GitHub.
-         * b. Upload this `index.html` file to the repository.
-         * c. Go to the repository's 'Settings' tab, then 'Pages' in the left sidebar.
-         * d. Under 'Branch', select your main branch and click 'Save'.
-         * e. Your site will be live at `https://<your-username>.github.io/<repository-name>/`.
-         * - Vercel:
-         * a. Sign up for a Vercel account and connect it to your GitHub account.
-         * b. Create a new project and import the GitHub repository containing this file.
-         * c. Vercel will automatically detect it's a static site. No framework preset is needed.
-         * d. Click 'Deploy'. The site will be live in seconds.
-         *
-         * 4. DEMO CREDENTIALS:
-         * - Role: Host
-         * - Username: host1
-         * - Password: host123
-         * - Role: Admin
-         * - Username: admin1
-         * - Password: admin123
-         * - Role: User1 (Flagship)
-         * - Username: user1
-         * - Password: u1pass
-         * - Role: User2 (Flagship)
-         * - Username: user2
-         * - Password: u2pass
-         * - Role: User3 (Dealer + GP%)
-         * - Username: user3
-         * - Password: u3pass
-         * - Role: User4 (Marketplace + GP%)
-         * - Username: user4
-         * - Password: u4pass
-        */
-
-        /* Base theme and font styles */
-        body {
-            font-family: 'Kanit', 'Prompt', sans-serif;
-            background-color: #1a1a1a; /* Dark background */
-            color: #ffffff;
+        /* Global Styles & Theme */
+        :root {
+            --bg-color: #1a1a1a;
+            --surface-color: #2c2c2c;
+            --text-color: #ffffff;
+            --primary-color: #e50914;
+            --border-color: #444444;
+            --font-family: 'Kanit', sans-serif;
         }
 
-        /* Red theme color for accents */
-        .theme-red { color: #e53e3e; }
-        .bg-theme-red { background-color: #e53e3e; }
-        .border-theme-red { border-color: #e53e3e; }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        /* Custom dark theme styles for inputs and buttons */
-        .dark-input {
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-            color: #ffffff;
-            border-radius: 0.375rem;
+        html, body {
+            height: 100%;
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 16px;
         }
-        .dark-input:focus {
-            outline: none;
-            border-color: #e53e3e;
-            box-shadow: 0 0 0 2px rgba(229, 62, 62, 0.5);
+
+        button, input, select {
+            font-family: var(--font-family);
+            background-color: var(--surface-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 0.75rem 1rem;
+            border-radius: 4px;
+            font-size: 1rem;
         }
-        .dark-btn {
-            background-color: #e53e3e;
-            color: #ffffff;
-            font-weight: 600;
-            border-radius: 0.375rem;
+
+        button {
+            cursor: pointer;
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
             transition: background-color 0.2s;
         }
-        .dark-btn:hover {
-            background-color: #c53030;
-        }
-        .dark-btn-secondary {
-            background-color: #4a5568;
-        }
-        .dark-btn-secondary:hover {
-            background-color: #2d3748;
-        }
 
-        /* Modal backdrop */
-        .modal-backdrop {
-            background-color: rgba(0, 0, 0, 0.75);
+        button:hover {
+            background-color: #f40612;
         }
         
-        /* Table styles */
-        .data-table th, .data-table td {
-            border-color: #4a5568;
-        }
-        .data-table th {
-            background-color: #2d3748;
-        }
-        .data-table tbody tr:nth-child(even) {
-            background-color: #2c2c2c;
-        }
-        .data-table tbody tr:hover {
-            background-color: #4a5568;
+        button.secondary {
+            background-color: var(--surface-color);
+            border-color: var(--border-color);
         }
 
-        /* Scrollbar styles */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #2d3748; }
-        ::-webkit-scrollbar-thumb { background: #718096; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a0aec0; }
+        button.secondary:hover {
+            background-color: #3e3e3e;
+        }
+
+        input[type="text"], input[type="password"], input[type="date"], input[type="number"], select {
+            width: 100%;
+        }
+
+        h1, h2, h3 {
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Login Page */
+        #login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+            background-color: var(--surface-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .login-container h1 {
+            margin-bottom: 2rem;
+        }
         
-        /*
-         * ========================================
-         * PIXEL-PERFECT PRICE TAG PRINT STYLES
-         * ========================================
-         * These styles are meticulously crafted to match the provided PDF/image templates.
-         * They use absolute positioning and specific font sizes to ensure accuracy.
-         * Units are in 'mm' for print media queries to ensure physical size is correct.
-        */
+        .login-container .logo-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .login-container .logo-container img {
+            max-width: 200px;
+            filter: brightness(0) invert(1);
+        }
+
+        .login-container .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .login-container .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        #login-error {
+            color: var(--primary-color);
+            margin-top: 1rem;
+            height: 1em;
+        }
+
+        /* Main App Layout */
+        #main-app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .main-header .welcome-user {
+            font-size: 1.1rem;
+        }
+
+        .main-header .welcome-user span {
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .header-actions button {
+            margin-left: 1rem;
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+        
+        .controls-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Table Styles */
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--surface-color);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-weight: 600;
+            background-color: #333;
+        }
+
+        td ul {
+            padding-left: 1.2rem;
+        }
+        
+        tr:hover {
+            background-color: #3e3e3e;
+        }
+        
+        td.price, th.price {
+            text-align: right;
+        }
+        
+        td .normal-price-struck {
+            text-decoration: line-through;
+            opacity: 0.7;
+            margin-right: 0.5rem;
+            font-size: 0.9em;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+        }
+        
+        .pagination-controls button {
+            margin: 0 0.25rem;
+        }
+
+        /* Bulk Actions Bar */
+        #bulk-actions-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: var(--primary-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        #bulk-actions-bar.visible {
+            transform: translateY(0);
+        }
+        
+        #bulk-actions-bar span {
+            font-weight: 500;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--surface-color);
+            margin: auto;
+            padding: 2rem;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 1200px;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .close-button {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: white;
+        }
+        
+        /* Preview Modal */
+        #preview-modal .modal-content {
+            max-width: 95vw;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .preview-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .preview-controls .template-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .preview-area {
+            flex-grow: 1;
+            background-color: #555;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: auto;
+            padding: 1rem;
+            position: relative;
+        }
+        
+        .preview-navigation {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: calc(100% - 2rem);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .preview-navigation button {
+            background-color: rgba(0,0,0,0.5);
+            border: none;
+            font-size: 2rem;
+            padding: 0.5rem 1rem;
+        }
+
+        #print-container {
+            background: white;
+            border: 1px dashed #ccc;
+            transform-origin: center center;
+        }
+
+        /* Admin Panel */
+        #admin-panel .modal-content {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .admin-section {
+            background-color: #1e1e1e;
+            padding: 1.5rem;
+            border-radius: 6px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        
+        .admin-section h3 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .sku-form-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+        
+        #user-list li, #log-list li {
+            background-color: var(--surface-color);
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ==================== PRINT STYLES ==================== */
+        
+        .price-tag {
+            font-family: 'Kanit', sans-serif;
+            color: #000;
+            background-color: #fff;
+            border: 2px solid #000;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .tag-header {
+            padding: 1.5mm 3mm;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        .tag-logo {
+            max-width: 25%;
+            height: auto;
+        }
+        
+        .tag-sku {
+            font-size: 10pt;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .tag-body {
+            padding: 0 4mm;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .tag-description {
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 2mm;
+        }
+
+        .tag-details {
+            font-size: 10pt;
+            line-height: 1.4;
+            padding-left: 4mm;
+            margin-bottom: 2mm;
+        }
+        
+        .tag-details ul {
+            list-style-type: '• ';
+            padding-left: 1em;
+            margin: 0;
+        }
+        
+        .tag-details li {
+            padding-left: 0.5em;
+        }
+        
+        .tag-footer {
+            padding: 3mm 4mm;
+            margin-top: auto;
+            text-align: right;
+            position: relative;
+            flex-shrink: 0;
+        }
+        
+        .tag-expire {
+            position: absolute;
+            top: 3mm;
+            left: 4mm;
+            font-size: 10pt;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .tag-price-normal {
+            font-size: 14pt;
+            font-weight: 500;
+            text-decoration: line-through;
+            opacity: 0.8;
+            margin-bottom: -4mm;
+        }
+        
+        .tag-price-promo {
+            font-weight: 700;
+            color: var(--primary-color);
+            line-height: 1;
+        }
+        
+        /* A4 Template (1-up) */
+        .tag-a4 {
+            width: 190mm;
+            height: 277mm; /* A4 with margins */
+            padding: 5mm;
+        }
+        .tag-a4 .tag-description { font-size: 42pt; }
+        .tag-a4 .tag-details { font-size: 20pt; }
+        .tag-a4 .tag-price-normal { font-size: 36pt; }
+        .tag-a4 .tag-price-promo { font-size: 72pt; }
+        .tag-a4 .tag-sku { font-size: 18pt; }
+        .tag-a4 .tag-expire { font-size: 18pt; }
+
+        /* A5 Template (2-up) */
+        .tag-a5 {
+            width: 128mm; /* A5 with margins */
+            height: 190mm;
+            padding: 4mm;
+        }
+        .tag-a5 .tag-description { font-size: 28pt; }
+        .tag-a5 .tag-details { font-size: 14pt; }
+        .tag-a5 .tag-price-normal { font-size: 24pt; }
+        .tag-a5 .tag-price-promo { font-size: 48pt; }
+        .tag-a5 .tag-sku { font-size: 12pt; }
+        .tag-a5 .tag-expire { font-size: 12pt; }
+
+        /* A6 Template (4-up) */
+        .tag-a6 {
+            width: 95mm; /* A6 with margins */
+            height: 138mm;
+            padding: 3mm;
+        }
+        .tag-a6 .tag-description { font-size: 20pt; }
+        .tag-a6 .tag-details { font-size: 11pt; }
+        .tag-a6 .tag-price-normal { font-size: 18pt; }
+        .tag-a6 .tag-price-promo { font-size: 36pt; }
+        .tag-a6 .tag-sku { font-size: 10pt; }
+        .tag-a6 .tag-expire { font-size: 10pt; }
+
+        /* Accessory Tag Template (12-up) */
+        .tag-acc {
+            width: 95mm;
+            height: 43mm; /* 1/3 A6 with margins */
+            padding: 2mm;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+        }
+        .tag-acc .tag-header, .tag-acc .tag-footer { display: none; } /* Hide for this compact layout */
+        .tag-acc .acc-left {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            height: 100%;
+            padding-right: 2mm;
+        }
+        .tag-acc .acc-right {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-end;
+            text-align: right;
+            height: 100%;
+            border-left: 1px solid #ccc;
+            padding-left: 2mm;
+        }
+        .tag-acc .tag-description {
+            font-size: 11pt;
+            font-weight: 600;
+            line-height: 1.1;
+            margin: 0;
+        }
+        .tag-acc .tag-sku {
+            order: -1;
+            text-align: left;
+            margin-bottom: 1mm;
+            font-size: 8pt;
+        }
+        .tag-acc .tag-expire {
+            position: static;
+            font-size: 8pt;
+            text-align: right;
+            margin-bottom: 0.5mm;
+        }
+        .tag-acc .tag-price-normal {
+            font-size: 10pt;
+            margin-bottom: -1mm;
+        }
+        .tag-acc .tag-price-promo {
+            font-size: 20pt;
+        }
+
 
         @media print {
-            body, #app, .modal-backdrop {
-                visibility: hidden;
-                margin: 0;
-                padding: 0;
-                background: white;
+            body, html {
+                background: #fff;
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
             }
-            #print-area, #print-area * {
-                visibility: visible;
+            #login-page, #main-app, #preview-modal, #admin-panel {
+                display: none !important;
             }
             #print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
+                display: block !important;
+                margin: 0;
+                padding: 0;
             }
+
             @page {
                 size: A4;
                 margin: 0;
             }
-        }
+            
+            .print-page {
+                width: 210mm;
+                height: 297mm;
+                page-break-after: always;
+                overflow: hidden;
+                display: flex;
+                flex-wrap: wrap;
+                align-content: flex-start;
+                justify-content: flex-start;
+                padding: 5mm; /* Gutter */
+            }
+            
+            .print-page:last-child {
+                page-break-after: auto;
+            }
+            
+            /* Define grid layouts for printing */
+            .print-grid-a5 { justify-content: space-around; gap: 5mm; }
+            .print-grid-a6 { justify-content: space-around; gap: 5mm; }
+            .print-grid-acc { justify-content: space-around; align-content: space-around; gap: 2mm; }
 
-        .print-page {
-            width: 210mm;
-            height: 297mm;
-            page-break-after: always;
-            box-sizing: border-box;
-            position: relative;
-            overflow: hidden;
-            background: white;
-            display: grid;
-        }
-        .print-page:last-child {
-            page-break-after: auto;
+            .price-tag {
+                break-inside: avoid;
+                margin: 0; /* remove any margin from screen styles */
+            }
         }
         
-        /* --- A4 Tag Layout (1 per page) --- */
-        .grid-a4 { grid-template-columns: 1fr; grid-template-rows: 1fr; padding: 10mm; }
-        .tag-container-a4 { width: 190mm; height: 277mm; }
-
-        /* --- A5 Tag Layout (2 per page) --- */
-        .grid-a5 { grid-template-columns: 1fr; grid-template-rows: repeat(2, 1fr); gap: 0; padding: 5mm; justify-items: center; align-items: center; }
-        .tag-container-a5 { width: 148mm; height: 200mm; transform: rotate(90deg) translateX(26mm) translateY(26mm); transform-origin: center; }
-
-        /* --- A6 Tag Layout (4 per page) --- */
-        .grid-a6 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 0; padding: 5mm; justify-items: center; align-items: center; }
-        .tag-container-a6 { width: 105mm; height: 148.5mm; }
-
-        /* --- Accessories Tag Layout (12 per page) --- */
-        .grid-acc { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, 1fr); gap: 0; padding: 7.5mm 5mm; justify-items: center; align-items: center; }
-        .tag-container-acc { width: 63.3mm; height: 70mm; }
-
-        /* --- Base Tag Styles (Shared across templates) --- */
-        .price-tag {
-            font-family: 'Kanit', 'Prompt', sans-serif;
-            color: black;
-            background-color: black;
-            box-sizing: border-box;
-            position: relative;
-            overflow: hidden;
-            border-radius: 12px; /* A4 has rounded corners */
-        }
-        .price-tag .inner-content {
-            position: absolute;
-            top: 5%;
-            left: 5%;
-            width: 90%;
-            height: 90%;
-            background-color: white;
-            border-radius: 8px; /* Inner content rounded corners */
-            box-sizing: border-box;
-            padding: 5%;
-            display: flex;
-            flex-direction: column;
-        }
-        .price-tag .logo-container {
-            position: absolute;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .price-tag .logo-img {
-            height: 100%;
-            width: auto;
-            object-fit: contain;
-        }
-        .price-tag .logo-text {
-            font-size: 0.8em;
-            font-weight: 300;
-            line-height: 1;
-        }
-        .price-tag .sku {
-            position: absolute;
-            font-weight: 500;
-            color: #555;
-        }
-        .price-tag .description {
-            font-weight: 700;
-            line-height: 1.1;
-            margin-top: 15%; /* Pushes content down */
-        }
-        .price-tag .details {
-            font-weight: 400;
-            line-height: 1.4;
-            list-style-position: inside;
-            padding-left: 0;
-        }
-        .price-tag .details li {
-            padding-left: 0;
-            text-indent: -1.2em;
-            margin-left: 1.2em;
-        }
-        .price-tag .price-area {
-            position: absolute;
-            bottom: 5%;
-            left: 5%;
-            width: 90%;
-            height: 25%;
-        }
-        .price-tag .expire-date {
-            position: absolute;
-            top: 0;
-            left: 0;
-            font-size: 0.9em;
-            font-weight: 500;
-            color: #333;
-        }
-        .price-tag .normal-price {
-            position: absolute;
-            bottom: 35%;
-            right: 0;
-            color: #e53e3e;
-            font-weight: 600;
-            text-decoration: line-through;
-        }
-        .price-tag .promo-price {
-            position: absolute;
-            bottom: -5%;
-            right: 0;
-            font-weight: 700;
-            color: black;
-            line-height: 1;
-        }
-        .price-tag .main-price { /* Used when no promo price exists */
-            position: absolute;
-            bottom: -5%;
-            right: 0;
-            font-weight: 700;
-            color: black;
-            line-height: 1;
+        /* This is a hidden area used for generating the print output */
+        #print-area {
+            display: none;
         }
         
-        /* --- A4 Specific Styles --- */
-        .tag-container-a4 .price-tag { border-radius: 20px; }
-        .tag-container-a4 .inner-content { border-radius: 15px; padding: 20mm; }
-        .tag-container-a4 .logo-container { top: 7%; left: 7%; height: 7%; }
-        .tag-container-a4 .sku { top: 7%; right: 7%; font-size: 24pt; }
-        .tag-container-a4 .description { font-size: 72pt; margin-top: 18%; }
-        .tag-container-a4 .details { font-size: 28pt; margin-top: 10mm; }
-        .tag-container-a4 .price-area { bottom: 8%; left: 10%; width: 80%; height: 25%; }
-        .tag-container-a4 .expire-date { font-size: 26pt; }
-        .tag-container-a4 .normal-price { font-size: 50pt; }
-        .tag-container-a4 .promo-price, .tag-container-a4 .main-price { font-size: 120pt; }
-
-        /* --- A6 Specific Styles --- */
-        .tag-container-a6 .price-tag { border-radius: 10px; }
-        .tag-container-a6 .inner-content { border-radius: 8px; padding: 8mm; }
-        .tag-container-a6 .logo-container { top: 8mm; left: 8mm; height: 10mm; }
-        .tag-container-a6 .sku { top: 8mm; right: 8mm; font-size: 10pt; }
-        .tag-container-a6 .description { font-size: 24pt; margin-top: 12mm; }
-        .tag-container-a6 .details { font-size: 11pt; margin-top: 5mm; line-height: 1.5; }
-        .tag-container-a6 .price-area { bottom: 8mm; left: 8mm; width: calc(100% - 16mm); height: 30mm; }
-        .tag-container-a6 .expire-date { font-size: 10pt; }
-        .tag-container-a6 .normal-price { font-size: 18pt; }
-        .tag-container-a6 .promo-price, .tag-container-a6 .main-price { font-size: 44pt; }
-        .tag-container-a6 .logo-img { content: url('http://googleusercontent.com/file_content/1'); } /* Placeholder for logo */
-        
-        /* --- A5 Specific Styles (based on A6, but larger) --- */
-        .tag-container-a5 .price-tag { border-radius: 15px; }
-        .tag-container-a5 .inner-content { border-radius: 12px; padding: 12mm; }
-        .tag-container-a5 .logo-container { top: 12mm; left: 12mm; height: 15mm; }
-        .tag-container-a5 .sku { top: 12mm; right: 12mm; font-size: 14pt; }
-        .tag-container-a5 .description { font-size: 36pt; margin-top: 18mm; }
-        .tag-container-a5 .details { font-size: 14pt; margin-top: 8mm; line-height: 1.5; }
-        .tag-container-a5 .price-area { bottom: 12mm; left: 12mm; width: calc(100% - 24mm); height: 45mm; }
-        .tag-container-a5 .expire-date { font-size: 14pt; }
-        .tag-container-a5 .normal-price { font-size: 28pt; }
-        .tag-container-a5 .promo-price, .tag-container-a5 .main-price { font-size: 64pt; }
-        .tag-container-a5 .logo-img { content: url('http://googleusercontent.com/file_content/1'); } /* Placeholder for logo */
-
-        /* --- Accessories Tag Specific Styles --- */
-        .tag-container-acc .price-tag { border: 2px solid black; border-radius: 0; }
-        .tag-container-acc .inner-content { display: none; } /* No inner white box for this template */
-        .tag-container-acc .acc-content {
-            background: white;
-            color: black;
-            width: 100%;
-            height: 100%;
-            padding: 4mm;
-            position: relative;
-            display: flex;
-            flex-direction: column;
+        /* Simple spinner */
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
         }
-        .tag-container-acc .logo-container { top: 4mm; left: 4mm; height: 8mm; }
-        .tag-container-acc .sku { top: 4mm; right: 4mm; font-size: 8pt; }
-        .tag-container-acc .description { font-size: 11pt; margin-top: 10mm; line-height: 1.2; }
-        .tag-container-acc .price-area { bottom: 4mm; left: 4mm; width: calc(100% - 8mm); height: 15mm; }
-        .tag-container-acc .expire-date { font-size: 8pt; top: 2px; }
-        .tag-container-acc .normal-price { font-size: 10pt; bottom: 50%; }
-        .tag-container-acc .promo-price, .tag-container-acc .main-price { font-size: 20pt; bottom: 0; }
-        .tag-container-acc .logo-img { content: url('http://googleusercontent.com/file_content/1'); } /* Placeholder for logo */
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100">
+<body>
 
-    <!-- Login Screen -->
-    <div id="login-screen" class="min-h-screen flex items-center justify-center">
-        <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-full max-w-sm">
-            <h1 class="text-3xl font-bold text-center mb-2 text-white">ระบบจัดการป้ายราคา</h1>
-            <p class="text-center text-gray-400 mb-6">Price Tag Management</p>
-            <div class="space-y-4">
-                <input id="username" type="text" placeholder="ชื่อผู้ใช้ (Username)" class="w-full p-3 dark-input">
-                <input id="password" type="password" placeholder="รหัสผ่าน (Password)" class="w-full p-3 dark-input">
+    <div id="login-page">
+        <div class="login-container">
+            <div class="logo-container">
+                 </div>
+            <h1>จัดการป้ายราคา</h1>
+            <div class="form-group">
+                <label for="username">ชื่อผู้ใช้</label>
+                <input type="text" id="username" name="username">
             </div>
-            <p id="login-error" class="text-red-500 text-sm mt-4 h-5"></p>
-            <button id="login-btn" class="w-full p-3 mt-4 dark-btn">เข้าสู่ระบบ</button>
+            <div class="form-group">
+                <label for="password">รหัสผ่าน</label>
+                <input type="password" id="password" name="password">
+            </div>
+            <button id="login-button" style="width: 100%;">เข้าสู่ระบบ</button>
+            <p id="login-error"></p>
         </div>
     </div>
 
-    <!-- Main Application -->
-    <div id="app" class="hidden">
-        <!-- Header -->
-        <header class="bg-gray-800 p-4 flex justify-between items-center shadow-md">
-            <h1 class="text-xl font-bold">Price Tag App</h1>
-            <div class="flex items-center gap-4">
-                <div id="user-info" class="text-right"></div>
-                <button id="settings-btn" class="px-4 py-2 dark-btn-secondary">ตั้งค่า</button>
-                <button id="logout-btn" class="px-4 py-2 dark-btn">ออกจากระบบ</button>
+    <div id="main-app" class="hidden">
+        <header class="main-header">
+            <div class="welcome-user">
+                ยินดีต้อนรับ, <span id="user-display"></span>
+            </div>
+            <div class="header-actions">
+                <button id="admin-panel-button" class="secondary hidden">จัดการระบบ</button>
+                <button id="logout-button">ออกจากระบบ</button>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main class="p-4 md:p-6">
-            <!-- Controls -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 bg-gray-800 rounded-lg">
-                <input id="search-input" type="text" placeholder="ค้นหา SKU / ชื่อสินค้า..." class="w-full p-2 dark-input lg:col-span-2">
-                <input id="date-filter" type="date" class="w-full p-2 dark-input">
-                <select id="channel-select" class="w-full p-2 dark-input"></select>
+        <main class="main-content">
+            <div class="controls-container">
+                <div class="form-group">
+                    <label for="search-input">ค้นหา (SKU หรือ ชื่อสินค้า)</label>
+                    <input type="text" id="search-input" placeholder="พิมพ์เพื่อค้นหา...">
+                </div>
+                <div class="form-group">
+                    <label for="date-filter">กรองตามวันที่แก้ไข</label>
+                    <input type="date" id="date-filter">
+                </div>
+                <div class="form-group">
+                    <label for="channel-select">ช่องทางการขาย</label>
+                    <select id="channel-select"></select>
+                </div>
             </div>
 
-            <!-- Actions -->
-            <div class="flex flex-wrap gap-2 mb-4">
-                <button id="add-sku-btn" class="px-4 py-2 dark-btn">เพิ่มสินค้าใหม่</button>
-                <select id="template-select" class="p-2 dark-input">
-                    <option value="A4">เทมเพลต A4</option>
-                    <option value="A5">เทมเพลต A5</option>
-                    <option value="A6" selected>เทมเพลต A6</option>
-                    <option value="Acc">เทมเพลต Accessories</option>
-                </select>
-                <button id="preview-btn" class="px-4 py-2 dark-btn-secondary" disabled>ดูตัวอย่าง</button>
-                <button id="print-btn" class="px-4 py-2 dark-btn-secondary" disabled>พิมพ์</button>
-                <button id="export-pdf-btn" class="px-4 py-2 dark-btn-secondary" disabled>ส่งออก PDF</button>
-            </div>
-
-            <!-- Product Table -->
-            <div class="overflow-x-auto bg-gray-800 rounded-lg">
-                <table class="w-full text-left data-table">
-                    <thead class="text-xs text-gray-300 uppercase">
+            <div class="table-container">
+                <div id="loading-spinner" class="spinner hidden"></div>
+                <table id="sku-table">
+                    <thead>
                         <tr>
-                            <th class="p-3"><input type="checkbox" id="select-all-checkbox"></th>
-                            <th class="p-3">SKU</th>
-                            <th class="p-3">ชื่อสินค้า</th>
-                            <th class="p-3">รายละเอียด</th>
-                            <th class="p-3 text-right">ราคาปกติ</th>
-                            <th class="p-3 text-right">ราคาช่องทาง</th>
-                            <th class="p-3 text-right">วันหมดอายุ</th>
-                            <th id="gp-header" class="p-3 text-right hidden">GP%</th>
-                            <th class="p-3 text-center">Actions</th>
+                            <th><input type="checkbox" id="select-all-checkbox"></th>
+                            <th>Item No.</th>
+                            <th>Description</th>
+                            <th>Details</th>
+                            <th class="price">ราคาปกติ</th>
+                            <th class="price">ราคาช่องทาง</th>
+                            <th>วันหมดอายุ</th>
+                            <th class="price">GP%</th>
                         </tr>
                     </thead>
-                    <tbody id="product-table-body">
-                        <!-- Rows will be injected here by JavaScript -->
-                    </tbody>
+                    <tbody id="sku-table-body">
+                        </tbody>
                 </table>
             </div>
-
-            <!-- Pagination -->
-            <div class="flex justify-between items-center mt-4">
-                <button id="prev-page-btn" class="px-4 py-2 dark-btn-secondary">ก่อนหน้า</button>
-                <span id="page-info"></span>
-                <button id="next-page-btn" class="px-4 py-2 dark-btn-secondary">ถัดไป</button>
+            <p id="no-data-message" class="hidden" style="text-align: center; padding: 2rem;">ไม่พบข้อมูลสินค้า กรุณาอัปโหลดไฟล์ Excel ในหน้าจัดการระบบ</p>
+            
+            <div class="pagination-container">
+                <div id="pagination-info"></div>
+                <div class="pagination-controls">
+                    <button id="prev-page-button">ก่อนหน้า</button>
+                    <button id="next-page-button">ถัดไป</button>
+                </div>
             </div>
         </main>
-    </div>
-
-    <!-- SKU Add/Edit Modal -->
-    <div id="sku-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-2xl m-4 overflow-y-auto max-h-[90vh]">
-            <h2 id="sku-modal-title" class="text-2xl font-bold mb-4"></h2>
-            <form id="sku-form" class="space-y-4">
-                <input type="hidden" id="sku-id">
-                <div>
-                    <label for="sku-itemNo" class="block mb-1">SKU (Item No.)</label>
-                    <input type="text" id="sku-itemNo" class="w-full p-2 dark-input" required>
-                </div>
-                <div>
-                    <label for="sku-description" class="block mb-1">ชื่อสินค้า (Description)</label>
-                    <input type="text" id="sku-description" class="w-full p-2 dark-input" required>
-                </div>
-                <div>
-                    <label for="sku-details" class="block mb-1">รายละเอียด (Details) - หนึ่งข้อต่อหนึ่งบรรทัด</label>
-                    <textarea id="sku-details" rows="5" class="w-full p-2 dark-input"></textarea>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="sku-normal_price" class="block mb-1">ราคาปกติ</label>
-                        <input type="number" id="sku-normal_price" class="w-full p-2 dark-input">
-                    </div>
-                    <div>
-                        <label for="sku-promo_price" class="block mb-1">ราคาโปรโมชั่น</label>
-                        <input type="number" id="sku-promo_price" class="w-full p-2 dark-input">
-                    </div>
-                    <div>
-                        <label for="sku-flagship_price" class="block mb-1">ราคา Flagship</label>
-                        <input type="number" id="sku-flagship_price" class="w-full p-2 dark-input">
-                    </div>
-                    <div>
-                        <label for="sku-dealer_price" class="block mb-1">ราคา Dealer</label>
-                        <input type="number" id="sku-dealer_price" class="w-full p-2 dark-input">
-                    </div>
-                     <div>
-                        <label for="sku-marketplace_price" class="block mb-1">ราคา Marketplace</label>
-                        <input type="number" id="sku-marketplace_price" class="w-full p-2 dark-input">
-                    </div>
-                    <div>
-                        <label for="sku-expire_date" class="block mb-1">วันหมดอายุโปรโมชั่น</label>
-                        <input type="date" id="sku-expire_date" class="w-full p-2 dark-input">
-                    </div>
-                </div>
-                <div class="flex justify-end gap-4 pt-4">
-                    <button type="button" id="cancel-sku-btn" class="px-4 py-2 dark-btn-secondary">ยกเลิก</button>
-                    <button type="submit" class="px-4 py-2 dark-btn">บันทึก</button>
-                </div>
-            </form>
+        
+        <div id="bulk-actions-bar">
+            <span id="selection-count"></span>
+            <div>
+                <button id="preview-selected-button">ดูตัวอย่าง / พิมพ์</button>
+            </div>
         </div>
     </div>
     
-    <!-- Settings Panel Modal -->
-    <div id="settings-panel" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-4xl m-4 overflow-y-auto max-h-[90vh]">
-            <div class="flex justify-between items-center mb-4">
-                 <h2 class="text-2xl font-bold">ตั้งค่าระบบ</h2>
-                 <button id="close-settings-btn" class="text-2xl font-bold">&times;</button>
+    <div id="preview-modal" class="modal hidden">
+        <div class="modal-content">
+             <div class="modal-header">
+                <h2>ดูตัวอย่างป้ายราคา</h2>
+                <span class="close-button">&times;</span>
             </div>
-            <!-- Tabs -->
-            <div class="border-b border-gray-700">
-                <nav id="settings-tabs" class="flex space-x-4" aria-label="Tabs">
-                    <!-- Tabs will be generated by JS -->
-                </nav>
+            <div class="preview-controls">
+                <div class="template-selector">
+                    <label for="template-select">เลือกเทมเพลต:</label>
+                    <select id="template-select">
+                        <option value="a4">A4 (1 per page)</option>
+                        <option value="a5">A5 (2 per page)</option>
+                        <option value="a6" selected>A6 (4 per page)</option>
+                        <option value="acc">Accessory (12 per page)</option>
+                    </select>
+                </div>
+                <div>
+                    <button id="export-pdf-button" class="secondary">Export PDF</button>
+                    <button id="print-button">พิมพ์ป้ายราคาทั้งหมด</button>
+                </div>
             </div>
-            <div id="settings-content" class="pt-4">
-                <!-- Data Management -->
-                <div id="data-management-tab" class="space-y-4">
-                    <h3 class="text-lg font-semibold">จัดการข้อมูล</h3>
-                    <div class="flex items-center gap-4">
-                        <label for="import-excel" class="whitespace-nowrap">นำเข้า Excel (.xlsx):</label>
-                        <input type="file" id="import-excel" accept=".xlsx" class="dark-input p-2 flex-grow">
+            <div class="preview-area">
+                <div id="print-container">
                     </div>
-                    <div class="flex gap-4">
-                        <button id="export-excel-btn" class="px-4 py-2 dark-btn">ส่งออกเป็น Excel</button>
-                         <button id="clear-data-btn" class="px-4 py-2 bg-red-800 hover:bg-red-700 text-white font-semibold rounded-lg">ล้างข้อมูลสินค้าทั้งหมด</button>
-                    </div>
-                </div>
-                <!-- Logo Management -->
-                <div id="logo-management-tab" class="hidden space-y-4">
-                     <h3 class="text-lg font-semibold">จัดการโลโก้</h3>
-                     <div class="flex items-center gap-4">
-                        <label for="import-logo" class="whitespace-nowrap">อัปโหลดโลโก้:</label>
-                        <input type="file" id="import-logo" accept="image/*" class="dark-input p-2 flex-grow">
-                    </div>
-                    <div>
-                        <p>ตัวอย่างโลโก้ปัจจุบัน:</p>
-                        <div id="logo-preview" class="mt-2 bg-gray-700 p-4 rounded-lg h-24 flex items-center justify-center">
-                            <img id="logo-preview-img" src="" alt="Logo Preview" class="max-h-full max-w-full">
-                        </div>
-                    </div>
-                </div>
-                <!-- User Management (Host only) -->
-                <div id="user-management-tab" class="hidden space-y-4">
-                    <h3 class="text-lg font-semibold">จัดการผู้ใช้งาน</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left data-table">
-                            <thead><tr><th class="p-2">ชื่อผู้ใช้</th><th class="p-2">Role</th><th class="p-2">ช่องทางที่เห็น</th><th class="p-2">Actions</th></tr></thead>
-                            <tbody id="user-table-body"></tbody>
-                        </table>
-                    </div>
-                    <form id="add-user-form" class="grid grid-cols-1 md:grid-cols-4 gap-2 items-end border-t border-gray-700 pt-4">
-                        <input type="text" id="new-username" placeholder="Username" class="dark-input p-2" required>
-                        <input type="text" id="new-password" placeholder="Password" class="dark-input p-2" required>
-                        <select id="new-role" class="dark-input p-2"></select>
-                        <button type="submit" class="dark-btn p-2">เพิ่มผู้ใช้</button>
-                    </form>
-                </div>
-                <!-- Logs -->
-                <div id="logs-tab" class="hidden space-y-4">
-                    <h3 class="text-lg font-semibold">ประวัติการใช้งาน</h3>
-                    <button id="export-logs-csv-btn" class="px-4 py-2 dark-btn">ส่งออกเป็น CSV</button>
-                    <div id="logs-container" class="bg-gray-900 p-2 rounded-lg h-64 overflow-y-auto font-mono text-sm"></div>
+                <div class="preview-navigation">
+                    <button id="prev-sku-button">&lt;</button>
+                    <button id="next-sku-button">&gt;</button>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Preview Modal -->
-    <div id="preview-modal" class="fixed inset-0 z-50 items-center justify-center hidden modal-backdrop">
-        <div class="bg-gray-800 rounded-lg shadow-xl p-4 w-full max-w-5xl m-4 h-[90vh] flex flex-col">
-            <div class="flex justify-between items-center mb-2 flex-shrink-0">
-                <h2 class="text-2xl font-bold">ตัวอย่างป้ายราคา</h2>
-                <div class="flex items-center gap-2">
-                    <button id="prev-preview-btn" class="px-3 py-1 dark-btn-secondary">&lt; ก่อนหน้า</button>
-                    <span id="preview-index-info"></span>
-                    <button id="next-preview-btn" class="px-3 py-1 dark-btn-secondary">ถัดไป &gt;</button>
-                </div>
-                <button id="close-preview-btn" class="text-3xl font-bold">&times;</button>
+    <div id="admin-panel" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>จัดการระบบ</h2>
+                <span class="close-button">&times;</span>
             </div>
-            <div id="preview-content" class="flex-grow bg-gray-500 rounded flex items-center justify-center overflow-auto p-4">
-                <!-- Preview tag will be rendered here -->
+
+            <div class="admin-section">
+                <h3>จัดการข้อมูลสินค้า (SKU)</h3>
+                <div class="form-grid">
+                    <div style="grid-column: 1 / -1;">
+                        <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="hidden">
+                        <button id="import-excel-button">นำเข้าข้อมูลจาก Excel</button>
+                        <button id="export-excel-button" class="secondary">ส่งออกข้อมูลเป็น Excel</button>
+                    </div>
+                </div>
+                <h4 style="margin-top: 2rem; margin-bottom: 1rem;">แก้ไข/เพิ่มข้อมูลสินค้า</h4>
+                <div class="form-grid">
+                    <input type="hidden" id="sku-id-input">
+                    <div class="form-group"><label>Item No. (SKU)</label><input type="text" id="sku-itemNo-input"></div>
+                    <div class="form-group" style="grid-column: span 2;"><label>Description</label><input type="text" id="sku-description-input"></div>
+                    <div class="form-group" style="grid-column: 1 / -1;"><label>Details (ใช้ • สำหรับขึ้นบรรทัดใหม่)</label><textarea id="sku-details-input" rows="3" style="background:var(--surface-color); color:var(--text-color); border:1px solid var(--border-color); padding:0.5rem; width:100%"></textarea></div>
+                    <div class="form-group"><label>ราคาปกติ</label><input type="number" id="sku-normalPrice-input"></div>
+                    <div class="form-group"><label>ราคาโปรโมชั่น</label><input type="number" id="sku-promoPrice-input"></div>
+                    <div class="form-group"><label>ราคา Flagship</label><input type="number" id="sku-flagshipPrice-input"></div>
+                    <div class="form-group"><label>ราคา Dealer</label><input type="number" id="sku-dealerPrice-input"></div>
+                    <div class="form-group"><label>ราคา Marketplace</label><input type="number" id="sku-marketplacePrice-input"></div>
+                    <div class="form-group"><label>วันหมดอายุโปรโมชั่น</label><input type="date" id="sku-expireDate-input"></div>
+                </div>
+                <div class="sku-form-actions">
+                    <button id="save-sku-button">บันทึกข้อมูล</button>
+                    <button id="clear-sku-form-button" class="secondary">ล้างฟอร์ม</button>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <h3>จัดการโลโก้</h3>
+                <input type="file" id="logo-upload-input" accept="image/png, image/jpeg, image/svg+xml" class="hidden">
+                <button id="upload-logo-button">อัปโหลดโลโก้ใหม่</button>
+                <div style="margin-top: 1rem;">
+                    <p>โลโก้ปัจจุบัน:</p>
+                    <img id="current-logo-preview" style="max-width: 200px; max-height: 80px; background: white; padding: 10px; border-radius: 4px; margin-top: 0.5rem;">
+                </div>
+            </div>
+
+            <div id="user-management-section" class="admin-section hidden">
+                 <h3>จัดการผู้ใช้งาน</h3>
+                 <div class="form-grid">
+                     <div class="form-group"><label>ชื่อผู้ใช้</label><input type="text" id="new-user-username"></div>
+                     <div class="form-group"><label>รหัสผ่าน</label><input type="text" id="new-user-password"></div>
+                     <div class="form-group"><label>Role</label>
+                        <select id="new-user-role">
+                            <option value="Admin">Admin</option>
+                            <option value="User1">User1 (Flagship)</option>
+                            <option value="User2">User2 (Flagship)</option>
+                            <option value="User3">User3 (Dealer)</option>
+                            <option value="User4">User4 (Marketplace)</option>
+                        </select>
+                     </div>
+                     <div class="form-group" style="justify-content: flex-end;">
+                        <button id="add-user-button">เพิ่มผู้ใช้</button>
+                     </div>
+                 </div>
+                 <h4 style="margin-top: 2rem; margin-bottom: 1rem;">รายชื่อผู้ใช้</h4>
+                 <ul id="user-list" style="list-style: none;"></ul>
+            </div>
+
+            <div class="admin-section">
+                <h3>ประวัติการใช้งาน</h3>
+                <button id="export-logs-button">ส่งออกประวัติ (CSV)</button>
+                <ul id="log-list" style="list-style: none; margin-top: 1rem; max-height: 300px; overflow-y: auto;"></ul>
             </div>
         </div>
     </div>
+    
+    <div id="print-area"></div>
 
-    <!-- Hidden area for printing -->
-    <div id="print-area" class="hidden"></div>
-
-    <!-- Main Application Script -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- START OF APPLICATION LOGIC ---
+        // IIFE to encapsulate the entire application
+        (function() {
+            'use strict';
 
-            // --- 1. STATE MANAGEMENT ---
-            const state = {
+            /**
+             * ===================================================================
+             * Application State & Configuration
+             * ===================================================================
+             */
+            const App = {
+                // Hardcoded user data
+                users: {
+                    'host1': { pass: 'host123', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'] },
+                    'admin1': { pass: 'admin123', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'] },
+                    'user1': { pass: 'u1pass', role: 'User1', channels: ['Flagship'] },
+                    'user2': { pass: 'u2pass', role: 'User2', channels: ['Flagship'] },
+                    'user3': { pass: 'u3pass', role: 'User3', channels: ['Dealer'] },
+                    'user4': { pass: 'u4pass', role: 'User4', channels: ['Marketplace'] }
+                },
+                
+                // App state
                 currentUser: null,
-                users: [],
-                allSkus: [],
-                filteredSkus: [],
+                allData: [],
+                filteredData: [],
+                selectedSkus: new Set(),
+                
+                // UI state
                 currentPage: 1,
                 itemsPerPage: 20,
-                selectedSkus: new Set(),
-                logs: [],
-                companyLogo: null,
-            };
-
-            // --- 2. DOM ELEMENT SELECTORS ---
-            const DOMElements = {
-                loginScreen: document.getElementById('login-screen'),
-                app: document.getElementById('app'),
-                loginBtn: document.getElementById('login-btn'),
-                usernameInput: document.getElementById('username'),
-                passwordInput: document.getElementById('password'),
-                loginError: document.getElementById('login-error'),
-                userInfo: document.getElementById('user-info'),
-                logoutBtn: document.getElementById('logout-btn'),
-                settingsBtn: document.getElementById('settings-btn'),
-                addSkuBtn: document.getElementById('add-sku-btn'),
-                productTableBody: document.getElementById('product-table-body'),
-                searchInput: document.getElementById('search-input'),
-                dateFilter: document.getElementById('date-filter'),
-                channelSelect: document.getElementById('channel-select'),
-                templateSelect: document.getElementById('template-select'),
-                gpHeader: document.getElementById('gp-header'),
-                prevPageBtn: document.getElementById('prev-page-btn'),
-                nextPageBtn: document.getElementById('next-page-btn'),
-                pageInfo: document.getElementById('page-info'),
-                selectAllCheckbox: document.getElementById('select-all-checkbox'),
-                previewBtn: document.getElementById('preview-btn'),
-                printBtn: document.getElementById('print-btn'),
-                exportPdfBtn: document.getElementById('export-pdf-btn'),
-                // SKU Modal
-                skuModal: document.getElementById('sku-modal'),
-                skuModalTitle: document.getElementById('sku-modal-title'),
-                skuForm: document.getElementById('sku-form'),
-                cancelSkuBtn: document.getElementById('cancel-sku-btn'),
-                // Settings Modal
-                settingsPanel: document.getElementById('settings-panel'),
-                closeSettingsBtn: document.getElementById('close-settings-btn'),
-                settingsTabs: document.getElementById('settings-tabs'),
-                settingsContent: document.getElementById('settings-content'),
-                dataManagementTab: document.getElementById('data-management-tab'),
-                logoManagementTab: document.getElementById('logo-management-tab'),
-                userManagementTab: document.getElementById('user-management-tab'),
-                logsTab: document.getElementById('logs-tab'),
-                importExcel: document.getElementById('import-excel'),
-                exportExcelBtn: document.getElementById('export-excel-btn'),
-                clearDataBtn: document.getElementById('clear-data-btn'),
-                importLogo: document.getElementById('import-logo'),
-                logoPreviewImg: document.getElementById('logo-preview-img'),
-                userTableBody: document.getElementById('user-table-body'),
-                addUserForm: document.getElementById('add-user-form'),
-                newRoleSelect: document.getElementById('new-role'),
-                logsContainer: document.getElementById('logs-container'),
-                exportLogsCsvBtn: document.getElementById('export-logs-csv-btn'),
-                // Preview Modal
-                previewModal: document.getElementById('preview-modal'),
-                closePreviewBtn: document.getElementById('close-preview-btn'),
-                previewContent: document.getElementById('preview-content'),
-                prevPreviewBtn: document.getElementById('prev-preview-btn'),
-                nextPreviewBtn: document.getElementById('next-preview-btn'),
-                previewIndexInfo: document.getElementById('preview-index-info'),
-                // Print Area
-                printArea: document.getElementById('print-area'),
-            };
-
-            // --- 3. CONFIGURATION & CONSTANTS ---
-            const ROLES = {
-                HOST: 'Host',
-                ADMIN: 'Admin',
-                USER1: 'User1',
-                USER2: 'User2',
-                USER3: 'User3',
-                USER4: 'User4',
-            };
-            
-            const PERMISSIONS = {
-                [ROLES.HOST]: {
-                    canManageUsers: true,
-                    canManageSettings: true,
-                    visibleChannels: ['Flagship', 'Dealer', 'Marketplace'],
-                    showGp: true, // Can see all GP if available
-                },
-                [ROLES.ADMIN]: {
-                    canManageUsers: false,
-                    canManageSettings: true,
-                    visibleChannels: ['Flagship', 'Dealer', 'Marketplace'],
-                    showGp: true,
-                },
-                [ROLES.USER1]: {
-                    canManageUsers: false,
-                    canManageSettings: false,
-                    visibleChannels: ['Flagship'],
-                    showGp: false,
-                },
-                [ROLES.USER2]: {
-                    canManageUsers: false,
-                    canManageSettings: false,
-                    visibleChannels: ['Flagship'],
-                    showGp: false,
-                },
-                [ROLES.USER3]: {
-                    canManageUsers: false,
-                    canManageSettings: false,
-                    visibleChannels: ['Dealer'],
-                    showGp: true,
-                },
-                [ROLES.USER4]: {
-                    canManageUsers: false,
-                    canManageSettings: false,
-                    visibleChannels: ['Marketplace'],
-                    showGp: true,
-                }
-            };
-
-            // --- 4. UTILITY & HELPER FUNCTIONS ---
-
-            /**
-             * Formats a number to Thai currency format.
-             * @param {number} num The number to format.
-             * @returns {string} Formatted currency string.
-             */
-            const formatCurrency = (num) => {
-                if (typeof num !== 'number' || isNaN(num)) return '-';
-                return num.toLocaleString('th-TH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-            };
-
-            /**
-             * Formats a date string (e.g., YYYY-MM-DD) to DD-MM-YYYY.
-             * @param {string} dateString The date string to format.
-             * @returns {string} Formatted date string or empty string.
-             */
-            const formatDate = (dateString) => {
-                if (!dateString) return '';
-                try {
-                    const date = new Date(dateString);
-                    if (isNaN(date.getTime())) return '';
-                    const year = date.getFullYear();
-                    // Handle Excel's epoch start date issue if necessary
-                    if (year < 1900) {
-                        const excelDate = new Date(Date.UTC(1900, 0, dateString - 1));
-                        const d = excelDate.getUTCDate().toString().padStart(2, '0');
-                        const m = (excelDate.getUTCMonth() + 1).toString().padStart(2, '0');
-                        const y = excelDate.getUTCFullYear();
-                        return `${d}-${m}-${y}`;
-                    }
-                    const d = date.getDate().toString().padStart(2, '0');
-                    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-                    const y = date.getFullYear();
-                    return `${d}-${m}-${y}`;
-                } catch (e) {
-                    return dateString; // Return original if parsing fails
-                }
-            };
-            
-            /**
-             * Logs an action to the state and localStorage.
-             * @param {string} action The action performed.
-             */
-            const logAction = (action) => {
-                const timestamp = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-                const logEntry = {
-                    user: state.currentUser ? state.currentUser.username : 'System',
-                    action,
-                    timestamp,
-                };
-                state.logs.unshift(logEntry);
-                localStorage.setItem('priceTagAppLogs', JSON.stringify(state.logs));
-                renderLogs();
-            };
-
-            /**
-             * Saves the current state to localStorage.
-             */
-            const saveState = () => {
-                localStorage.setItem('priceTagAppUsers', JSON.stringify(state.users));
-                localStorage.setItem('priceTagAppSkus', JSON.stringify(state.allSkus));
-                localStorage.setItem('priceTagAppLogo', state.companyLogo);
-            };
-
-            /**
-             * Loads state from localStorage.
-             */
-            const loadState = () => {
-                const users = localStorage.getItem('priceTagAppUsers');
-                const skus = localStorage.getItem('priceTagAppSkus');
-                const logs = localStorage.getItem('priceTagAppLogs');
-                const logo = localStorage.getItem('priceTagAppLogo');
-                const sessionUser = sessionStorage.getItem('priceTagAppSession');
-
-                if (users) {
-                    state.users = JSON.parse(users);
-                } else {
-                    // Default users
-                    state.users = [
-                        { username: 'host1', password: 'host123', role: ROLES.HOST },
-                        { username: 'admin1', password: 'admin123', role: ROLES.ADMIN },
-                        { username: 'user1', password: 'u1pass', role: ROLES.USER1 },
-                        { username: 'user2', password: 'u2pass', role: ROLES.USER2 },
-                        { username: 'user3', password: 'u3pass', role: ROLES.USER3 },
-                        { username: 'user4', password: 'u4pass', role: ROLES.USER4 },
-                    ];
-                }
-
-                if (skus) state.allSkus = JSON.parse(skus);
-                if (logs) state.logs = JSON.parse(logs);
-                if (logo && logo !== 'null') {
-                    state.companyLogo = logo;
-                    DOMElements.logoPreviewImg.src = logo;
-                }
-
-                if (sessionUser) {
-                    const user = JSON.parse(sessionUser);
-                    // Find the full user object to get permissions
-                    const fullUser = state.users.find(u => u.username === user.username);
-                    if(fullUser) {
-                        login(fullUser.username, fullUser.password, true);
-                    }
-                }
-            };
-            
-            // --- 5. CORE APPLICATION LOGIC ---
-
-            /**
-             * Handles user login.
-             * @param {string} username
-             * @param {string} password
-             * @param {boolean} isSessionLogin - True if logging in from a stored session.
-             */
-            const login = (username, password, isSessionLogin = false) => {
-                const user = state.users.find(u => u.username === username && u.password === password);
-                if (user) {
-                    state.currentUser = user;
-                    DOMElements.loginScreen.classList.add('hidden');
-                    DOMElements.app.classList.remove('hidden');
-                    DOMElements.loginError.textContent = '';
-                    sessionStorage.setItem('priceTagAppSession', JSON.stringify(user));
-                    if (!isSessionLogin) {
-                        logAction(`User logged in.`);
-                    }
-                    setupUIForUser();
-                } else {
-                    DOMElements.loginError.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
-                }
-            };
-            
-            /**
-             * Handles user logout.
-             */
-            const logout = () => {
-                logAction(`User logged out.`);
-                state.currentUser = null;
-                sessionStorage.removeItem('priceTagAppSession');
-                DOMElements.loginScreen.classList.remove('hidden');
-                DOMElements.app.classList.add('hidden');
-                DOMElements.usernameInput.value = '';
-                DOMElements.passwordInput.value = '';
-            };
-
-            /**
-             * Sets up the UI based on the current user's role and permissions.
-             */
-            const setupUIForUser = () => {
-                if (!state.currentUser) return;
-                const permissions = PERMISSIONS[state.currentUser.role];
+                currentChannel: 'Flagship',
+                currentSearch: '',
+                currentDateFilter: '',
                 
-                // User Info
-                DOMElements.userInfo.innerHTML = `
-                    <div class="font-semibold">${state.currentUser.username}</div>
-                    <div class="text-sm text-gray-400">${state.currentUser.role}</div>
-                `;
+                // Preview state
+                previewIndex: 0,
+                previewSelection: [],
 
-                // Channel Select
-                DOMElements.channelSelect.innerHTML = permissions.visibleChannels
-                    .map(ch => `<option value="${ch}">${ch}</option>`)
-                    .join('');
-                DOMElements.channelSelect.value = 'Flagship'; // Default
-
-                // GP% Column
-                const showGp = permissions.showGp && (state.currentUser.role === ROLES.USER3 || state.currentUser.role === ROLES.USER4 || state.currentUser.role === ROLES.ADMIN || state.currentUser.role === ROLES.HOST);
-                DOMElements.gpHeader.classList.toggle('hidden', !showGp);
-
-                // Buttons
-                const canManageSettings = permissions.canManageSettings;
-                DOMElements.settingsBtn.classList.toggle('hidden', !canManageSettings);
-                DOMElements.addSkuBtn.classList.toggle('hidden', !canManageSettings);
-
-                renderTable();
+                // DOM Elements
+                dom: {},
             };
             
             /**
-             * Renders the main product table based on current filters and pagination.
+             * ===================================================================
+             * Local Storage Manager
+             * ===================================================================
              */
-            const renderTable = () => {
-                if (!state.currentUser) return;
+            const Store = {
+                get: (key) => {
+                    try {
+                        const item = localStorage.getItem(key);
+                        return item ? JSON.parse(item) : null;
+                    } catch (e) {
+                        console.error(`Error getting item ${key} from localStorage`, e);
+                        return null;
+                    }
+                },
+                set: (key, value) => {
+                    try {
+                        localStorage.setItem(key, JSON.stringify(value));
+                    } catch (e) {
+                        console.error(`Error setting item ${key} in localStorage`, e);
+                    }
+                },
+                remove: (key) => localStorage.removeItem(key),
+                init: () => {
+                    const storedUsers = Store.get('app_users');
+                    if (storedUsers) {
+                        App.users = storedUsers;
+                    } else {
+                        Store.set('app_users', App.users);
+                    }
 
-                const permissions = PERMISSIONS[state.currentUser.role];
-                const searchTerm = DOMElements.searchInput.value.toLowerCase();
-                const selectedDate = DOMElements.dateFilter.value;
-                const selectedChannel = DOMElements.channelSelect.value;
-                
-                // Apply filters
-                state.filteredSkus = state.allSkus.filter(sku => {
-                    const nameMatch = sku.description.toLowerCase().includes(searchTerm);
-                    const skuMatch = sku.itemNo.toLowerCase().includes(searchTerm);
-                    const dateMatch = !selectedDate || (sku.lastModified && sku.lastModified.startsWith(selectedDate));
-                    return (nameMatch || skuMatch) && dateMatch;
-                });
-
-                // Pagination logic
-                const totalPages = Math.ceil(state.filteredSkus.length / state.itemsPerPage);
-                state.currentPage = Math.max(1, Math.min(state.currentPage, totalPages));
-                const startIndex = (state.currentPage - 1) * state.itemsPerPage;
-                const endIndex = startIndex + state.itemsPerPage;
-                const pageItems = state.filteredSkus.slice(startIndex, endIndex);
-
-                // Render table rows
-                DOMElements.productTableBody.innerHTML = pageItems.map((sku, index) => {
-                    const channelPrice = getChannelPrice(sku, selectedChannel);
-                    const gpValue = getGpForChannel(sku, selectedChannel);
-                    
-                    return `
-                        <tr data-sku="${sku.itemNo}">
-                            <td class="p-3"><input type="checkbox" class="sku-checkbox" data-sku="${sku.itemNo}"></td>
-                            <td class="p-3 font-mono">${sku.itemNo}</td>
-                            <td class="p-3 font-semibold">${sku.description}</td>
-                            <td class="p-3 text-sm text-gray-400">${(sku.details || '').split('\n').slice(0, 4).join('<br>')}</td>
-                            <td class="p-3 text-right">${formatCurrency(sku.normal_price)}</td>
-                            <td class="p-3 text-right font-bold text-theme-red">${formatCurrency(channelPrice)}</td>
-                            <td class="p-3 text-right">${formatDate(sku.expire_date)}</td>
-                            <td class="gp-cell p-3 text-right ${!permissions.showGp || !gpValue ? 'hidden' : ''}">${gpValue ? `${(gpValue * 100).toFixed(1)}%` : '-'}</td>
-                            <td class="p-3 text-center">
-                                ${permissions.canManageSettings ? `<button class="edit-sku-btn text-blue-400 hover:text-blue-300" data-sku="${sku.itemNo}">แก้ไข</button>` : ''}
-                                ${permissions.canManageSettings ? `<button class="delete-sku-btn text-red-500 hover:text-red-400 ml-2" data-sku="${sku.itemNo}">ลบ</button>` : ''}
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-
-                // Update pagination info
-                DOMElements.pageInfo.textContent = `หน้า ${totalPages > 0 ? state.currentPage : 0} / ${totalPages}`;
-                DOMElements.prevPageBtn.disabled = state.currentPage === 1;
-                DOMElements.nextPageBtn.disabled = state.currentPage === totalPages;
-
-                // Re-check checkboxes for selected items
-                updateCheckboxes();
-                updateActionButtons();
-            };
-
-            /**
-             * Gets the price for a specific channel, applying fallback rules.
-             * @param {object} sku The SKU object.
-             * @param {string} channel The selected channel.
-             * @returns {number} The final price.
-             */
-            const getChannelPrice = (sku, channel) => {
-                const promo = sku.promo_price;
-                const normal = sku.normal_price;
-
-                switch (channel) {
-                    case 'Flagship':
-                        return sku.flagship_price || promo || normal;
-                    case 'Dealer':
-                        // Assuming the first dealer price for simplicity. A more complex logic could be implemented.
-                        return sku.dealer_price || promo || normal;
-                    case 'Marketplace':
-                        return sku.marketplace_price || promo || normal;
-                    default:
-                        return promo || normal;
+                    const storedLogo = Store.get('app_logo');
+                    if (storedLogo) {
+                       UI.updateLogo(storedLogo);
+                    }
                 }
             };
             
             /**
-             * Gets the GP% for a specific channel.
-             * @param {object} sku The SKU object.
-             * @param {string} channel The selected channel.
-             * @returns {number | null} The GP percentage or null.
+             * ===================================================================
+             * Logger
+             * ===================================================================
              */
-            const getGpForChannel = (sku, channel) => {
-                if (channel === 'Dealer') return sku.dealer_gp;
-                if (channel === 'Marketplace') return sku.marketplace_gp;
-                return null;
-            };
-
-            // --- 6. EVENT HANDLERS & LISTENERS ---
-
-            const setupEventListeners = () => {
-                DOMElements.loginBtn.addEventListener('click', () => login(DOMElements.usernameInput.value, DOMElements.passwordInput.value));
-                DOMElements.passwordInput.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') login(DOMElements.usernameInput.value, DOMElements.passwordInput.value);
-                });
-                DOMElements.logoutBtn.addEventListener('click', logout);
-
-                // Main controls
-                DOMElements.searchInput.addEventListener('input', renderTable);
-                DOMElements.dateFilter.addEventListener('change', renderTable);
-                DOMElements.channelSelect.addEventListener('change', renderTable);
-
-                // Pagination
-                DOMElements.prevPageBtn.addEventListener('click', () => {
-                    if (state.currentPage > 1) {
-                        state.currentPage--;
-                        renderTable();
+            const Logger = {
+                logs: Store.get('app_logs') || [],
+                log: (action) => {
+                    if (!App.currentUser) return;
+                    const timestamp = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Bangkok', hour12: false }).replace(',', '');
+                    Logger.logs.unshift({ user: App.currentUser.username, action, timestamp });
+                    if (Logger.logs.length > 200) Logger.logs.pop(); // Limit log size
+                    Store.set('app_logs', Logger.logs);
+                    if (Admin.isOpen) Admin.renderLogs();
+                },
+                export: () => {
+                    if (Logger.logs.length === 0) {
+                        alert('ไม่มีประวัติการใช้งานให้ส่งออก');
+                        return;
                     }
-                });
-                DOMElements.nextPageBtn.addEventListener('click', () => {
-                    const totalPages = Math.ceil(state.filteredSkus.length / state.itemsPerPage);
-                    if (state.currentPage < totalPages) {
-                        state.currentPage++;
-                        renderTable();
-                    }
-                });
-
-                // Checkbox handling
-                DOMElements.selectAllCheckbox.addEventListener('change', (e) => {
-                    const isChecked = e.target.checked;
-                    const pageSkus = state.filteredSkus.slice((state.currentPage - 1) * state.itemsPerPage, state.currentPage * state.itemsPerPage).map(s => s.itemNo);
-                    
-                    pageSkus.forEach(sku => {
-                        if (isChecked) {
-                            state.selectedSkus.add(sku);
-                        } else {
-                            state.selectedSkus.delete(sku);
-                        }
+                    let csvContent = "data:text/csv;charset=utf-8,";
+                    csvContent += "Timestamp,User,Action\n";
+                    Logger.logs.forEach(log => {
+                        csvContent += `"${log.timestamp}","${log.user}","${log.action}"\n`;
                     });
-                    updateCheckboxes();
-                    updateActionButtons();
-                });
-
-                DOMElements.productTableBody.addEventListener('change', (e) => {
-                    if (e.target.classList.contains('sku-checkbox')) {
-                        const sku = e.target.dataset.sku;
-                        if (e.target.checked) {
-                            state.selectedSkus.add(sku);
-                        } else {
-                            state.selectedSkus.delete(sku);
-                        }
-                        updateActionButtons();
-                    }
-                });
-                
-                // Action buttons
-                DOMElements.previewBtn.addEventListener('click', () => showPreviewModal(Array.from(state.selectedSkus)));
-                DOMElements.printBtn.addEventListener('click', () => handlePrint(Array.from(state.selectedSkus)));
-                DOMElements.exportPdfBtn.addEventListener('click', () => handleExportPdf(Array.from(state.selectedSkus)));
-
-                // SKU Modal
-                DOMElements.addSkuBtn.addEventListener('click', () => showSkuModal());
-                DOMElements.productTableBody.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('edit-sku-btn')) {
-                        showSkuModal(e.target.dataset.sku);
-                    }
-                    if (e.target.classList.contains('delete-sku-btn')) {
-                        deleteSku(e.target.dataset.sku);
-                    }
-                });
-                DOMElements.skuForm.addEventListener('submit', handleSkuFormSubmit);
-                DOMElements.cancelSkuBtn.addEventListener('click', () => DOMElements.skuModal.style.display = 'none');
-                
-                // Settings Modal
-                DOMElements.settingsBtn.addEventListener('click', showSettingsPanel);
-                DOMElements.closeSettingsBtn.addEventListener('click', () => DOMElements.settingsPanel.style.display = 'none');
-                DOMElements.importExcel.addEventListener('change', handleExcelImport);
-                DOMElements.exportExcelBtn.addEventListener('click', handleExcelExport);
-                DOMElements.clearDataBtn.addEventListener('click', clearAllData);
-                DOMElements.importLogo.addEventListener('change', handleLogoImport);
-                DOMElements.addUserForm.addEventListener('submit', handleAddUser);
-                DOMElements.userTableBody.addEventListener('click', (e) => {
-                    if (e.target.classList.contains('delete-user-btn')) {
-                        deleteUser(e.target.dataset.username);
-                    }
-                });
-                DOMElements.exportLogsCsvBtn.addEventListener('click', exportLogsToCsv);
-                
-                // Preview Modal
-                DOMElements.closePreviewBtn.addEventListener('click', () => DOMElements.previewModal.style.display = 'none');
-            };
-            
-            const updateCheckboxes = () => {
-                document.querySelectorAll('.sku-checkbox').forEach(cb => {
-                    cb.checked = state.selectedSkus.has(cb.dataset.sku);
-                });
-            };
-
-            const updateActionButtons = () => {
-                const hasSelection = state.selectedSkus.size > 0;
-                DOMElements.previewBtn.disabled = !hasSelection;
-                DOMElements.printBtn.disabled = !hasSelection;
-                DOMElements.exportPdfBtn.disabled = !hasSelection;
-            };
-
-            // --- 7. SKU & DATA MANAGEMENT FUNCTIONS ---
-            
-            const showSkuModal = (skuId = null) => {
-                DOMElements.skuForm.reset();
-                // The case for editing an existing SKU
-                if (skuId) {
-                    const sku = state.allSkus.find(s => s.itemNo === skuId);
-                    // Guard clause in case the SKU isn't found
-                    if (!sku) {
-                        console.error(`Attempted to edit non-existent SKU: ${skuId}`);
-                        return;
-                    }
-                    DOMElements.skuModalTitle.textContent = 'แก้ไขข้อมูลสินค้า';
-                    DOMElements.skuForm.querySelector('#sku-id').value = skuId;
-                    DOMElements.skuForm.querySelector('#sku-itemNo').value = sku.itemNo;
-                    DOMElements.skuForm.querySelector('#sku-itemNo').readOnly = true;
-                    DOMElements.skuForm.querySelector('#sku-description').value = sku.description;
-                    DOMElements.skuForm.querySelector('#sku-details').value = sku.details;
-                    DOMElements.skuForm.querySelector('#sku-normal_price').value = sku.normal_price;
-                    DOMElements.skuForm.querySelector('#sku-promo_price').value = sku.promo_price;
-                    DOMElements.skuForm.querySelector('#sku-flagship_price').value = sku.flagship_price;
-                    DOMElements.skuForm.querySelector('#sku-dealer_price').value = sku.dealer_price;
-                    DOMElements.skuForm.querySelector('#sku-marketplace_price').value = sku.marketplace_price;
-                    DOMElements.skuForm.querySelector('#sku-expire_date').value = sku.expire_date;
-                } 
-                // The case for adding a new SKU
-                else {
-                    DOMElements.skuModalTitle.textContent = 'เพิ่มสินค้าใหม่';
-                    DOMElements.skuForm.querySelector('#sku-id').value = '';
-                    DOMElements.skuForm.querySelector('#sku-itemNo').readOnly = false;
-                }
-                DOMElements.skuModal.style.display = 'flex';
-            };
-
-            const handleSkuFormSubmit = (e) => {
-                e.preventDefault();
-                const skuId = DOMElements.skuForm.querySelector('#sku-id').value;
-                const formData = new FormData(DOMElements.skuForm);
-                const newSkuData = {
-                    itemNo: DOMElements.skuForm.querySelector('#sku-itemNo').value,
-                    description: DOMElements.skuForm.querySelector('#sku-description').value,
-                    details: DOMElements.skuForm.querySelector('#sku-details').value,
-                    normal_price: parseFloat(DOMElements.skuForm.querySelector('#sku-normal_price').value) || null,
-                    promo_price: parseFloat(DOMElements.skuForm.querySelector('#sku-promo_price').value) || null,
-                    flagship_price: parseFloat(DOMElements.skuForm.querySelector('#sku-flagship_price').value) || null,
-                    dealer_price: parseFloat(DOMElements.skuForm.querySelector('#sku-dealer_price').value) || null,
-                    marketplace_price: parseFloat(DOMElements.skuForm.querySelector('#sku-marketplace_price').value) || null,
-                    expire_date: DOMElements.skuForm.querySelector('#sku-expire_date').value,
-                    lastModified: new Date().toISOString().split('T')[0],
-                };
-                
-                if (skuId) { // Editing existing SKU
-                    const index = state.allSkus.findIndex(s => s.itemNo === skuId);
-                    state.allSkus[index] = { ...state.allSkus[index], ...newSkuData };
-                    logAction(`Edited SKU: ${skuId}`);
-                } else { // Adding new SKU
-                    if (state.allSkus.some(s => s.itemNo === newSkuData.itemNo)) {
-                        alert('SKU นี้มีอยู่ในระบบแล้ว');
-                        return;
-                    }
-                    state.allSkus.unshift(newSkuData);
-                    logAction(`Added new SKU: ${newSkuData.itemNo}`);
-                }
-                
-                saveState();
-                renderTable();
-                DOMElements.skuModal.style.display = 'none';
-            };
-
-            const deleteSku = (skuId) => {
-                if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ SKU: ${skuId}?`)) {
-                    state.allSkus = state.allSkus.filter(s => s.itemNo !== skuId);
-                    state.selectedSkus.delete(skuId);
-                    logAction(`Deleted SKU: ${skuId}`);
-                    saveState();
-                    renderTable();
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `proplugin_logs_${new Date().toISOString().slice(0,10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 }
             };
             
-            const handleExcelImport = (event) => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-                    // Find header row and map columns
-                    const headerRowIndex = json.findIndex(row => row.includes('Item No.'));
-                    if (headerRowIndex === -1) {
-                        alert('ไม่พบ Header "Item No." ในไฟล์ Excel');
-                        return;
-                    }
-                    const headers = json[headerRowIndex];
-                    const dataRows = json.slice(headerRowIndex + 1);
+            /**
+             * ===================================================================
+             * Authentication Manager
+             * ===================================================================
+             */
+            const Auth = {
+                init: () => {
+                    App.dom.loginButton.addEventListener('click', Auth.login);
+                    App.dom.logoutButton.addEventListener('click', Auth.logout);
+                    App.dom.passwordInput.addEventListener('keypress', (e) => {
+                       if (e.key === 'Enter') Auth.login();
+                    });
+                },
+                login: () => {
+                    const username = App.dom.usernameInput.value.trim();
+                    const password = App.dom.passwordInput.value.trim();
+                    const user = App.users[username];
                     
-                    const colMap = {
-                        itemNo: headers.indexOf('Item No.'),
-                        description: headers.indexOf('Description'),
-                        details: headers.indexOf('Details'),
-                        normal_price: headers.indexOf('Normal Price'),
-                        promo_price: headers.indexOf('Promotion Price'),
-                        flagship_price: headers.indexOf('Flagship Price / Website'),
-                        dealer_price: headers.indexOf('Dealer Price'),
-                        marketplace_price: headers.indexOf('Marketplace Price'),
-                        expire_date: headers.indexOf('Expire Date'),
-                        marketplace_gp: headers.indexOf('GP%'), // Assuming this GP is for marketplace
-                        dealer_gp: headers.indexOf('GP %'), // Assuming this is for dealer
-                    };
-                    
-                    const importedSkus = dataRows.map(row => {
-                        // Excel dates can be numbers, convert them
-                        let expireDate = row[colMap.expire_date];
-                        if (typeof expireDate === 'number') {
-                            const jsDate = new Date(Math.round((expireDate - 25569) * 864e5));
-                            expireDate = jsDate.toISOString().split('T')[0];
-                        } else if (expireDate instanceof Date) {
-                            expireDate = expireDate.toISOString().split('T')[0];
+                    if (user && user.pass === password) {
+                        App.currentUser = { username, ...user };
+                        App.dom.loginPage.classList.add('hidden');
+                        App.dom.mainApp.classList.remove('hidden');
+                        App.dom.userDisplay.textContent = username;
+                        Logger.log('Logged in');
+                        UI.setupForRole();
+                        UI.render();
+                         if (App.allData.length === 0) {
+                           alert('ยินดีต้อนรับ! ไม่พบข้อมูลสินค้า กรุณาไปที่หน้า "จัดการระบบ" เพื่อนำเข้าไฟล์ Excel');
                         }
-
-                        return {
-                            itemNo: row[colMap.itemNo] || '',
-                            description: row[colMap.description] || '',
-                            details: row[colMap.details] || '',
-                            normal_price: parseFloat(row[colMap.normal_price]) || null,
-                            promo_price: parseFloat(row[colMap.promo_price]) || null,
-                            flagship_price: parseFloat(row[colMap.flagship_price]) || null,
-                            dealer_price: parseFloat(row[colMap.dealer_price]) || null,
-                            marketplace_price: parseFloat(row[colMap.marketplace_price]) || null,
-                            expire_date: expireDate || null,
-                            marketplace_gp: parseFloat(row[colMap.marketplace_gp]) || null,
-                            dealer_gp: parseFloat(row[colMap.dealer_gp]) || null,
-                            lastModified: new Date().toISOString().split('T')[0],
-                        };
-                    }).filter(sku => sku.itemNo); // Filter out empty rows
-
-                    state.allSkus = importedSkus;
-                    logAction(`Imported ${importedSkus.length} SKUs from Excel.`);
-                    saveState();
-                    renderTable();
-                    alert(`นำเข้าข้อมูล ${importedSkus.length} รายการสำเร็จ!`);
-                };
-                reader.readAsArrayBuffer(file);
-            };
-
-            const handleExcelExport = () => {
-                const dataToExport = state.allSkus.map(sku => ({
-                    'Item No.': sku.itemNo,
-                    'Description': sku.description,
-                    'Details': sku.details,
-                    'Normal Price': sku.normal_price,
-                    'Promotion Price': sku.promo_price,
-                    'Flagship Price / Website': sku.flagship_price,
-                    'Dealer Price': sku.dealer_price,
-                    'Marketplace Price': sku.marketplace_price,
-                    'Expire Date': sku.expire_date ? formatDate(sku.expire_date) : '',
-                    'Marketplace GP%': sku.marketplace_gp,
-                    'Dealer GP%': sku.dealer_gp,
-                }));
-
-                const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Products");
-                XLSX.writeFile(workbook, "PriceTagData_Export.xlsx");
-                logAction('Exported data to Excel.');
-            };
-
-            const clearAllData = () => {
-                if (confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลสินค้าทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
-                    state.allSkus = [];
-                    state.selectedSkus.clear();
-                    logAction('Cleared all SKU data.');
-                    saveState();
-                    renderTable();
+                    } else {
+                        App.dom.loginError.textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+                    }
+                },
+                logout: () => {
+                    Logger.log('Logged out');
+                    App.currentUser = null;
+                    location.reload(); // Simple way to reset state
                 }
             };
-            
-            // --- 8. SETTINGS & USER MANAGEMENT ---
 
-            const showSettingsPanel = () => {
-                renderSettingsTabs();
-                renderUserTable();
-                renderLogs();
-                DOMElements.settingsPanel.style.display = 'flex';
-            };
+            /**
+             * ===================================================================
+             * Data Manager
+             * ===================================================================
+             */
+            const Data = {
+                load: (data) => {
+                    App.allData = data;
+                    Logger.log(`Loaded ${data.length} SKUs from file`);
+                    Data.applyFilters();
+                },
+                applyFilters: () => {
+                    let data = [...App.allData];
+                    
+                    // Search filter
+                    if (App.currentSearch) {
+                        const searchTerm = App.currentSearch.toLowerCase();
+                        data = data.filter(item => 
+                            item.sku.toLowerCase().includes(searchTerm) ||
+                            item.description.toLowerCase().includes(searchTerm)
+                        );
+                    }
 
-            const renderSettingsTabs = () => {
-                const permissions = PERMISSIONS[state.currentUser.role];
-                const tabs = [
-                    { id: 'data-management', label: 'จัดการข้อมูล', show: true },
-                    { id: 'logo-management', label: 'จัดการโลโก้', show: true },
-                    { id: 'user-management', label: 'จัดการผู้ใช้งาน', show: permissions.canManageUsers },
-                    { id: 'logs', label: 'ประวัติการใช้งาน', show: true },
-                ];
-
-                DOMElements.settingsTabs.innerHTML = tabs
-                    .filter(tab => tab.show)
-                    .map((tab, index) => `
-                        <a href="#" data-tab="${tab.id}-tab" class="settings-tab-btn ${index === 0 ? 'text-theme-red border-b-2 border-theme-red' : 'text-gray-400'} px-3 py-2 font-medium text-sm rounded-t-lg">${tab.label}</a>
-                    `).join('');
-                
-                // Add click listeners to new tabs
-                document.querySelectorAll('.settings-tab-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        // Hide all content
-                        DOMElements.settingsContent.querySelectorAll(':scope > div').forEach(div => div.classList.add('hidden'));
-                        // Deactivate all tabs
-                        document.querySelectorAll('.settings-tab-btn').forEach(b => {
-                            b.classList.remove('text-theme-red', 'border-b-2', 'border-theme-red');
-                            b.classList.add('text-gray-400');
+                    // Date filter
+                    if (App.currentDateFilter) {
+                         data = data.filter(item => {
+                            if (!item.expireDate) return false;
+                            // Convert YYYY-MM-DD from filter and DD-MM-YYYY from data to comparable strings
+                            const filterDate = App.currentDateFilter;
+                            const itemDateParts = item.expireDate.split('-');
+                            if (itemDateParts.length !== 3) return false;
+                            const itemDate = `${itemDateParts[2]}-${itemDateParts[1]}-${itemDateParts[0]}`;
+                            return itemDate === filterDate;
                         });
-                        // Show selected content
-                        document.getElementById(e.target.dataset.tab).classList.remove('hidden');
-                        // Activate selected tab
-                        e.target.classList.add('text-theme-red', 'border-b-2', 'border-theme-red');
-                        e.target.classList.remove('text-gray-400');
-                    });
-                });
-                
-                // Show first tab by default
-                DOMElements.settingsContent.querySelectorAll(':scope > div').forEach(div => div.classList.add('hidden'));
-                document.getElementById('data-management-tab').classList.remove('hidden');
-            };
-            
-            const handleLogoImport = (event) => {
-                const file = event.target.files[0];
-                if (file) {
+                    }
+
+                    App.filteredData = data;
+                    App.currentPage = 1;
+                    UI.render();
+                },
+                parseExcel: (file) => {
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        state.companyLogo = e.target.result;
-                        DOMElements.logoPreviewImg.src = state.companyLogo;
-                        saveState();
-                        logAction('Updated company logo.');
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
 
-            const renderUserTable = () => {
-                if (!PERMISSIONS[state.currentUser.role].canManageUsers) return;
-                DOMElements.userTableBody.innerHTML = state.users.map(user => `
-                    <tr>
-                        <td class="p-2">${user.username}</td>
-                        <td class="p-2">${user.role}</td>
-                        <td class="p-2 text-xs">${PERMISSIONS[user.role].visibleChannels.join(', ')}</td>
-                        <td class="p-2">
-                            ${user.role !== ROLES.HOST ? `<button class="delete-user-btn text-red-500 hover:text-red-400" data-username="${user.username}">ลบ</button>` : ''}
-                        </td>
-                    </tr>
-                `).join('');
-                
-                DOMElements.newRoleSelect.innerHTML = Object.values(ROLES).map(r => `<option value="${r}">${r}</option>`).join('');
-            };
+                            if (json.length < 2) {
+                                throw new Error("Excel file has invalid headers.");
+                            }
+                            
+                            // Map headers from rows 1 and 2
+                            const header1 = json[0];
+                            const header2 = json[1];
+                            const headers = header1.map((h1, i) => h1.trim() ? h1 : header1[i-1]);
 
-            const handleAddUser = (e) => {
-                e.preventDefault();
-                const username = document.getElementById('new-username').value;
-                const password = document.getElementById('new-password').value;
-                const role = document.getElementById('new-role').value;
+                            const finalHeaders = headers.map((h, i) => {
+                                let h2 = header2[i] ? header2[i].toString().trim() : '';
+                                if (h.includes('Dealer Price') && h2.includes('Units')) return `dealer_price_${h2.replace(/ /g, '_')}`;
+                                if (h.includes('Dealer Price') && h2.includes('GP')) return 'dealer_gp';
+                                if (h.includes('Marketplace Price') && h2 === 'Normal Price') return 'marketplace_price';
+                                if (h.includes('Marketplace Price') && h2 === 'GP%') return 'marketplace_gp';
+                                if (h.includes('Flagship Price') && h2 === 'Normal Price') return 'normal_price';
+                                if (h.includes('Flagship Price') && h2 === 'Promotion Price') return 'promo_price';
+                                if (h.includes('Flagship Price') && h2 === 'Expire Date') return 'expire_date_raw';
+                                return h.toLowerCase().replace(/ /g, '_').replace(/\./g,'');
+                            });
 
-                if (!username || !password) {
-                    alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
-                    return;
-                }
-                if (state.users.some(u => u.username === username)) {
-                    alert('ชื่อผู้ใช้นี้มีอยู่แล้ว');
-                    return;
-                }
+                            const parsedData = json.slice(2).map((row, index) => {
+                                const item = { id: `row_${index}`};
+                                finalHeaders.forEach((header, i) => {
+                                    // Take the first dealer price as the main one for simplicity in the table
+                                    if(header.startsWith('dealer_price_') && !item.dealerPrice) {
+                                        item.dealerPrice = row[i];
+                                    } else {
+                                         item[header] = row[i];
+                                    }
+                                });
 
-                state.users.push({ username, password, role });
-                logAction(`Added new user: ${username} with role ${role}.`);
-                saveState();
-                renderUserTable();
-                e.target.reset();
-            };
+                                // Data Cleaning and Structuring
+                                return {
+                                    id: item.item_no || `temp_id_${index}`,
+                                    sku: item.item_no,
+                                    description: item.description,
+                                    details: item.details,
+                                    cost: parseFloat(item.costs) || 0,
+                                    dealerPrice: parseFloat(item.dealerPrice) || 0,
+                                    dealerGp: parseFloat(item.dealer_gp) || 0,
+                                    marketplacePrice: parseFloat(item.marketplace_price) || 0,
+                                    marketplaceGp: parseFloat(item.marketplace_gp) || 0,
+                                    normalPrice: parseFloat(item.normal_price) || 0,
+                                    promoPrice: parseFloat(item.promo_price) || 0,
+                                    flagshipPrice: parseFloat(item['flagship_price_/_website']) || 0, // Fallback if no split columns
+                                    expireDate: Data.formatExcelDate(item.expire_date_raw),
+                                };
+                            });
+                             Data.load(parsedData);
+                             alert(`นำเข้าข้อมูลสำเร็จ: ${parsedData.length} รายการ`);
 
-            const deleteUser = (username) => {
-                if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้: ${username}?`)) {
-                    state.users = state.users.filter(u => u.username !== username);
-                    logAction(`Deleted user: ${username}.`);
-                    saveState();
-                    renderUserTable();
-                }
-            };
-            
-            const renderLogs = () => {
-                DOMElements.logsContainer.innerHTML = state.logs.map(log => 
-                    `<div><span class="text-green-400">${log.timestamp}</span> <span class="text-yellow-400">[${log.user}]</span>: ${log.action}</div>`
-                ).join('');
-            };
-
-            const exportLogsToCsv = () => {
-                let csvContent = "data:text/csv;charset=utf-8,Timestamp,User,Action\n";
-                state.logs.forEach(log => {
-                    csvContent += `"${log.timestamp}","${log.user}","${log.action}"\n`;
-                });
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", "activity_logs.csv");
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-
-            // --- 9. PRINTING & PDF EXPORT ---
-
-            const renderTag = (sku, template) => {
-                if (!sku) return '';
-                const channel = DOMElements.channelSelect.value;
-                const price = getChannelPrice(sku, channel);
-                const normalPrice = sku.normal_price;
-                const hasPromo = sku.promo_price && sku.promo_price < normalPrice;
-
-                const logoHtml = state.companyLogo 
-                    ? `<img src="${state.companyLogo}" class="logo-img" alt="Company Logo">`
-                    : `<div class="logo-text">ProPlugin<br>AMPLIFY YOUR DREAMS</div>`;
-                
-                const priceHtml = `
-                    ${hasPromo ? `<div class="normal-price">${formatCurrency(normalPrice)}.-</div>` : ''}
-                    <div class="${hasPromo ? 'promo-price' : 'main-price'}">${formatCurrency(price)}.-</div>
-                `;
-
-                const detailsHtml = (sku.details || '')
-                    .split('\n')
-                    .filter(line => line.trim() !== '')
-                    .slice(0, 5)
-                    .map(line => `<li>${line.startsWith('•') ? line.substring(1).trim() : line}</li>`)
-                    .join('');
-                
-                const expireDateHtml = sku.expire_date ? `<div class="expire-date">Expire : ${formatDate(sku.expire_date)}</div>` : '';
-
-                if (template === 'Acc') {
-                    return `
-                        <div class="price-tag acc-content">
-                            <div class="logo-container">${logoHtml}</div>
-                            <div class="sku">${sku.itemNo}</div>
-                            <div class="description">${sku.description}</div>
-                            <div class="price-area">
-                                ${expireDateHtml}
-                                ${priceHtml}
-                            </div>
-                        </div>
-                    `;
-                }
-
-                return `
-                    <div class="price-tag">
-                        <div class="inner-content">
-                            <div class="logo-container">${logoHtml}</div>
-                            <div class="sku">${sku.itemNo}</div>
-                            <div class="description">${sku.description}</div>
-                            <ul class="details">${detailsHtml}</ul>
-                            <div class="price-area">
-                                ${expireDateHtml}
-                                ${priceHtml}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            };
-
-            const showPreviewModal = (skuIds) => {
-                if (skuIds.length === 0) return;
-                let currentIndex = 0;
-                
-                const renderPreview = () => {
-                    const skuId = skuIds[currentIndex];
-                    const sku = state.allSkus.find(s => s.itemNo === skuId);
-                    const template = DOMElements.templateSelect.value;
-                    const containerClass = `tag-container-${template.toLowerCase()}`;
-                    
-                    DOMElements.previewContent.innerHTML = `
-                        <div class="${containerClass}" style="transform: scale(0.8);">
-                            ${renderTag(sku, template)}
-                        </div>
-                    `;
-                    DOMElements.previewIndexInfo.textContent = `${currentIndex + 1} / ${skuIds.length}`;
-                };
-
-                DOMElements.prevPreviewBtn.onclick = () => {
-                    if (currentIndex > 0) {
-                        currentIndex--;
-                        renderPreview();
-                    }
-                };
-                DOMElements.nextPreviewBtn.onclick = () => {
-                    if (currentIndex < skuIds.length - 1) {
-                        currentIndex++;
-                        renderPreview();
-                    }
-                };
-                
-                renderPreview();
-                DOMElements.previewModal.style.display = 'flex';
-            };
-
-            const handlePrint = (skuIds) => {
-                if (skuIds.length === 0) return;
-                preparePrintArea(skuIds);
-                logAction(`Printed ${skuIds.length} tags with template ${DOMElements.templateSelect.value}.`);
-                setTimeout(() => window.print(), 500); // Allow time for render
-            };
-            
-            const preparePrintArea = (skuIds) => {
-                const template = DOMElements.templateSelect.value;
-                const skus = skuIds.map(id => state.allSkus.find(s => s.itemNo === id));
-                const itemsPerPageMap = { 'A4': 1, 'A5': 2, 'A6': 4, 'Acc': 12 };
-                const itemsPerPage = itemsPerPageMap[template];
-                
-                DOMElements.printArea.innerHTML = '';
-                
-                for (let i = 0; i < skus.length; i += itemsPerPage) {
-                    const pageSkus = skus.slice(i, i + itemsPerPage);
-                    const page = document.createElement('div');
-                    page.className = `print-page grid-${template.toLowerCase()}`;
-                    
-                    page.innerHTML = pageSkus.map(sku => `
-                        <div class="tag-container-${template.toLowerCase()}">
-                            ${renderTag(sku, template)}
-                        </div>
-                    `).join('');
-                    
-                    // Add blank placeholders to fill the page grid
-                    const placeholdersNeeded = itemsPerPage - pageSkus.length;
-                    for (let j = 0; j < placeholdersNeeded; j++) {
-                        page.innerHTML += `<div class="tag-container-${template.toLowerCase()}"></div>`;
-                    }
-
-                    DOMElements.printArea.appendChild(page);
-                }
-            };
-            
-            async function handleExportPdf(skuIds) {
-                if (skuIds.length === 0) return;
-                
-                preparePrintArea(skuIds);
-                logAction(`Exported ${skuIds.length} tags to PDF with template ${DOMElements.templateSelect.value}.`);
-
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF({
-                    orientation: 'p',
-                    unit: 'mm',
-                    format: 'a4'
-                });
-                
-                const pages = DOMElements.printArea.querySelectorAll('.print-page');
-                for (let i = 0; i < pages.length; i++) {
-                    const page = pages[i];
-                    await html2canvas(page, {
-                        scale: 3, // Higher scale for better quality
-                        useCORS: true,
-                        logging: false,
-                    }).then(canvas => {
-                        if (i > 0) {
-                            pdf.addPage();
+                        } catch (err) {
+                            console.error("Error parsing Excel file:", err);
+                            alert("เกิดข้อผิดพลาดในการอ่านไฟล์ Excel กรุณาตรวจสอบรูปแบบไฟล์");
                         }
-                        const imgData = canvas.toDataURL('image/png');
-                        pdf.addImage(imgData, 'PNG', 0, 0, 210, 297);
+                    };
+                    reader.onerror = () => {
+                         alert("ไม่สามารถอ่านไฟล์ได้");
+                    };
+                    reader.readAsArrayBuffer(file);
+                },
+                formatExcelDate(excelDate) {
+                    if (!excelDate) return '';
+                    if (typeof excelDate === 'string' && (excelDate.includes('-') || excelDate.includes('/'))) {
+                        // Already in DD-MM-YYYY or similar format
+                        const parts = excelDate.split(/[-/]/);
+                        if (parts.length === 3) return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[2]}`;
+                        return excelDate;
+                    }
+                    if (typeof excelDate === 'number') {
+                        // Excel serial date number
+                         const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+                         const day = String(date.getDate()).padStart(2, '0');
+                         const month = String(date.getMonth() + 1).padStart(2, '0');
+                         const year = date.getFullYear();
+                         return `${day}-${month}-${year}`;
+                    }
+                    return excelDate.toString();
+                },
+                exportToExcel: () => {
+                    if (App.allData.length === 0) {
+                        alert("ไม่มีข้อมูลที่จะส่งออก");
+                        return;
+                    }
+                    try {
+                        // Re-create the complex header structure for export
+                         const header1 = ["Item No.","Description","Details","Costs","Dealer Price","","","","","","Marketplace Price","GP%","Flagship Price / Website","",""];
+                         const header2 = ["","","","","1-20 Units","GP %","21-30 Units","GP %","31 Units Up","GP %","","Normal Price","Promotion Price","Expire Date"];
+
+                        const dataToExport = App.allData.map(item => ({
+                            'Item No.': item.sku,
+                            'Description': item.description,
+                            'Details': item.details,
+                            'Costs': item.cost,
+                            // This simplified export uses the main dealer price. A more complex export could restore tiered pricing.
+                            '1-20 Units': item.dealerPrice,
+                            'GP % (Dealer)': item.dealerGp,
+                            'Normal Price (MP)': item.marketplacePrice,
+                            'GP% (MP)': item.marketplaceGp,
+                            'Normal Price (FS)': item.normalPrice,
+                            'Promotion Price (FS)': item.promoPrice,
+                            'Expire Date': item.expireDate,
+                        }));
+                        
+                        // Map our simplified keys back to the structure needed by SheetJS
+                        const worksheetData = [header1, header2];
+                        App.allData.forEach(item => {
+                            worksheetData.push([
+                                item.sku, item.description, item.details, item.cost,
+                                item.dealerPrice, item.dealerGp, "", "", "", "", // Simplified dealer data
+                                item.marketplacePrice, item.marketplaceGp,
+                                item.normalPrice, item.promoPrice, item.expireDate
+                            ]);
+                        });
+
+                        const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+                        // Define merged cells for headers
+                        ws['!merges'] = [
+                            // Dealer Price
+                            { s: { r: 0, c: 4 }, e: { r: 0, c: 9 } },
+                            // Marketplace Price
+                            { s: { r: 0, c: 10 }, e: { r: 0, c: 11 } },
+                            // Flagship Price
+                            { s: { r: 0, c: 12 }, e: { r: 0, c: 14 } },
+                        ];
+
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, "SKU Data");
+                        XLSX.writeFile(wb, `ProPlugin_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+                        Logger.log('Exported data to Excel');
+                    } catch (err) {
+                        console.error("Error exporting to Excel:", err);
+                        alert("เกิดข้อผิดพลาดในการส่งออกข้อมูล");
+                    }
+                },
+                updateSku: (skuData) => {
+                    const index = App.allData.findIndex(item => item.id === skuData.id);
+                    if (index > -1) {
+                        App.allData[index] = { ...App.allData[index], ...skuData };
+                        Logger.log(`Updated SKU: ${skuData.sku}`);
+                    } else {
+                        // New SKU
+                        const newId = `new_${Date.now()}`;
+                        App.allData.unshift({ ...skuData, id: newId });
+                         Logger.log(`Added new SKU: ${skuData.sku}`);
+                    }
+                    Data.applyFilters();
+                }
+            };
+
+            /**
+             * ===================================================================
+             * UI Manager
+             * ===================================================================
+             */
+            const UI = {
+                init: () => {
+                    // Cache all DOM elements
+                    const ids = [
+                        'login-page', 'main-app', 'preview-modal', 'admin-panel',
+                        'login-button', 'logout-button', 'username', 'password', 'login-error', 'user-display',
+                        'admin-panel-button', 'search-input', 'date-filter', 'channel-select',
+                        'loading-spinner', 'sku-table', 'sku-table-body', 'no-data-message',
+                        'select-all-checkbox', 'pagination-info', 'prev-page-button', 'next-page-button',
+                        'bulk-actions-bar', 'selection-count', 'preview-selected-button',
+                        'template-select', 'export-pdf-button', 'print-button', 'print-container',
+                        'prev-sku-button', 'next-sku-button', 'print-area',
+                        'import-excel-button', 'excel-file-input', 'export-excel-button',
+                        'sku-id-input', 'sku-itemNo-input', 'sku-description-input', 'sku-details-input',
+                        'sku-normalPrice-input', 'sku-promoPrice-input', 'sku-flagshipPrice-input',
+                        'sku-dealerPrice-input', 'sku-marketplacePrice-input', 'sku-expireDate-input',
+                        'save-sku-button', 'clear-sku-form-button',
+                        'upload-logo-button', 'logo-upload-input', 'current-logo-preview',
+                        'user-management-section', 'new-user-username', 'new-user-password', 'new-user-role',
+                        'add-user-button', 'user-list',
+                        'export-logs-button', 'log-list'
+                    ];
+                    ids.forEach(id => {
+                        const camelCaseId = id.replace(/-(\w)/g, (match, letter) => letter.toUpperCase());
+                        App.dom[camelCaseId] = document.getElementById(id);
+                    });
+                     // Special case for elements that are not unique by ID
+                    App.dom.modalCloseButtons = document.querySelectorAll('.close-button');
+                    App.dom.loginLogoContainer = document.querySelector('#login-page .logo-container');
+
+                    // Attach event listeners
+                    App.dom.searchInput.addEventListener('input', () => {
+                        App.currentSearch = App.dom.searchInput.value;
+                        Data.applyFilters();
+                    });
+                    App.dom.dateFilter.addEventListener('change', () => {
+                        App.currentDateFilter = App.dom.dateFilter.value;
+                        Data.applyFilters();
+                    });
+                    App.dom.channelSelect.addEventListener('change', (e) => {
+                        App.currentChannel = e.target.value;
+                        UI.renderTable();
+                    });
+                     App.dom.selectAllCheckbox.addEventListener('change', UI.toggleSelectAll);
+                     App.dom.prevPageButton.addEventListener('click', UI.prevPage);
+                     App.dom.nextPageButton.addEventListener('click', UI.nextPage);
+
+                     // Modals
+                     App.dom.modalCloseButtons.forEach(btn => btn.addEventListener('click', UI.closeAllModals));
+                     window.addEventListener('click', (e) => {
+                         if (e.target.classList.contains('modal')) UI.closeAllModals();
+                     });
+                     
+                     // Bulk Actions
+                     App.dom.previewSelectedButton.addEventListener('click', Preview.show);
+
+                     // Admin Panel
+                     App.dom.adminPanelButton.addEventListener('click', Admin.show);
+                     
+                     Store.init();
+                },
+                render: () => {
+                    UI.renderTable();
+                    UI.renderPagination();
+                    UI.updateBulkActionsBar();
+                },
+                renderTable: () => {
+                    App.dom.loadingSpinner.classList.remove('hidden');
+                    App.dom.skuTableBody.innerHTML = '';
+
+                    if (App.allData.length === 0) {
+                        App.dom.noDataMessage.classList.remove('hidden');
+                        App.dom.loadingSpinner.classList.add('hidden');
+                        App.dom.skuTable.classList.add('hidden');
+                        return;
+                    }
+                    
+                    App.dom.noDataMessage.classList.add('hidden');
+                    App.dom.skuTable.classList.remove('hidden');
+
+                    const startIndex = (App.currentPage - 1) * App.itemsPerPage;
+                    const endIndex = startIndex + App.itemsPerPage;
+                    const pageData = App.filteredData.slice(startIndex, endIndex);
+
+                    if(pageData.length === 0 && App.allData.length > 0) {
+                        const noResultsRow = `<tr><td colspan="8" style="text-align:center;">ไม่พบข้อมูลที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
+                        App.dom.skuTableBody.innerHTML = noResultsRow;
+                    } else {
+                        pageData.forEach(item => {
+                            const tr = document.createElement('tr');
+                            tr.dataset.skuId = item.id;
+
+                            const { displayPrice, displayNormal, gp } = UI.getPriceForChannel(item);
+
+                            tr.innerHTML = `
+                                <td><input type="checkbox" class="row-checkbox" ${App.selectedSkus.has(item.id) ? 'checked' : ''}></td>
+                                <td>${item.sku || ''}</td>
+                                <td>${item.description || ''}</td>
+                                <td><ul>${(item.details || '').split(/[•\n]/).filter(d => d.trim()).map(d => `<li>${d.trim()}</li>`).join('')}</ul></td>
+                                <td class="price">${new Intl.NumberFormat('th-TH').format(item.normalPrice)}</td>
+                                <td class="price">
+                                    ${displayNormal ? `<span class="normal-price-struck">${new Intl.NumberFormat('th-TH').format(displayNormal)}</span>` : ''}
+                                    <strong>${new Intl.NumberFormat('th-TH').format(displayPrice)}</strong>
+                                </td>
+                                <td>${item.promoPrice ? (item.expireDate || '') : ''}</td>
+                                <td class="price">${gp !== null ? `${(gp * 100).toFixed(2)}%` : 'N/A'}</td>
+                            `;
+                            
+                            tr.querySelector('.row-checkbox').addEventListener('change', (e) => UI.toggleRowSelection(item.id, e.target.checked));
+                            tr.addEventListener('dblclick', () => {
+                                if (['Host', 'Admin'].includes(App.currentUser.role)) {
+                                    Admin.show();
+                                    Admin.editSku(item.id);
+                                }
+                            });
+                            App.dom.skuTableBody.appendChild(tr);
+                        });
+                    }
+                    
+                    App.dom.loadingSpinner.classList.add('hidden');
+                },
+                renderPagination: () => {
+                    const totalPages = Math.ceil(App.filteredData.length / App.itemsPerPage);
+                    App.dom.paginationInfo.textContent = `หน้า ${App.currentPage} / ${totalPages} (รวม ${App.filteredData.length} รายการ)`;
+                    App.dom.prevPageButton.disabled = App.currentPage === 1;
+                    App.dom.nextPageButton.disabled = App.currentPage === totalPages || totalPages === 0;
+                },
+                setupForRole: () => {
+                    const role = App.currentUser.role;
+                    
+                    // Show/hide admin panel button
+                    if (['Host', 'Admin'].includes(role)) {
+                        App.dom.adminPanelButton.classList.remove('hidden');
+                    } else {
+                        App.dom.adminPanelButton.classList.add('hidden');
+                    }
+
+                    // Populate channel dropdown based on role
+                    App.dom.channelSelect.innerHTML = '';
+                    App.currentUser.channels.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel;
+                        option.textContent = channel;
+                        App.dom.channelSelect.appendChild(option);
+                    });
+                    App.currentChannel = App.currentUser.channels[0] || 'Flagship';
+                    App.dom.channelSelect.value = App.currentChannel;
+                },
+                getPriceForChannel: (item) => {
+                    let displayPrice = 0, displayNormal = null, gp = null;
+                    const hasPromo = item.promoPrice > 0;
+
+                    switch (App.currentChannel) {
+                        case 'Dealer':
+                            displayPrice = item.dealerPrice;
+                            gp = item.dealerGp;
+                            break;
+                        case 'Marketplace':
+                            displayPrice = item.marketplacePrice;
+                            gp = item.marketplaceGp; // This is actually Markup, displaying as is.
+                            break;
+                        case 'Flagship':
+                        default:
+                            // Fallback rules: flagship_price -> promo_price -> normal_price
+                            if (item.flagshipPrice > 0) {
+                                displayPrice = item.flagshipPrice;
+                            } else if (hasPromo) {
+                                displayPrice = item.promoPrice;
+                                displayNormal = item.normalPrice;
+                            } else {
+                                displayPrice = item.normalPrice;
+                            }
+                            // GP% for Flagship can be calculated if needed, but not required by spec for users
+                            if (['Host', 'Admin'].includes(App.currentUser.role) && item.cost > 0 && displayPrice > 0) {
+                                gp = (displayPrice - item.cost) / displayPrice;
+                            }
+                            break;
+                    }
+                     // If a channel price is blank, fall back to flagship logic
+                    if (displayPrice === 0) {
+                         if (hasPromo) {
+                            displayPrice = item.promoPrice;
+                            displayNormal = item.normalPrice;
+                        } else {
+                            displayPrice = item.normalPrice;
+                        }
+                    }
+                    return { displayPrice, displayNormal, gp };
+                },
+                updateBulkActionsBar: () => {
+                    const count = App.selectedSkus.size;
+                    if (count > 0) {
+                        App.dom.bulkActionsBar.classList.add('visible');
+                        App.dom.selectionCount.textContent = `${count} รายการที่เลือก`;
+                    } else {
+                        App.dom.bulkActionsBar.classList.remove('visible');
+                    }
+                },
+                toggleRowSelection: (skuId, isChecked) => {
+                    if (isChecked) {
+                        App.selectedSkus.add(skuId);
+                    } else {
+                        App.selectedSkus.delete(skuId);
+                    }
+                    UI.updateBulkActionsBar();
+                    
+                    const visibleRows = Array.from(App.dom.skuTableBody.querySelectorAll('tr'));
+                    const allVisibleChecked = visibleRows.every(tr => App.selectedSkus.has(tr.dataset.skuId));
+                    App.dom.selectAllCheckbox.checked = allVisibleChecked && visibleRows.length > 0;
+                },
+                toggleSelectAll: (e) => {
+                    const isChecked = e.target.checked;
+                    const visibleSkuIds = Array.from(App.dom.skuTableBody.querySelectorAll('tr')).map(tr => tr.dataset.skuId);
+                    
+                    visibleSkuIds.forEach(id => {
+                        if (isChecked) {
+                            App.selectedSkus.add(id);
+                        } else {
+                            App.selectedSkus.delete(id);
+                        }
+                    });
+                    
+                    Array.from(App.dom.skuTableBody.querySelectorAll('.row-checkbox')).forEach(cb => cb.checked = isChecked);
+                    UI.updateBulkActionsBar();
+                },
+                nextPage: () => {
+                    const totalPages = Math.ceil(App.filteredData.length / App.itemsPerPage);
+                    if (App.currentPage < totalPages) {
+                        App.currentPage++;
+                        UI.render();
+                    }
+                },
+                prevPage: () => {
+                     if (App.currentPage > 1) {
+                        App.currentPage--;
+                        UI.render();
+                    }
+                },
+                closeAllModals: () => {
+                    App.dom.previewModal.classList.add('hidden');
+                    App.dom.adminPanel.classList.add('hidden');
+                },
+                updateLogo: (logoDataUrl) => {
+                    Store.set('app_logo', logoDataUrl);
+                    if (App.dom.currentLogoPreview) {
+                        App.dom.currentLogoPreview.src = logoDataUrl;
+                    }
+                    if(App.dom.loginLogoContainer) {
+                        App.dom.loginLogoContainer.innerHTML = `<img src="${logoDataUrl}" alt="Company Logo">`;
+                    }
+                }
+            };
+            
+            /**
+             * ===================================================================
+             * Preview & Print Manager
+             * ===================================================================
+             */
+            const Preview = {
+                init: () => {
+                     App.dom.templateSelect.addEventListener('change', Preview.renderPreview);
+                     App.dom.prevSkuButton.addEventListener('click', Preview.prev);
+                     App.dom.nextSkuButton.addEventListener('click', Preview.next);
+                     App.dom.printButton.addEventListener('click', Print.generate);
+                     App.dom.exportPdfButton.addEventListener('click', Print.exportPdf);
+                },
+                show: () => {
+                    App.previewSelection = Array.from(App.selectedSkus).map(id => App.allData.find(item => item.id === id));
+                    if (App.previewSelection.length === 0) {
+                        alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
+                        return;
+                    }
+                    App.previewIndex = 0;
+                    App.dom.previewModal.classList.remove('hidden');
+                    Preview.renderPreview();
+                },
+                renderPreview: () => {
+                    if (App.previewSelection.length === 0) return;
+                    const item = App.previewSelection[App.previewIndex];
+                    const template = App.dom.templateSelect.value;
+                    
+                    const tagHtml = Print.createTagHtml(item, `tag-${template}`);
+                    App.dom.printContainer.className = ''; // Reset classes
+                    App.dom.printContainer.classList.add('price-tag', `tag-${template}`);
+                    App.dom.printContainer.innerHTML = tagHtml;
+                    
+                    // Scale for viewing
+                    const previewAreaRect = App.dom.previewArea.getBoundingClientRect();
+                    const scaleX = previewAreaRect.width / (App.dom.printContainer.offsetWidth + 20);
+                    const scaleY = previewAreaRect.height / (App.dom.printContainer.offsetHeight + 20);
+                    App.dom.printContainer.style.transform = `scale(${Math.min(scaleX, scaleY, 1)})`;
+                    
+                    // Update navigation
+                    App.dom.prevSkuButton.disabled = App.previewIndex === 0;
+                    App.dom.nextSkuButton.disabled = App.previewIndex === App.previewSelection.length - 1;
+                },
+                next: () => {
+                    if (App.previewIndex < App.previewSelection.length - 1) {
+                        App.previewIndex++;
+                        Preview.renderPreview();
+                    }
+                },
+                prev: () => {
+                    if (App.previewIndex > 0) {
+                        App.previewIndex--;
+                        Preview.renderPreview();
+                    }
+                }
+            };
+
+            /**
+             * ===================================================================
+             * Printing Engine
+             * ===================================================================
+             */
+            const Print = {
+                createTagHtml: (item, tagClass) => {
+                    const logoSrc = Store.get('app_logo') || '';
+                    const hasPromo = item.promoPrice > 0;
+
+                    // Get the price based on the currently selected *main table* channel
+                    const { displayPrice, displayNormal } = UI.getPriceForChannel(item);
+                    
+                    const expireDateText = hasPromo && item.expireDate ? `Expire: ${item.expireDate}` : '';
+                    const normalPriceStruck = displayNormal ? `<div class="tag-price-normal">${new Intl.NumberFormat('th-TH').format(displayNormal)}.-</div>` : '';
+                    const mainPrice = new Intl.NumberFormat('th-TH', { minimumFractionDigits: 2 }).format(displayPrice).replace('.00', '.-');
+                    
+                    // Special layout for Accessory tag
+                    if (tagClass === 'tag-acc') {
+                        return `
+                            <div class="acc-left">
+                                <div class="tag-sku">${item.sku || ''}</div>
+                                <div class="tag-description">${item.description || ''}</div>
+                            </div>
+                            <div class="acc-right">
+                                ${expireDateText ? `<div class="tag-expire">${expireDateText}</div>` : ''}
+                                ${normalPriceStruck}
+                                <div class="tag-price-promo">${mainPrice}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    // Standard layout for A4, A5, A6
+                    return `
+                        <div class="tag-header">
+                            ${logoSrc ? `<img src="${logoSrc}" alt="Logo" class="tag-logo">` : '<div></div>'}
+                            <div class="tag-sku">${item.sku || ''}</div>
+                        </div>
+                        <div class="tag-body">
+                            <div class="tag-description">${item.description || ''}</div>
+                            <div class="tag-details"><ul>${(item.details || '').split(/[•\n]/).filter(d => d.trim()).map(d => `<li>${d.trim()}</li>`).join('')}</ul></div>
+                        </div>
+                        <div class="tag-footer">
+                            ${expireDateText ? `<div class="tag-expire">${expireDateText}</div>` : ''}
+                            ${normalPriceStruck}
+                            <div class="tag-price-promo">${mainPrice}</div>
+                        </div>
+                    `;
+                },
+                generate: () => {
+                    const template = App.dom.templateSelect.value;
+                    const items = App.previewSelection;
+                    const printArea = App.dom.printArea;
+                    printArea.innerHTML = '';
+                    
+                    Logger.log(`Printing ${items.length} tags with template ${template}`);
+
+                    const itemsPerPageMap = { a4: 1, a5: 2, a6: 4, acc: 12 };
+                    const itemsPerPage = itemsPerPageMap[template];
+                    
+                    for (let i = 0; i < items.length; i += itemsPerPage) {
+                        const pageItems = items.slice(i, i + itemsPerPage);
+                        const pageDiv = document.createElement('div');
+                        pageDiv.className = `print-page print-grid-${template}`;
+                        
+                        pageItems.forEach(item => {
+                            const tagDiv = document.createElement('div');
+                            tagDiv.className = `price-tag tag-${template}`;
+                            tagDiv.innerHTML = Print.createTagHtml(item, `tag-${template}`);
+                            pageDiv.appendChild(tagDiv);
+                        });
+                        printArea.appendChild(pageDiv);
+                    }
+                    
+                    window.print();
+                },
+                exportPdf: () => {
+                    alert("กำลังเตรียมไฟล์ PDF... กรุณารอสักครู่");
+                    const { jsPDF } = window.jspdf;
+                    const template = App.dom.templateSelect.value;
+                    const items = App.previewSelection;
+                    const printArea = App.dom.printArea;
+                    printArea.innerHTML = ''; // Clear previous
+
+                    const itemsPerPageMap = { a4: 1, a5: 2, a6: 4, acc: 12 };
+                    const itemsPerPage = itemsPerPageMap[template];
+
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    
+                    let promises = [];
+                    
+                    for (let i = 0; i < items.length; i++) {
+                         const item = items[i];
+                         const isNewPage = i % itemsPerPage === 0;
+
+                         if (i > 0 && isNewPage) {
+                             pdf.addPage();
+                         }
+
+                        const container = document.createElement('div');
+                        container.style.position = 'absolute';
+                        container.style.left = '-9999px'; // Render off-screen
+
+                        const tagDiv = document.createElement('div');
+                        tagDiv.className = `price-tag tag-${template}`;
+                        tagDiv.innerHTML = Print.createTagHtml(item, `tag-${template}`);
+                        container.appendChild(tagDiv);
+                        document.body.appendChild(container);
+                        
+                        const tagRect = tagDiv.getBoundingClientRect();
+                        const tagWidthMM = tagRect.width * 0.264583;
+                        const tagHeightMM = tagRect.height * 0.264583;
+
+                        // Calculate position on A4 page (210x297mm)
+                        const pageIndex = i % itemsPerPage;
+                        let x, y;
+                        switch (template) {
+                            case 'a4': x = 5; y = 5; break;
+                            case 'a5': x = pageIndex === 0 ? 5 : 105; y = 5; break;
+                            case 'a6':
+                                x = (pageIndex % 2 === 0) ? 5 : 105;
+                                y = (pageIndex < 2) ? 5 : 148.5;
+                                break;
+                            case 'acc':
+                                x = (pageIndex % 2 === 0) ? 5 : 105;
+                                y = 5 + (Math.floor(pageIndex / 2) * (43 + 5)); // 43mm height + gap
+                                break;
+                            default: x=5; y=5;
+                        }
+
+                        promises.push(
+                            html2canvas(tagDiv, { scale: 3 }).then(canvas => {
+                                const imgData = canvas.toDataURL('image/png');
+                                pdf.setPage(Math.floor(i / itemsPerPage) + 1);
+                                pdf.addImage(imgData, 'PNG', x, y, tagWidthMM, tagHeightMM);
+                                document.body.removeChild(container);
+                            })
+                        );
+                    }
+                    
+                    Promise.all(promises).then(() => {
+                         pdf.save(`ProPlugin_Tags_${template}.pdf`);
+                         Logger.log(`Exported ${items.length} tags to PDF with template ${template}`);
+                    }).catch(err => {
+                        console.error("PDF export error", err);
+                        alert("เกิดข้อผิดพลาดในการสร้าง PDF");
                     });
                 }
-                pdf.save(`PriceTags-${DOMElements.templateSelect.value}.pdf`);
+            };
+            
+            /**
+             * ===================================================================
+             * Admin Panel Manager
+             * ===================================================================
+             */
+            const Admin = {
+                 isOpen: false,
+                 init: () => {
+                     // Data management
+                     App.dom.importExcelButton.addEventListener('click', () => App.dom.excelFileInput.click());
+                     App.dom.excelFileInput.addEventListener('change', (e) => {
+                         if (e.target.files.length) Data.parseExcel(e.target.files[0]);
+                         e.target.value = ''; // Reset for next upload
+                     });
+                     App.dom.exportExcelButton.addEventListener('click', Data.exportToExcel);
+
+                     // SKU Form
+                     App.dom.saveSkuButton.addEventListener('click', Admin.saveSku);
+                     App.dom.clearSkuFormButton.addEventListener('click', Admin.clearSkuForm);
+                     
+                     // Logo
+                     App.dom.uploadLogoButton.addEventListener('click', () => App.dom.logoUploadInput.click());
+                     App.dom.logoUploadInput.addEventListener('change', Admin.handleLogoUpload);
+
+                     // User management
+                     App.dom.addUserButton.addEventListener('click', Admin.addUser);
+
+                     // Logs
+                     App.dom.exportLogsButton.addEventListener('click', Logger.export);
+                 },
+                 show: () => {
+                     App.dom.adminPanel.classList.remove('hidden');
+                     Admin.isOpen = true;
+                     if (App.currentUser.role === 'Host') {
+                         App.dom.userManagementSection.classList.remove('hidden');
+                         Admin.renderUsers();
+                     }
+                     Admin.renderLogs();
+                     Admin.clearSkuForm();
+                 },
+                 hide: () => {
+                     App.dom.adminPanel.classList.add('hidden');
+                     Admin.isOpen = false;
+                 },
+                 editSku: (skuId) => {
+                    const item = App.allData.find(d => d.id === skuId);
+                    if (!item) return;
+
+                    App.dom.skuIdInput.value = item.id;
+                    App.dom.skuItemNoInput.value = item.sku;
+                    App.dom.skuDescriptionInput.value = item.description;
+                    App.dom.skuDetailsInput.value = (item.details || '').replace(/<li>/g, '• ').replace(/<\/?ul>/g, '').replace(/<\/li>/g, '\n');
+                    App.dom.skuNormalPriceInput.value = item.normalPrice;
+                    App.dom.skuPromoPriceInput.value = item.promoPrice;
+                    App.dom.skuFlagshipPriceInput.value = item.flagshipPrice;
+                    App.dom.skuDealerPriceInput.value = item.dealerPrice;
+                    App.dom.skuMarketplacePriceInput.value = item.marketplacePrice;
+                    if(item.expireDate) {
+                        const parts = item.expireDate.split('-');
+                        App.dom.skuExpireDateInput.value = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    } else {
+                        App.dom.skuExpireDateInput.value = '';
+                    }
+                 },
+                 saveSku: () => {
+                    const expireDateRaw = App.dom.skuExpireDateInput.value;
+                    let expireDateFormatted = '';
+                    if (expireDateRaw) {
+                        const parts = expireDateRaw.split('-');
+                        expireDateFormatted = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                    }
+
+                    const skuData = {
+                        id: App.dom.skuIdInput.value || null,
+                        sku: App.dom.skuItemNoInput.value,
+                        description: App.dom.skuDescriptionInput.value,
+                        details: App.dom.skuDetailsInput.value,
+                        normalPrice: parseFloat(App.dom.skuNormalPriceInput.value) || 0,
+                        promoPrice: parseFloat(App.dom.skuPromoPriceInput.value) || 0,
+                        flagshipPrice: parseFloat(App.dom.skuFlagshipPriceInput.value) || 0,
+                        dealerPrice: parseFloat(App.dom.skuDealerPriceInput.value) || 0,
+                        marketplacePrice: parseFloat(App.dom.skuMarketplacePriceInput.value) || 0,
+                        expireDate: expireDateFormatted
+                    };
+
+                    if (!skuData.sku || !skuData.description) {
+                        alert("กรุณากรอก Item No. และ Description");
+                        return;
+                    }
+                    Data.updateSku(skuData);
+                    Admin.clearSkuForm();
+                    alert("บันทึกข้อมูลสำเร็จ");
+                 },
+                 clearSkuForm: () => {
+                     App.dom.skuIdInput.value = '';
+                     const inputs = ['skuItemNoInput', 'skuDescriptionInput', 'skuDetailsInput', 'skuNormalPriceInput',
+                                     'skuPromoPriceInput', 'skuFlagshipPriceInput', 'skuDealerPriceInput', 
+                                     'skuMarketplacePriceInput', 'skuExpireDateInput'];
+                     inputs.forEach(id => App.dom[id].value = '');
+                 },
+                 handleLogoUpload: (e) => {
+                     const file = e.target.files[0];
+                     if (!file) return;
+                     const reader = new FileReader();
+                     reader.onload = (event) => {
+                         UI.updateLogo(event.target.result);
+                         Logger.log('Updated logo');
+                         alert('อัปเดตโลโก้สำเร็จ');
+                     };
+                     reader.readAsDataURL(file);
+                 },
+                 renderUsers: () => {
+                     App.dom.userList.innerHTML = '';
+                     Object.entries(App.users).forEach(([username, data]) => {
+                         if (data.role === 'Host') return; // Don't show host
+                         const li = document.createElement('li');
+                         li.innerHTML = `
+                             <span><strong>${username}</strong> (${data.role})</span>
+                             <button class="delete-user-button secondary" data-username="${username}">ลบ</button>
+                         `;
+                         App.dom.userList.appendChild(li);
+                     });
+                     document.querySelectorAll('.delete-user-button').forEach(btn => {
+                         btn.addEventListener('click', (e) => Admin.deleteUser(e.target.dataset.username));
+                     });
+                 },
+                 addUser: () => {
+                     const username = App.dom.newUserUsername.value.trim();
+                     const password = App.dom.newUserPassword.value.trim();
+                     const role = App.dom.newUserRole.value;
+
+                     if (!username || !password) {
+                         alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+                         return;
+                     }
+                     if (App.users[username]) {
+                         alert('ชื่อผู้ใช้นี้มีอยู่แล้ว');
+                         return;
+                     }
+                     
+                     const roleToChannels = {
+                         'Admin': ['Flagship', 'Dealer', 'Marketplace'], 'User1': ['Flagship'],
+                         'User2': ['Flagship'], 'User3': ['Dealer'], 'User4': ['Marketplace']
+                     };
+
+                     App.users[username] = { pass: password, role: role, channels: roleToChannels[role] };
+                     Store.set('app_users', App.users);
+                     Logger.log(`Created user: ${username}`);
+                     Admin.renderUsers();
+                     App.dom.newUserUsername.value = '';
+                     App.dom.newUserPassword.value = '';
+                 },
+                 deleteUser: (username) => {
+                     if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ ${username}?`)) {
+                         delete App.users[username];
+                         Store.set('app_users', App.users);
+                         Logger.log(`Deleted user: ${username}`);
+                         Admin.renderUsers();
+                     }
+                 },
+                 renderLogs: () => {
+                    App.dom.logList.innerHTML = '';
+                    Logger.logs.slice(0, 50).forEach(log => {
+                        const li = document.createElement('li');
+                        li.textContent = `[${log.timestamp}] ${log.user}: ${log.action}`;
+                        App.dom.logList.appendChild(li);
+                    });
+                 }
+            };
+            
+            /**
+             * ===================================================================
+             * Application Initializer
+             * ===================================================================
+             */
+            function initializeApp() {
+                UI.init();
+                Auth.init();
+                Admin.init();
+                Preview.init();
             }
 
-            // --- 10. INITIALIZATION ---
-
-            const initializeApp = () => {
-                loadState();
-                if (!state.currentUser) {
-                    DOMElements.loginScreen.classList.remove('hidden');
-                    DOMElements.app.classList.add('hidden');
-                }
-                setupEventListeners();
-            };
-
-            initializeApp();
-        });
+            // Start the application once the DOM is ready
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        })();
     </script>
-
 </body>
 </html>
