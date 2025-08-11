@@ -1,2 +1,2 @@
-# ProPlugin-Price
-Price for ProPlugin
+#ProPlugin
+Pricing for Pro
