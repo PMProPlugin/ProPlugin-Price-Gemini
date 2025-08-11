@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบจัดการป้ายราคา</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&family=Prompt:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Kanit', 'Prompt', sans-serif;
+            background-color: #f0f2f5;
+        }
+        .bg-brand-dark { background-color: #1a1a1a; }
+        .bg-brand-light { background-color: #ffffff; }
+        .text-brand-red { color: #e53e3e; }
+        .border-brand-red { border-color: #e53e3e; }
+        .btn-primary {
+            background-color: #2c5282;
+            color: white;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: background-color: 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #2a4365;
+        }
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #2d3748;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.3s;
+        }
+        .btn-secondary:hover {
+            background-color: #cbd5e0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            animation: fadeIn 0.3s;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 900px;
+            border-radius: 0.5rem;
+            animation: slideIn 0.3s;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideIn { from { transform: translateY(-50px); } to { transform: translateY(0); } }
+        
+        /* --- NEW PRICE TAG STYLES --- */
+        .price-tag {
+            background-color: black;
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .price-tag .tag-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .price-tag .tag-logo {
+            max-width: 100px;
+        }
+        .price-tag .tag-sku {
+            font-size: 0.8em;
+            color: #ccc;
+        }
+        .price-tag .tag-body {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .price-tag .tag-name {
+            font-size: 2.2em;
+            font-weight: 700;
+            line-height: 1.1;
+            margin: 10px 0;
+        }
+        .price-tag .tag-details {
+            font-size: 0.9em;
+            font-weight: 300;
+        }
+        .price-tag .tag-details ul {
+            list-style-position: inside;
+            padding-left: 0;
+        }
+        .price-tag .tag-footer {
+            margin-top: auto;
+        }
+        .price-tag .tag-price-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px solid #555;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+        .price-tag .tag-expire {
+            font-size: 0.8em;
+            font-weight: 300;
+        }
+        .price-tag .tag-prices {
+            text-align: right;
+        }
+        .price-tag .tag-normal-price {
+            font-size: 1.5em;
+            color: #e53e3e;
+            text-decoration: line-through;
+            margin-right: 10px;
+        }
+        .price-tag .tag-promo-price {
+            font-size: 3.5em;
+            font-weight: 700;
+            color: white;
+        }
+        .price-tag .tag-promo-price span {
+            font-size: 0.5em;
+            font-weight: 300;
+        }
+
+        /* Template Specific Overrides */
+        .price-tag.template-a4 .tag-logo {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+        }
+        .price-tag.template-acc {
+            padding: 10px;
+        }
+        .price-tag.template-acc .tag-header {
+            align-items: center;
+        }
+        .price-tag.template-acc .tag-name {
+            font-size: 1.2em;
+            margin: 5px 0;
+            text-align: left;
+        }
+         .price-tag.template-acc .tag-details { display: none; }
+        .price-tag.template-acc .tag-price-area {
+            border-top: none;
+            padding-top: 0;
+        }
+        .price-tag.template-acc .tag-normal-price { font-size: 1em; }
+        .price-tag.template-acc .tag-promo-price { font-size: 2em; }
+        .price-tag.template-acc .tag-logo { max-width: 80px; }
+
+
+        /* Print-specific styles will be injected into #print-style */
+        @media print {
+            body, html {
+                visibility: hidden;
+                margin: 0;
+                padding: 0;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+    <!-- Style tag for dynamic print CSS -->
+    <style id="print-style"></style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Login Section -->
+    <div id="login-section" class="min-h-screen flex items-center justify-center bg-gray-900">
+        <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">ระบบจัดการป้ายราคา</h1>
+            <div class="mb-4">
+                <label for="username" class="block text-gray-700 text-sm font-bold mb-2">ชื่อผู้ใช้:</label>
+                <input type="text" id="username" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="Username">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-gray-700 text-sm font-bold mb-2">รหัสผ่าน:</label>
+                <input type="password" id="password" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline" placeholder="******************">
+            </div>
+            <div class="flex items-center justify-between">
+                <button id="login-btn" class="btn-primary w-full">เข้าสู่ระบบ</button>
+            </div>
+            <p id="login-error" class="text-red-500 text-xs italic mt-4 text-center"></p>
+        </div>
+    </div>
+
+    <!-- Main App Section -->
+    <div id="app-section" class="hidden">
+        <header class="bg-brand-dark text-white p-4 shadow-md flex justify-between items-center no-print">
+            <h1 class="text-2xl font-bold">Price Tag Management</h1>
+            <div class="flex items-center space-x-4">
+                <span id="user-info" class="text-sm"></span>
+                <button id="admin-panel-btn" class="btn-secondary text-sm">แผงควบคุม</button>
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded text-sm">ออกจากระบบ</button>
+            </div>
+        </header>
+
+        <main class="p-4 md:p-6 no-print">
+            <!-- Controls -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 bg-white p-4 rounded-lg shadow">
+                <input type="text" id="search-input" placeholder="ค้นหา SKU หรือชื่อสินค้า..." class="p-2 border rounded w-full">
+                <input type="date" id="expire-filter" class="p-2 border rounded w-full">
+                <select id="channel-selector" class="p-2 border rounded w-full"></select>
+                <select id="template-selector" class="p-2 border rounded w-full">
+                    <option value="A4">A4 (1 per page)</option>
+                    <option value="A5">A5 (2 per page)</option>
+                    <option value="A6" selected>A6 (4 per page)</option>
+                    <option value="Accessories">Accessories Tag (12 per page)</option>
+                </select>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex space-x-2 mb-4">
+                <button id="preview-btn" class="btn-primary">ดูตัวอย่าง</button>
+                <button id="print-btn" class="btn-primary">พิมพ์ป้ายที่เลือก</button>
+            </div>
+
+            <!-- Data Table -->
+            <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <table class="w-full whitespace-nowrap">
+                    <thead class="bg-gray-200">
+                        <tr id="table-header-row">
+                            <!-- Header will be generated by JS -->
+                        </tr>
+                    </thead>
+                    <tbody id="data-table">
+                        <!-- Rows will be inserted here by JS -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            <div class="mt-4 flex justify-between items-center">
+                <button id="prev-page-btn" class="btn-secondary">ก่อนหน้า</button>
+                <span id="page-info"></span>
+                <button id="next-page-btn" class="btn-secondary">ถัดไป</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Preview Modal -->
+    <div id="preview-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">ตัวอย่างป้ายราคา</h2>
+                <button id="close-preview-modal" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            </div>
+            <div id="preview-content" class="flex justify-center items-center mb-4 p-4 bg-gray-200" style="min-height: 400px;">
+                <!-- Preview tag will be rendered here -->
+            </div>
+            <div class="flex justify-between items-center">
+                <button id="prev-sku-btn" class="btn-secondary">ก่อนหน้า</button>
+                <span id="preview-sku-info"></span>
+                <button id="next-sku-btn" class="btn-secondary">ถัดไป</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Admin Panel Modal -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold">แผงควบคุม</h2>
+                <button id="close-admin-modal" class="text-gray-500 hover:text-gray-800 text-3xl">&times;</button>
+            </div>
+            <div id="admin-content">
+                <!-- Nav Tabs -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                        <button class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="sku-management">จัดการ SKU</button>
+                        <button class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="user-management">จัดการผู้ใช้</button>
+                        <button class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="settings">ตั้งค่า</button>
+                        <button class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" data-tab="logs">ประวัติการใช้งาน</button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content -->
+                <div id="sku-management-tab" class="tab-content hidden mt-4">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">จัดการข้อมูลสินค้า</h3>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button id="add-sku-btn" class="btn-primary text-sm">เพิ่ม SKU ใหม่</button>
+                        <input type="file" id="import-excel-input" class="hidden" accept=".xlsx, .xls">
+                        <button id="import-excel-btn" class="btn-secondary text-sm">นำเข้าจาก Excel</button>
+                        <button id="export-excel-btn" class="btn-secondary text-sm">ส่งออกเป็น Excel</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-2">ดับเบิลคลิกที่แถวเพื่อแก้ไขข้อมูล</p>
+                    <div class="max-h-96 overflow-y-auto border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="p-2 text-left">SKU</th>
+                                    <th class="p-2 text-left">Description</th>
+                                    <th class="p-2 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-sku-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="user-management-tab" class="tab-content hidden mt-4">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">จัดการผู้ใช้งาน (สำหรับ Host เท่านั้น)</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <h4 class="font-bold mb-2">เพิ่ม/แก้ไข ผู้ใช้</h4>
+                        <form id="user-form" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="hidden" id="user-form-mode" value="add">
+                            <input type="hidden" id="user-form-original-username" value="">
+                            <div>
+                                <label for="user-username" class="block text-sm font-medium">ชื่อผู้ใช้</label>
+                                <input type="text" id="user-username" class="mt-1 w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label for="user-password" class="block text-sm font-medium">รหัสผ่าน</label>
+                                <input type="text" id="user-password" class="mt-1 w-full p-2 border rounded" placeholder="ปล่อยว่างไว้ถ้าไม่ต้องการเปลี่ยน">
+                            </div>
+                            <div>
+                                <label for="user-role" class="block text-sm font-medium">Role</label>
+                                <select id="user-role" class="mt-1 w-full p-2 border rounded">
+                                    <option value="Admin">Admin</option>
+                                    <option value="User1">User1</option>
+                                    <option value="User2">User2</option>
+                                    <option value="User3">User3</option>
+                                    <option value="User4">User4</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-3">
+                                <label class="block text-sm font-medium">ช่องทางที่อนุญาต</label>
+                                <div id="user-channels-container" class="flex flex-wrap gap-4 mt-2">
+                                    <label class="inline-flex items-center"><input type="checkbox" class="user-channel form-checkbox" value="Flagship"> <span class="ml-2">Flagship</span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" class="user-channel form-checkbox" value="Dealer"> <span class="ml-2">Dealer</span></label>
+                                    <label class="inline-flex items-center"><input type="checkbox" class="user-channel form-checkbox" value="Marketplace"> <span class="ml-2">Marketplace</span></label>
+                                </div>
+                            </div>
+                            <div class="md:col-span-3 flex justify-end space-x-2">
+                                <button type="button" id="cancel-user-edit-btn" class="btn-secondary">ยกเลิก</button>
+                                <button type="submit" class="btn-primary">บันทึกผู้ใช้</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <h4 class="font-bold mb-2">รายชื่อผู้ใช้ปัจจุบัน</h4>
+                    <div class="max-h-60 overflow-y-auto border">
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr>
+                                    <th class="p-2 text-left">Username</th>
+                                    <th class="p-2 text-left">Role</th>
+                                    <th class="p-2 text-left">Channels</th>
+                                    <th class="p-2 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="settings-tab" class="tab-content hidden mt-4">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">ตั้งค่าทั่วไป</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="logo-upload" class="block text-sm font-medium text-gray-700">อัพโหลดโลโก้</label>
+                            <input type="file" id="logo-upload" accept="image/*" class="mt-1">
+                            <img id="logo-preview" src="" alt="Logo Preview" class="mt-2 h-16 w-auto bg-gray-100 p-1 rounded">
+                            <p class="text-xs text-gray-500 mt-1">โลโก้จะถูกบันทึกไว้ในเครื่องของคุณ</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="logs-tab" class="tab-content hidden mt-4">
+                    <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">ประวัติการใช้งาน</h3>
+                    <button id="export-logs-btn" class="btn-secondary text-sm mb-2">ส่งออกเป็น CSV</button>
+                    <div id="logs-container" class="max-h-96 overflow-y-auto border p-2 bg-gray-50 text-xs font-mono"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- SKU Edit Modal -->
+    <div id="sku-edit-modal" class="modal">
+        <div class="modal-content">
+             <h2 class="text-2xl font-bold mb-4">แก้ไขข้อมูล SKU</h2>
+             <form id="sku-edit-form" class="space-y-4">
+                <input type="hidden" id="edit-sku-original">
+                <div>
+                    <label class="block text-sm font-medium">SKU</label>
+                    <input type="text" id="edit-sku" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium">Description</label>
+                    <input type="text" id="edit-description" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required>
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium">Details (one per line)</label>
+                    <textarea id="edit-details" rows="5" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"></textarea>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium">Normal Price</label>
+                        <input type="number" id="edit-normal_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Promo Price</label>
+                        <input type="number" id="edit-promo_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Flagship Price</label>
+                        <input type="number" id="edit-flagship_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Dealer Price</label>
+                        <input type="number" id="edit-dealer_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium">Marketplace Price</label>
+                        <input type="number" id="edit-marketplace_price" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                     <div>
+                        <label class="block text-sm font-medium">Cost</label>
+                        <input type="number" id="edit-cost" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                    </div>
+                </div>
+                 <div>
+                    <label class="block text-sm font-medium">Expire Date</label>
+                    <input type="text" id="edit-expire_date" placeholder="Expire DD-MM-YYYY หรือ DD-MM-YYYY" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2">
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" id="cancel-edit-sku-btn" class="btn-secondary">ยกเลิก</button>
+                    <button type="submit" class="btn-primary">บันทึก</button>
+                </div>
+             </form>
+        </div>
+    </div>
+
+    <!-- Print Area: This is a hidden container for generating the print content -->
+    <div id="print-area"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Hardcoded Data & Config ---
+        const defaultUsers = {
+            host: { password: 'password', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'] },
+            admin: { password: 'password', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'] },
+            user1: { password: 'password', role: 'User1', channels: ['Flagship'] },
+            user2: { password: 'password', role: 'User2', channels: ['Flagship'] },
+            user3: { password: 'password', role: 'User3', channels: ['Dealer'] },
+            user4: { password: 'password', role: 'User4', channels: ['Marketplace'] }
+        };
+        
+        const defaultSkuData = [
+            {
+                "sku": "CT-01166",
+                "description": "iCon Pro Audio GoLive Pro Streaming mixer",
+                "details": "ออดิโออินเทอร์เฟซสำหรับสตรีมมิ่งพร้อมรีโมทคอนโทรล\nคุณภาพเสียง 24-bit / 48kHz\nแบตเตอรี่ในตัว 5000mAh\nรองรับ Mic Input ทั้งแบบ mini-XLR",
+                "normal_price": "7990",
+                "promo_price": "5990",
+                "flagship_price": "5990",
+                "dealer_price": "5600",
+                "marketplace_price": "5790",
+                "cost": "4200",
+                "expire_date": "31-08-2025"
+            },
+            {
+                "sku": "RE-00006",
+                "description": "ADAM AUDIO S3V",
+                "details": "ลำโพงสตูดิโอมอนิเตอร์แบบ 3-Way\nดอกลำโพง Subwoofer ขนาด 9 นิ้ว\nทวีตเตอร์แบบ S-ART\nตอบสนองย่านความถี่ 32 Hz - 50 kHz",
+                "normal_price": "99000",
+                "promo_price": "89000",
+                "flagship_price": "89000",
+                "dealer_price": "85000",
+                "marketplace_price": "87000",
+                "cost": "50000",
+                "expire_date": ""
+            },
+            {
+                "sku": "AU-01234",
+                "description": "หูฟังไร้สาย Pro-Sound X1",
+                "details": "เชื่อมต่อด้วย Bluetooth 5.2\nกันน้ำระดับ IPX7\nใช้งานได้นาน 8 ชั่วโมง\nเคสชาร์จไร้สาย",
+                "normal_price": "2490",
+                "promo_price": "1990",
+                "flagship_price": "1990",
+                "dealer_price": "1800",
+                "marketplace_price": "1900",
+                "cost": "1200",
+                "expire_date": "31-12-2025"
+            }
+        ];
+
+        // --- State Management ---
+        let currentUser = null;
+        let allSkus = [];
+        let filteredSkus = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let logoSrc = localStorage.getItem('logoSrc') || 'https://assets.proplugin.com/2020/08/logo-proplugin-space-w.png';
+        let logs = JSON.parse(localStorage.getItem('appLogs')) || [];
+        let appUsers = JSON.parse(localStorage.getItem('appUsers')) || defaultUsers;
+
+        // --- DOM Elements ---
+        const loginSection = document.getElementById('login-section');
+        const appSection = document.getElementById('app-section');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
+        const searchInput = document.getElementById('search-input');
+        const expireFilter = document.getElementById('expire-filter');
+        const channelSelector = document.getElementById('channel-selector');
+        const templateSelector = document.getElementById('template-selector');
+        const dataTable = document.getElementById('data-table');
+        const pageInfo = document.getElementById('page-info');
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        const tableHeaderRow = document.getElementById('table-header-row');
+        
+        // Modals
+        const previewModal = document.getElementById('preview-modal');
+        const adminModal = document.getElementById('admin-modal');
+        const skuEditModal = document.getElementById('sku-edit-modal');
+
+        // --- Utility Functions ---
+        const formatCurrency = (num) => {
+            if (isNaN(num) || num === null) return '-';
+            return new Intl.NumberFormat('th-TH').format(num);
+        };
+        
+        const formatCurrencyWithSuffix = (num) => {
+            if (isNaN(num) || num === null) return '-';
+            return new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 }).format(num) + '.-';
+        }
+
+        const logAction = (action) => {
+            if (!currentUser) return;
+            const logEntry = {
+                user: currentUser.username,
+                role: currentUser.role,
+                action: action,
+                timestamp: new Date().toISOString()
+            };
+            logs.unshift(logEntry);
+            if (logs.length > 200) logs.pop(); // Limit log size
+            localStorage.setItem('appLogs', JSON.stringify(logs));
+            renderLogs();
+        };
+
+        const parseDate = (dateStr) => {
+            if (!dateStr) return null;
+            let cleanStr = String(dateStr).replace('Expire ', '').trim();
+            const parts = cleanStr.split(/[-/]/);
+            if (parts.length === 3) {
+                // Assuming DD-MM-YYYY
+                return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return null;
+        };
+
+        // --- Core Application Logic ---
+        const initApp = async () => {
+            const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
+            if (sessionUser) {
+                currentUser = sessionUser;
+                showApp();
+                await loadData();
+            } else {
+                showLogin();
+            }
+        };
+
+        const showLogin = () => {
+            loginSection.style.display = 'flex';
+            appSection.style.display = 'none';
+            sessionStorage.removeItem('currentUser');
+            currentUser = null;
+        };
+
+        const showApp = () => {
+            loginSection.style.display = 'none';
+            appSection.style.display = 'block';
+            userInfo.textContent = `Role: ${currentUser.role} (${currentUser.username})`;
+            setupUIForRole();
+            logAction('Logged in');
+        };
+
+        const setupUIForRole = () => {
+            // Setup channel selector
+            channelSelector.innerHTML = '';
+            currentUser.channels.forEach(channel => {
+                const option = document.createElement('option');
+                option.value = channel;
+                option.textContent = channel;
+                channelSelector.appendChild(option);
+            });
+            
+            // Setup table headers dynamically
+            let headers = `
+                <th class="p-3 text-left"><input type="checkbox" id="select-all-checkbox"></th>
+                <th class="p-3 text-left font-bold text-gray-700">SKU</th>
+                <th class="p-3 text-left font-bold text-gray-700">รายละเอียดสินค้า</th>
+                <th class="p-3 text-left font-bold text-gray-700">ราคาปกติ</th>
+                <th class="p-3 text-left font-bold text-gray-700">ราคาโปรโมชั่น</th>
+                <th class="p-3 text-left font-bold text-gray-700">วันหมดอายุ</th>
+            `;
+
+            const gpChannels = getVisibleGPChannels();
+            gpChannels.forEach(channel => {
+                headers += `<th class="p-3 text-left font-bold text-gray-700">GP% (${channel})</th>`;
+            });
+            tableHeaderRow.innerHTML = headers;
+        };
+        
+        const getVisibleGPChannels = () => {
+            if (!currentUser) return [];
+            if (['Host', 'Admin'].includes(currentUser.role)) {
+                return ['Flagship', 'Dealer', 'Marketplace'];
+            } else if (currentUser.role === 'User3') {
+                return ['Dealer'];
+            } else if (currentUser.role === 'User4') {
+                return ['Marketplace'];
+            }
+            return [];
+        };
+
+        const handleLogin = () => {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const user = appUsers[username];
+
+            if (user && user.password === password) {
+                currentUser = { username, ...user };
+                sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+                initApp();
+            } else {
+                document.getElementById('login-error').textContent = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+            }
+        };
+
+        const loadData = async () => {
+            try {
+                const localData = localStorage.getItem('skuData');
+                if (localData) {
+                    allSkus = JSON.parse(localData);
+                } else {
+                    allSkus = defaultSkuData;
+                    localStorage.setItem('skuData', JSON.stringify(allSkus));
+                }
+                applyFilters();
+                logAction('Loaded SKU data');
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                alert('เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message);
+            }
+        };
+
+        const applyFilters = () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const filterDateVal = expireFilter.value;
+            
+            filteredSkus = allSkus.filter(item => {
+                const descriptionMatch = item.description?.toLowerCase().includes(searchTerm) || false;
+                const skuMatch = item.sku?.toLowerCase().includes(searchTerm) || false;
+                
+                let dateMatch = true;
+                if (filterDateVal) {
+                    const itemExpireDate = parseDate(item.expire_date);
+                    const filterDate = new Date(filterDateVal);
+                    if (itemExpireDate) {
+                        itemExpireDate.setHours(0,0,0,0);
+                        filterDate.setHours(0,0,0,0);
+                        dateMatch = itemExpireDate.getTime() === filterDate.getTime();
+                    } else {
+                        dateMatch = false;
+                    }
+                }
+                
+                return (descriptionMatch || skuMatch) && dateMatch;
+            });
+            
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        };
+        
+        const getPriceForChannel = (item, channel) => {
+            const priceKey = `${channel.toLowerCase()}_price`;
+            if (item[priceKey] !== undefined && item[priceKey] !== null && item[priceKey] !== '') {
+                return { price: parseFloat(item[priceKey]), normal: parseFloat(item.normal_price) || null };
+            }
+            const promo = parseFloat(item.promo_price);
+            const normal = parseFloat(item.normal_price);
+            if (!isNaN(promo) && promo > 0) {
+                return { price: promo, normal: isNaN(normal) ? null : normal };
+            }
+            if (!isNaN(normal) && normal > 0) {
+                return { price: normal, normal: null };
+            }
+            return { price: null, normal: null };
+        };
+
+        const renderTable = () => {
+            dataTable.innerHTML = '';
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageItems = filteredSkus.slice(startIndex, endIndex);
+            const gpChannels = getVisibleGPChannels();
+
+            pageItems.forEach(item => {
+                const selectedChannel = channelSelector.value;
+                const prices = getPriceForChannel(item, selectedChannel);
+                
+                let gpCells = '';
+                gpChannels.forEach(channel => {
+                    const channelPrice = item[`${channel.toLowerCase()}_price`];
+                    const cost = item.cost;
+                    let gp = '-';
+                    if (channelPrice && cost) {
+                        const priceNum = parseFloat(channelPrice);
+                        const costNum = parseFloat(cost);
+                         if (priceNum > 0) {
+                            gp = (((priceNum - costNum) / priceNum) * 100).toFixed(1) + '%';
+                        }
+                    }
+                    gpCells += `<td class="p-3">${gp}</td>`;
+                });
+
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-gray-200 hover:bg-gray-100';
+                tr.innerHTML = `
+                    <td class="p-3"><input type="checkbox" class="sku-checkbox" data-sku="${item.sku}"></td>
+                    <td class="p-3">${item.sku}</td>
+                    <td class="p-3">
+                        <div class="font-medium">${item.description}</div>
+                    </td>
+                    <td class="p-3">${prices.normal && prices.price !== prices.normal ? `<s class="text-gray-500">${formatCurrency(prices.normal)}</s>` : formatCurrency(item.normal_price)}</td>
+                    <td class="p-3 font-bold text-brand-red">${formatCurrency(prices.price)}</td>
+                    <td class="p-3">${item.expire_date || '-'}</td>
+                    ${gpCells}
+                `;
+                dataTable.appendChild(tr);
+            });
+        };
+
+        const renderPagination = () => {
+            const totalPages = Math.ceil(filteredSkus.length / itemsPerPage);
+            pageInfo.textContent = `หน้า ${currentPage} / ${totalPages}`;
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+        };
+
+        const changePage = (direction) => {
+            const totalPages = Math.ceil(filteredSkus.length / itemsPerPage);
+            currentPage += direction;
+            if (currentPage < 1) currentPage = 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            renderTable();
+            renderPagination();
+        };
+
+        const getSelectedSkus = () => {
+            return Array.from(document.querySelectorAll('.sku-checkbox:checked')).map(cb => cb.dataset.sku);
+        };
+
+        // --- Preview & Print Logic ---
+        let currentPreviewIndex = 0;
+        let skusForPreview = [];
+
+        const showPreviewModal = () => {
+            skusForPreview = getSelectedSkus();
+            if (skusForPreview.length === 0) {
+                alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
+                return;
+            }
+            currentPreviewIndex = 0;
+            renderPreviewTag();
+            previewModal.style.display = 'block';
+            logAction(`Previewed ${skusForPreview.length} items`);
+        };
+
+        const renderPreviewTag = () => {
+            if (skusForPreview.length === 0) return;
+            const sku = skusForPreview[currentPreviewIndex];
+            const item = allSkus.find(i => i.sku === sku);
+            const template = templateSelector.value;
+            const previewContent = document.getElementById('preview-content');
+            
+            const templateClass = `template-${template.toLowerCase()}`;
+            const tagHtml = generateTagHtml(item, templateClass);
+
+            let previewWidth = "400px";
+            let aspect_ratio;
+            switch(template) {
+                case 'A4': aspect_ratio = 210 / 297; break;
+                case 'A5': aspect_ratio = 210 / 148; previewWidth = "500px"; break;
+                case 'A6': aspect_ratio = 148 / 105; break;
+                case 'Accessories': aspect_ratio = 148 / 45; previewWidth = "500px"; break;
+            }
+            
+            previewContent.innerHTML = `<div style="width: ${previewWidth}; aspect-ratio: ${aspect_ratio};">${tagHtml}</div>`;
+            document.getElementById('preview-sku-info').textContent = `${currentPreviewIndex + 1} / ${skusForPreview.length}`;
+        };
+
+        const generateTagHtml = (item, templateClass = '') => {
+            const selectedChannel = channelSelector.value;
+            const prices = getPriceForChannel(item, selectedChannel);
+            const hasPromo = prices.normal && prices.price !== prices.normal && prices.normal > prices.price;
+            const mainPrice = prices.price;
+
+            const logoHtml = `<img src="${logoSrc}" class="tag-logo" alt="Logo">`;
+
+            return `
+            <div class="price-tag ${templateClass}">
+                <div class="tag-header">
+                    ${templateClass !== 'template-a4' ? logoHtml : ''}
+                    <span class="tag-sku">${item.sku || ''}</span>
+                </div>
+                <div class="tag-body">
+                    <h1 class="tag-name">${item.description || ''}</h1>
+                    <div class="tag-details">
+                        <ul>
+                            ${(item.details || '').split('\n').map(d => d.trim() ? `<li>${d.trim()}</li>` : '').join('')}
+                        </ul>
+                    </div>
+                </div>
+                <div class="tag-footer">
+                    <div class="tag-price-area">
+                        <div class="tag-expire">
+                            ${item.expire_date ? `Expire: ${item.expire_date}` : '&nbsp;'}
+                        </div>
+                        <div class="tag-prices">
+                            ${hasPromo ? `<span class="tag-normal-price">${formatCurrencyWithSuffix(prices.normal)}</span>` : ''}
+                            <span class="tag-promo-price">${formatCurrency(mainPrice)}<span>.-</span></span>
+                        </div>
+                    </div>
+                    ${templateClass === 'template-a4' ? logoHtml : ''}
+                </div>
+            </div>
+            `;
+        };
+
+        const handlePrint = () => {
+            const selected = getSelectedSkus();
+            if (selected.length === 0) {
+                alert('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ');
+                return;
+            }
+
+            const template = templateSelector.value;
+            const printArea = document.getElementById('print-area');
+            const printStyle = document.getElementById('print-style');
+
+            const printConfigs = {
+                'A4': { width: '190mm', height: '277mm', display: 'block' },
+                'A5': { width: '190mm', height: '128.5mm', display: 'block' },
+                'A6': { width: '95mm', height: '128.5mm', display: 'inline-block' },
+                'Accessories': { width: '63.3mm', height: '60mm', display: 'inline-block' }
+            };
+            const config = printConfigs[template];
+
+            const css = `
+                @media print {
+                    @page {
+                        size: A4;
+                        margin: 10mm;
+                    }
+                    body { margin: 0; padding: 0; }
+                    #print-area {
+                        display: flex;
+                        flex-wrap: wrap;
+                        justify-content: flex-start;
+                        align-content: flex-start;
+                        width: 190mm; /* A4 width - margins */
+                        height: 277mm; /* A4 height - margins */
+                    }
+                    .print-tag-wrapper {
+                        width: ${config.width};
+                        height: ${config.height};
+                        box-sizing: border-box;
+                        page-break-inside: avoid !important;
+                        display: ${config.display};
+                        overflow: hidden;
+                        padding: 1mm;
+                    }
+                    .price-tag {
+                        --scale-factor: 0.8; /* Adjust this to scale fonts for print */
+                        padding: calc(20px * var(--scale-factor));
+                    }
+                    .price-tag .tag-name { font-size: calc(2.2em * var(--scale-factor)); }
+                    .price-tag .tag-details { font-size: calc(0.9em * var(--scale-factor)); }
+                    .price-tag .tag-promo-price { font-size: calc(3.5em * var(--scale-factor)); }
+                    .price-tag .tag-normal-price { font-size: calc(1.5em * var(--scale-factor)); }
+                    .price-tag.template-acc .tag-name { font-size: calc(1.2em * var(--scale-factor)); }
+                    .price-tag.template-acc .tag-promo-price { font-size: calc(2em * var(--scale-factor)); }
+                    .price-tag.template-acc .tag-normal-price { font-size: calc(1em * var(--scale-factor)); }
+                }
+            `;
+            printStyle.innerHTML = css;
+
+            const templateClass = `template-${template.toLowerCase()}`;
+            const items = selected.map(sku => allSkus.find(i => i.sku === sku));
+            printArea.innerHTML = items.map(item => {
+                const tagHtml = generateTagHtml(item, templateClass);
+                return `<div class="print-tag-wrapper">${tagHtml}</div>`;
+            }).join('');
+
+            logAction(`Printing ${selected.length} items with ${template} template`);
+            
+            window.print();
+
+            setTimeout(() => {
+                printStyle.innerHTML = '';
+                printArea.innerHTML = '';
+            }, 500);
+        };
+
+
+        // --- Admin Panel Logic ---
+        const openAdminModal = () => {
+            adminModal.style.display = 'block';
+            renderAdminSkuTable();
+            renderLogs();
+            if (currentUser.role === 'Host') {
+                renderUsersTable();
+            }
+            switchTab('sku-management');
+        };
+
+        const switchTab = (tabId) => {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('border-indigo-500', 'text-indigo-600'));
+            document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+            document.querySelector(`[data-tab='${tabId}']`).classList.add('border-indigo-500', 'text-indigo-600');
+        };
+
+        const renderAdminSkuTable = () => {
+            const tableBody = document.getElementById('admin-sku-table');
+            tableBody.innerHTML = '';
+            allSkus.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 cursor-pointer';
+                tr.innerHTML = `
+                    <td class="p-2">${item.sku}</td>
+                    <td class="p-2">${item.description}</td>
+                    <td class="p-2">
+                        <button class="text-red-600 hover:text-red-900 delete-sku-btn" data-sku="${item.sku}">ลบ</button>
+                    </td>
+                `;
+                tr.addEventListener('dblclick', () => openSkuEditModal(item));
+                tableBody.appendChild(tr);
+            });
+        };
+        
+        const openSkuEditModal = (item = null) => {
+            const form = document.getElementById('sku-edit-form');
+            if (item) {
+                document.getElementById('edit-sku-original').value = item.sku;
+                document.getElementById('edit-sku').value = item.sku;
+                document.getElementById('edit-sku').readOnly = true;
+                Object.keys(item).forEach(key => {
+                    const el = document.getElementById(`edit-${key}`);
+                    if (el) el.value = item[key] || '';
+                });
+            } else {
+                form.reset();
+                document.getElementById('edit-sku-original').value = '';
+                document.getElementById('edit-sku').readOnly = false;
+            }
+            skuEditModal.style.display = 'block';
+        };
+        
+        const handleSkuFormSubmit = (e) => {
+            e.preventDefault();
+            const originalSku = document.getElementById('edit-sku-original').value;
+            const updatedSkuData = {
+                sku: document.getElementById('edit-sku').value,
+                description: document.getElementById('edit-description').value,
+                details: document.getElementById('edit-details').value,
+                normal_price: document.getElementById('edit-normal_price').value,
+                promo_price: document.getElementById('edit-promo_price').value,
+                flagship_price: document.getElementById('edit-flagship_price').value,
+                dealer_price: document.getElementById('edit-dealer_price').value,
+                marketplace_price: document.getElementById('edit-marketplace_price').value,
+                cost: document.getElementById('edit-cost').value,
+                expire_date: document.getElementById('edit-expire_date').value,
+            };
+
+            if (originalSku) {
+                const index = allSkus.findIndex(item => item.sku === originalSku);
+                if (index > -1) {
+                    allSkus[index] = { ...allSkus[index], ...updatedSkuData };
+                    logAction(`Updated SKU: ${originalSku}`);
+                }
+            } else {
+                if (allSkus.some(item => item.sku === updatedSkuData.sku)) {
+                    alert('SKU นี้มีอยู่ในระบบแล้ว');
+                    return;
+                }
+                allSkus.unshift(updatedSkuData);
+                logAction(`Added SKU: ${updatedSkuData.sku}`);
+            }
+            
+            saveAllSkus();
+            renderAdminSkuTable();
+            applyFilters();
+            skuEditModal.style.display = 'none';
+        };
+        
+        const handleDeleteSku = (e) => {
+            if (e.target.classList.contains('delete-sku-btn')) {
+                const skuToDelete = e.target.dataset.sku;
+                if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบ SKU: ${skuToDelete}?`)) {
+                    allSkus = allSkus.filter(item => item.sku !== skuToDelete);
+                    saveAllSkus();
+                    renderAdminSkuTable();
+                    applyFilters();
+                    logAction(`Deleted SKU: ${skuToDelete}`);
+                }
+            }
+        };
+
+        const saveAllSkus = () => {
+            localStorage.setItem('skuData', JSON.stringify(allSkus));
+        };
+
+        const handleLogoUpload = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    logoSrc = event.target.result;
+                    localStorage.setItem('logoSrc', logoSrc);
+                    document.getElementById('logo-preview').src = logoSrc;
+                    logAction('Updated logo');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        document.getElementById('logo-preview').src = logoSrc;
+        
+        const renderLogs = () => {
+            const container = document.getElementById('logs-container');
+            container.innerHTML = logs.map(log => 
+                `<div>[${new Date(log.timestamp).toLocaleString('th-TH')}] ${log.user} (${log.role}): ${log.action}</div>`
+            ).join('');
+        };
+        
+        const exportLogs = () => {
+            let csvContent = "data:text/csv;charset=utf-8,Timestamp,User,Role,Action\n";
+            logs.forEach(log => {
+                csvContent += `"${log.timestamp}","${log.user}","${log.role}","${log.action}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "app_logs.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            logAction('Exported logs');
+        };
+
+        const handleImportExcel = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = new Uint8Array(event.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    const mappedJson = json.map(row => ({
+                        sku: row['Item No.'],
+                        description: row['Description'],
+                        details: row['Details'],
+                        cost: row['Costs'],
+                        dealer_price: row['Dealer Price'],
+                        marketplace_price: row['Marketplace Price'],
+                        normal_price: row['Normal Price'],
+                        promo_price: row['Promotion Price'] || row['Flagship Price'],
+                        flagship_price: row['Flagship Price'],
+                        expire_date: row['Expire Date']
+                    }));
+
+                    mappedJson.forEach(newItem => {
+                        if (!newItem.sku) return;
+                        const index = allSkus.findIndex(oldItem => oldItem.sku === newItem.sku);
+                        if (index > -1) {
+                            allSkus[index] = { ...allSkus[index], ...newItem };
+                        } else {
+                            allSkus.push(newItem);
+                        }
+                    });
+                    
+                    saveAllSkus();
+                    applyFilters();
+                    renderAdminSkuTable();
+                    alert(`นำเข้าข้อมูล ${mappedJson.length} รายการสำเร็จ`);
+                    logAction(`Imported ${mappedJson.length} items from Excel`);
+                } catch (err) {
+                    console.error("Excel Import Error:", err);
+                    alert("เกิดข้อผิดพลาดในการนำเข้าไฟล์ Excel โปรดตรวจสอบรูปแบบไฟล์");
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        };
+        
+        const handleExportExcel = () => {
+            const dataForExport = allSkus.map(item => {
+                const cost = parseFloat(item.cost);
+                const dealerPrice = parseFloat(item.dealer_price);
+                const marketplacePrice = parseFloat(item.marketplace_price);
+                const flagshipPrice = parseFloat(item.flagship_price);
+
+                const dealerGP = (!isNaN(cost) && !isNaN(dealerPrice) && dealerPrice !== 0) ? ((dealerPrice - cost) / dealerPrice) : null;
+                const marketplaceGP = (!isNaN(cost) && !isNaN(marketplacePrice) && marketplacePrice !== 0) ? ((marketplacePrice - cost) / marketplacePrice) : null;
+                const flagshipGP = (!isNaN(cost) && !isNaN(flagshipPrice) && flagshipPrice !== 0) ? ((flagshipPrice - cost) / flagshipPrice) : null;
+
+                return {
+                    'Item No.': item.sku,
+                    'Description': item.description,
+                    'Details': item.details,
+                    'Costs': item.cost,
+                    'Dealer Price': item.dealer_price,
+                    'GP% (Dealer)': dealerGP,
+                    'Marketplace Price': item.marketplace_price,
+                    'GP% (Marketplace)': marketplaceGP,
+                    'Flagship Price': item.flagship_price,
+                    'GP% (Flagship)': flagshipGP,
+                    'Normal Price': item.normal_price,
+                    'Promotion Price': item.promo_price,
+                    'Expire Date': item.expire_date
+                };
+            });
+            
+            const worksheet = XLSX.utils.json_to_sheet(dataForExport);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "SKU Data Export");
+            XLSX.writeFile(workbook, "sku_data_export.xlsx");
+            logAction('Exported data to Excel');
+        };
+        
+        // --- User Management ---
+        const saveUsers = () => {
+            localStorage.setItem('appUsers', JSON.stringify(appUsers));
+        };
+
+        const renderUsersTable = () => {
+            const tableBody = document.getElementById('users-table');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+            Object.keys(appUsers).forEach(username => {
+                if (username === 'host') return;
+                const user = appUsers[username];
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-2">${username}</td>
+                    <td class="p-2">${user.role}</td>
+                    <td class="p-2">${user.channels.join(', ')}</td>
+                    <td class="p-2">
+                        <button class="text-blue-600 hover:text-blue-900 mr-2 edit-user-btn" data-username="${username}">แก้ไข</button>
+                        <button class="text-red-600 hover:text-red-900 delete-user-btn" data-username="${username}">ลบ</button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        };
+        
+        const resetUserForm = () => {
+            const form = document.getElementById('user-form');
+            if(form) {
+                form.reset();
+                document.getElementById('user-form-mode').value = 'add';
+                document.getElementById('user-form-original-username').value = '';
+                const usernameInput = document.getElementById('user-username');
+                if(usernameInput) usernameInput.readOnly = false;
+            }
+        };
+
+        const handleUserFormSubmit = (e) => {
+            e.preventDefault();
+            const mode = document.getElementById('user-form-mode').value;
+            const originalUsername = document.getElementById('user-form-original-username').value;
+            const username = document.getElementById('user-username').value.trim();
+            const password = document.getElementById('user-password').value;
+            const role = document.getElementById('user-role').value;
+            const channels = Array.from(document.querySelectorAll('.user-channel:checked')).map(cb => cb.value);
+
+            if (!username) { alert('กรุณาใส่ชื่อผู้ใช้'); return; }
+            if (mode === 'add' && !password) { alert('กรุณาใส่รหัสผ่านสำหรับผู้ใช้ใหม่'); return; }
+            if (mode === 'add' && appUsers[username]) { alert('ชื่อผู้ใช้นี้มีอยู่แล้ว'); return; }
+            
+            const isEdit = mode === 'edit';
+            const targetUsername = isEdit ? originalUsername : username;
+            const userData = appUsers[targetUsername] || {};
+            
+            if (password) userData.password = password;
+            userData.role = role;
+            userData.channels = channels;
+            
+            if (isEdit && targetUsername !== username) {
+                delete appUsers[targetUsername];
+            }
+            appUsers[username] = userData;
+
+            saveUsers();
+            renderUsersTable();
+            logAction(`${mode === 'add' ? 'Added' : 'Updated'} user: ${username}`);
+            resetUserForm();
+        };
+
+        const handleEditUser = (username) => {
+            const user = appUsers[username];
+            if (!user) return;
+            
+            document.getElementById('user-form-mode').value = 'edit';
+            document.getElementById('user-form-original-username').value = username;
+            document.getElementById('user-username').value = username;
+            document.getElementById('user-password').value = '';
+            document.getElementById('user-password').placeholder = 'ปล่อยว่างไว้ถ้าไม่ต้องการเปลี่ยน';
+            document.getElementById('user-role').value = user.role;
+            
+            document.querySelectorAll('.user-channel').forEach(cb => {
+                cb.checked = user.channels.includes(cb.value);
+            });
+        };
+
+        const handleDeleteUser = (username) => {
+            if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้: ${username}?`)) {
+                delete appUsers[username];
+                saveUsers();
+                renderUsersTable();
+                logAction(`Deleted user: ${username}`);
+            }
+        };
+
+        // --- Event Listeners ---
+        loginBtn.addEventListener('click', handleLogin);
+        document.getElementById('password').addEventListener('keypress', (e) => { if (e.key === 'Enter') handleLogin(); });
+        logoutBtn.addEventListener('click', showLogin);
+        searchInput.addEventListener('input', applyFilters);
+        expireFilter.addEventListener('change', applyFilters);
+        channelSelector.addEventListener('change', renderTable);
+        prevPageBtn.addEventListener('click', () => changePage(-1));
+        nextPageBtn.addEventListener('click', () => changePage(1));
+        
+        // FIX: Use event delegation for the select-all checkbox
+        tableHeaderRow.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'select-all-checkbox') {
+                document.querySelectorAll('.sku-checkbox').forEach(cb => {
+                    cb.checked = e.target.checked;
+                });
+            }
+        });
+        
+        // Modal Listeners
+        document.getElementById('preview-btn').addEventListener('click', showPreviewModal);
+        document.getElementById('close-preview-modal').addEventListener('click', () => previewModal.style.display = 'none');
+        document.getElementById('prev-sku-btn').addEventListener('click', () => {
+            currentPreviewIndex = (currentPreviewIndex - 1 + skusForPreview.length) % skusForPreview.length;
+            renderPreviewTag();
+        });
+        document.getElementById('next-sku-btn').addEventListener('click', () => {
+            currentPreviewIndex = (currentPreviewIndex + 1) % skusForPreview.length;
+            renderPreviewTag();
+        });
+        
+        document.getElementById('admin-panel-btn').addEventListener('click', openAdminModal);
+        document.getElementById('close-admin-modal').addEventListener('click', () => adminModal.style.display = 'none');
+        
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        });
+
+        document.getElementById('print-btn').addEventListener('click', handlePrint);
+        
+        // Admin Panel Event Listeners
+        document.getElementById('logo-upload').addEventListener('change', handleLogoUpload);
+        document.getElementById('export-logs-btn').addEventListener('click', exportLogs);
+        document.getElementById('import-excel-btn').addEventListener('click', () => document.getElementById('import-excel-input').click());
+        document.getElementById('import-excel-input').addEventListener('change', handleImportExcel);
+        document.getElementById('export-excel-btn').addEventListener('click', handleExportExcel);
+        document.getElementById('add-sku-btn').addEventListener('click', () => openSkuEditModal());
+        document.getElementById('admin-sku-table').addEventListener('click', handleDeleteSku);
+        
+        // SKU Edit Modal Listeners
+        document.getElementById('sku-edit-form').addEventListener('submit', handleSkuFormSubmit);
+        document.getElementById('cancel-edit-sku-btn').addEventListener('click', () => skuEditModal.style.display = 'none');
+        
+        // User Management Listeners
+        const userForm = document.getElementById('user-form');
+        if(userForm) userForm.addEventListener('submit', handleUserFormSubmit);
+        const usersTable = document.getElementById('users-table');
+        if(usersTable) usersTable.addEventListener('click', (e) => {
+            if (e.target.classList.contains('edit-user-btn')) handleEditUser(e.target.dataset.username);
+            if (e.target.classList.contains('delete-user-btn')) handleDeleteUser(e.target.dataset.username);
+        });
+        const cancelUserEditBtn = document.getElementById('cancel-user-edit-btn');
+        if(cancelUserEditBtn) cancelUserEditBtn.addEventListener('click', resetUserForm);
+
+        // --- Initial Load ---
+        initApp();
+    });
+    </script>
+</body>
+</html>
