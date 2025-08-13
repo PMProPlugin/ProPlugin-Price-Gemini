@@ -147,7 +147,7 @@
 
             <!-- Action Buttons -->
             <div class="mb-4 space-x-2">
-                <button id="preview-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">ดูตัวอย่าง / พิมพ์</button>
+                <button id="print-page-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">พิมพ์ป้ายราคา</button>
                 <button id="edit-data-btn" class="hidden bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">แก้ไขข้อมูลสินค้า</button>
             </div>
 
@@ -170,33 +170,28 @@
         </main>
     </div>
 
-    <!-- Preview Modal -->
-    <div id="preview-modal" class="modal">
+    <!-- Print Modal -->
+    <div id="print-modal" class="modal">
         <div class="modal-content">
-            <span class="close" id="close-modal-btn">&times;</span>
-            <h2 class="text-2xl font-bold mb-4">ตัวอย่างป้ายราคา</h2>
-            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                <div class="flex items-center space-x-4">
-                    <button id="prev-sku-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">&lt; ก่อนหน้า</button>
-                    <span id="sku-counter" class="text-white"></span>
-                    <button id="next-sku-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ถัดไป &gt;</button>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div id="dealer-tier-selector-container" class="hidden">
-                        <label for="dealer-tier-selector" class="text-gray-300 mr-2">ระดับ Dealer:</label>
-                        <select id="dealer-tier-selector" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1"></select>
-                    </div>
-                    <div>
-                        <label for="print-qty-input" class="text-gray-300 mr-2">จำนวนพิมพ์:</label>
-                        <input type="number" id="print-qty-input" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-center">
-                    </div>
-                </div>
+            <span class="close" id="close-print-modal-btn">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">พิมพ์ป้ายราคา</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Print Controls -->
                 <div>
-                    <button id="print-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เปิดหน้าพิมพ์</button>
+                    <div class="mb-4">
+                        <label for="print-template-selector" class="block text-gray-300 mb-2">เลือกเทมเพลต</label>
+                        <select id="print-template-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">รายการที่เลือกสำหรับพิมพ์</h3>
+                    <div id="print-selection-list" class="h-96 overflow-y-auto bg-gray-800 p-2 rounded-lg space-y-2">
+                        <!-- Selected items will be listed here -->
+                    </div>
+                    <button id="print-btn" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เปิดหน้าพิมพ์</button>
                 </div>
-            </div>
-            <div id="tag-preview-area" class="flex flex-col justify-center items-center p-4 bg-gray-800 rounded-lg min-h-[400px]">
-                <!-- Price tag preview will be rendered here -->
+                <!-- Print Preview -->
+                <div id="print-preview-area" class="bg-gray-900 p-2 rounded-lg flex justify-center items-center">
+                    <!-- Preview will be shown here -->
+                </div>
             </div>
         </div>
     </div>
@@ -273,7 +268,7 @@
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
                             <div>
                                 <h4 class="text-lg font-medium mb-2">แก้ไขเทมเพลต</h4>
-                                <div class="mb-4"><label for="template-editor-selector" class="block text-gray-300 mb-2">เลือกเทมเพลตที่จะแก้ไข</label><select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select></div>
+                                <div class="mb-4 flex items-end gap-2"><div class="flex-grow"><label for="template-editor-selector" class="block text-gray-300 mb-2">เลือกเทมเพลตที่จะแก้ไข</label><select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select></div><button id="delete-template-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 rounded-lg">ลบ</button></div>
                                 <div id="template-controls" class="space-y-2"></div>
                                 <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการแก้ไข</button>
                                 <hr class="my-4 border-secondary">
@@ -312,6 +307,7 @@
                         <tr>
                             <th class="p-2">SKU</th>
                             <th class="p-2">Description</th>
+                            <th class="p-2">Details</th>
                             <th class="p-2">Costs</th>
                             <th class="p-2">Normal Price</th>
                             <th class="p-2">Promotion Price</th>
@@ -450,8 +446,8 @@
             const editDataBtn = document.getElementById('edit-data-btn');
             
             // Modals
-            const previewModal = document.getElementById('preview-modal');
-            const closeModalBtn = document.getElementById('close-modal-btn');
+            const printModal = document.getElementById('print-modal');
+            const closePrintModalBtn = document.getElementById('close-print-modal-btn');
             const adminModal = document.getElementById('admin-modal');
             const closeAdminModalBtn = document.getElementById('close-admin-modal-btn');
             const editDataModal = document.getElementById('edit-data-modal');
@@ -459,15 +455,11 @@
             const saveEditedDataBtn = document.getElementById('save-edited-data-btn');
             const editDataTableBody = document.getElementById('edit-data-table-body');
 
-            // Preview Modal Elements
-            const previewBtn = document.getElementById('preview-btn');
-            const prevSkuBtn = document.getElementById('prev-sku-btn');
-            const nextSkuBtn = document.getElementById('next-sku-btn');
-            const skuCounter = document.getElementById('sku-counter');
-            const tagPreviewArea = document.getElementById('tag-preview-area');
+            // Print Modal Elements
+            const printPageBtn = document.getElementById('print-page-btn');
+            const printSelectionList = document.getElementById('print-selection-list');
+            const printPreviewArea = document.getElementById('print-preview-area');
             const printBtn = document.getElementById('print-btn');
-            const dealerTierSelectorContainer = document.getElementById('dealer-tier-selector-container');
-            const dealerTierSelector = document.getElementById('dealer-tier-selector');
             
             // Admin Panel Elements
             const adminNav = document.getElementById('admin-nav');
@@ -493,6 +485,7 @@
             // Template Management Elements
             const templateManagementPanel = document.getElementById('template-management-panel');
             const templateEditorSelector = document.getElementById('template-editor-selector');
+            const deleteTemplateBtn = document.getElementById('delete-template-btn');
             const templateControls = document.getElementById('template-controls');
             const templateLivePreview = document.getElementById('template-live-preview');
             const saveTemplateBtn = document.getElementById('save-template-btn');
@@ -564,11 +557,12 @@
                     applyFilters();
                     updateTableHeader();
                 });
-                previewBtn.addEventListener('click', openPreviewModal);
-                closeModalBtn.addEventListener('click', () => previewModal.style.display = 'none');
+                printPageBtn.addEventListener('click', openPrintModal);
+                closePrintModalBtn.addEventListener('click', () => printModal.style.display = 'none');
                 editDataBtn.addEventListener('click', openDataEditor);
                 closeEditDataModalBtn.addEventListener('click', () => editDataModal.style.display = 'none');
                 saveEditedDataBtn.addEventListener('click', saveEditedData);
+                printBtn.addEventListener('click', openPrintView);
                 
                 // Admin Panel Listeners
                 adminNav.addEventListener('click', handleAdminNav);
@@ -585,6 +579,7 @@
 
                 // Template Management Listeners
                 templateEditorSelector.addEventListener('change', populateTemplateControls);
+                deleteTemplateBtn.addEventListener('click', handleDeleteTemplate);
                 templateControls.addEventListener('input', updateTemplateLivePreview);
                 saveTemplateBtn.addEventListener('click', saveCurrentTemplateSettings);
                 addTemplateBtn.addEventListener('click', handleAddTemplate);
@@ -630,7 +625,7 @@
 
             function populateTemplateSelectors(selectorElement) {
                 const templateNames = Object.keys(templateSettings);
-                const selectors = selectorElement ? [selectorElement] : [document.getElementById('template-selector'), templateEditorSelector];
+                const selectors = selectorElement ? [selectorElement] : [document.getElementById('print-template-selector'), templateEditorSelector];
                 selectors.forEach(selector => {
                     if (selector) {
                         const currentVal = selector.value;
@@ -981,72 +976,46 @@
             }
 
             // --- Preview & Print Modal ---
-            let selectedForPreview = [];
-            let currentPreviewIndex = 0;
+            let selectedForPrinting = [];
 
-            function openPreviewModal() {
-                selectedForPreview = Array.from(document.querySelectorAll('.sku-checkbox:checked'))
+            function openPrintModal() {
+                selectedForPrinting = Array.from(document.querySelectorAll('.sku-checkbox:checked'))
                     .map(cb => cb.dataset.sku)
                     .map(skuId => filteredSkus.find(s => s.sku === skuId));
 
-                if (selectedForPreview.length === 0) {
-                    alert('กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อดูตัวอย่าง');
+                if (selectedForPrinting.length === 0) {
+                    alert('กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อพิมพ์');
                     return;
                 }
+                
+                const printTemplateSelector = document.getElementById('print-template-selector');
+                populateTemplateSelectors(printTemplateSelector);
 
-                currentPreviewIndex = 0;
-                setupDealerTierSelector();
+                printSelectionList.innerHTML = '';
+                selectedForPrinting.forEach(sku => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-gray-900 p-2 rounded';
+                    item.innerHTML = `
+                        <span class="truncate">${sku.sku} - ${sku.description}</span>
+                        <input type="number" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-center print-qty-item" data-sku="${sku.sku}">
+                    `;
+                    printSelectionList.appendChild(item);
+                });
+                
+                const updatePreview = () => {
+                    renderPriceTag(printPreviewArea, selectedForPrinting[0], printTemplateSelector.value);
+                };
+                
+                printTemplateSelector.addEventListener('change', updatePreview);
                 updatePreview();
-                previewModal.style.display = 'block';
+                printModal.style.display = 'block';
             }
-
-            function updatePreview() {
-                if (selectedForPreview.length === 0) {
-                    tagPreviewArea.innerHTML = '<p class="text-gray-400">ไม่มีรายการที่เลือก</p>';
-                    skuCounter.textContent = '0 / 0';
-                    return;
-                }
-
-                skuCounter.textContent = `${currentPreviewIndex + 1} / ${selectedForPreview.length}`;
-                const sku = selectedForPreview[currentPreviewIndex];
-                
-                let previewControlsHTML = `
-                    <div class="w-full max-w-md mb-4">
-                        <label for="preview-template-selector" class="block text-gray-300 mb-2">เลือกเทมเพลต</label>
-                        <select id="preview-template-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
-                    </div>
-                `;
-                tagPreviewArea.innerHTML = previewControlsHTML;
-                
-                const tempTemplateSelector = document.getElementById('preview-template-selector');
-                populateTemplateSelectors(tempTemplateSelector);
-                
-                const tagContainer = document.createElement('div');
-                tagPreviewArea.appendChild(tagContainer);
-
-                const render = () => renderPriceTag(tagContainer, sku, tempTemplateSelector.value);
-                tempTemplateSelector.addEventListener('change', render);
-                render();
-
-                prevSkuBtn.disabled = currentPreviewIndex === 0;
-                nextSkuBtn.disabled = currentPreviewIndex === selectedForPreview.length - 1;
-            }
-
-            prevSkuBtn.addEventListener('click', () => {
-                if (currentPreviewIndex > 0) {
-                    currentPreviewIndex--;
-                    updatePreview();
-                }
-            });
-
-            nextSkuBtn.addEventListener('click', () => {
-                if (currentPreviewIndex < selectedForPreview.length - 1) {
-                    currentPreviewIndex++;
-                    updatePreview();
-                }
-            });
 
             function renderPriceTag(container, sku, templateName, liveFontSettings = null) {
+                if (!sku) {
+                    container.innerHTML = '<p class="text-gray-500">No item to preview</p>';
+                    return;
+                }
                 const baseSettings = templateSettings[templateName];
                 if (!baseSettings) {
                     console.error(`Template settings for "${templateName}" not found.`);
@@ -1125,8 +1094,12 @@
             }
             
             function openPrintView() {
-                const templateName = tagPreviewArea.querySelector('select').value;
-                const qty = parseInt(document.getElementById('print-qty-input').value) || 1;
+                const templateName = document.getElementById('print-template-selector').value;
+                const quantities = {};
+                document.querySelectorAll('.print-qty-item').forEach(input => {
+                    quantities[input.dataset.sku] = parseInt(input.value) || 1;
+                });
+
                 let tagsPerPage, layoutClass;
 
                 if (templateName === 'A4') { tagsPerPage = 1; layoutClass = 'flex justify-center items-center'; }
@@ -1136,7 +1109,8 @@
                 else { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
 
                 let allTagsHtml = '';
-                selectedForPreview.forEach(sku => {
+                selectedForPrinting.forEach(sku => {
+                    const qty = quantities[sku.sku];
                     for (let i = 0; i < qty; i++) {
                         const tagContainer = document.createElement('div');
                         renderPriceTag(tagContainer, sku, templateName);
@@ -1169,8 +1143,6 @@
                 logAction(`Opened print view for selected tags with template ${templateName}`);
             }
 
-            printBtn.addEventListener('click', openPrintView);
-
             // --- Admin Panel Logic ---
             function handleAdminNav(e) {
                 if (e.target.classList.contains('admin-nav-btn')) {
@@ -1193,12 +1165,12 @@
                 loadLogs();
 
                 if (currentUser.role === 'Host') {
-                    userManagementPanel.classList.remove('hidden');
-                    templateManagementPanel.classList.remove('hidden');
+                    document.querySelector('[data-panel="user-management-panel"]').classList.remove('hidden');
+                    document.querySelector('[data-panel="template-management-panel"]').classList.remove('hidden');
                     renderUserManagementTable();
                     populateTemplateControls();
-                } else {
-                    document.querySelector('[data-panel="user-management-panel"]').classList.add('hidden');
+                } else if (currentUser.role === 'Admin') {
+                     document.querySelector('[data-panel="user-management-panel"]').classList.add('hidden');
                     document.querySelector('[data-panel="template-management-panel"]').classList.add('hidden');
                 }
                 
@@ -1432,6 +1404,25 @@
                 alert('บันทึกการตั้งค่าเทมเพลตสำเร็จ!');
             }
 
+            function handleDeleteTemplate() {
+                const selectedTemplate = templateEditorSelector.value;
+                if (defaultTemplateSettings[selectedTemplate]) {
+                    alert('ไม่สามารถลบเทมเพลตเริ่มต้นได้');
+                    return;
+                }
+                if (Object.keys(templateSettings).length <= 1) {
+                    alert('ต้องมีเทมเพลตอย่างน้อยหนึ่งรายการ');
+                    return;
+                }
+                
+                delete templateSettings[selectedTemplate];
+                saveTemplateSettings();
+                populateTemplateSelectors();
+                populateTemplateControls();
+                logAction(`Deleted template: ${selectedTemplate}`);
+                alert(`ลบเทมเพลต '${selectedTemplate}' สำเร็จ!`);
+            }
+
             function handleAddTemplate() {
                 const newName = newTemplateNameInput.value.trim();
                 const file = templateUploadInput.files[0];
@@ -1476,6 +1467,7 @@
                     row.innerHTML = `
                         <td class="p-1">${sku.sku}</td>
                         <td class="p-1"><input type="text" value="${sku.description}" data-key="description" class="w-full bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><textarea data-key="details" class="w-full bg-gray-800 p-1 rounded h-16">${sku.details || ''}</textarea></td>
                         <td class="p-1"><input type="number" value="${sku.cost}" data-key="cost" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.normal_price}" data-key="normal_price" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.promo_price}" data-key="promo_price" class="w-24 bg-gray-800 p-1 rounded"></td>
@@ -1495,7 +1487,7 @@
                 rows.forEach(row => {
                     const index = parseInt(row.dataset.index);
                     if (!isNaN(index) && allSkus[index]) {
-                        row.querySelectorAll('input').forEach(input => {
+                        row.querySelectorAll('input, textarea').forEach(input => {
                             const key = input.dataset.key;
                             const value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
                             allSkus[index][key] = value;
@@ -1570,31 +1562,3 @@
     </script>
 </body>
 </html>
-" and am asking a query about/based on this code below.
-Instructions to follow:
-  * Don't output/edit the document if the query is Direct/Simple. For example, if the query asks for a simple explanation, output a direct answer.
-  * Make sure to **edit** the document if the query shows the intent of editing the document, in which case output the entire edited document, **not just that section or the edits**.
-    * Don't output the same document/empty document and say that you have edited it.
-    * Don't change unrelated code in the document.
-  * Don't output  and  in your final response.
-  * Any references like "this" or "selected code" refers to the code between  and  tags.
-  * Just acknowledge my request in the introduction.
-  * Make sure to refer to the document as "Canvas" in your response.
-
-Please make the following updates:
-
-It seems that in the template editing section, the Host still cannot make the changes I requested:
-“In the template editing page, besides font size, it should also be possible to change the font color and the text margin from the edges.”
-Update the UI of the Admin Control Panel menu to be separated into buttons as follows:
-Manage Data
-Manage Logo
-Dealer Settings
-User Management
-Template Management + Add New Template (combined into one menu)
-Usage History
-
-This will make it easier to use. Also, change the label from “แผงดูแลผู้ควบคุม” to “Settings”.
-In the product editing page, please add the Expire Date column and make sure it’s linked to the price tag output.
-For the “Filter by Expiry Date” option, allow it to be selected as a period range (e.g., 08-01-2025 to 08-31-2025).
-On the “Price Tag Preview” page, after selecting a template, display the actual preview immediately. Also, allow users to select the number of tags they want to print directly on this page without having to press Enter first. Please design this UI to be as user-friendly as possible.
-And it seems that printing price tags is still not working — please check thoroughly and fix 
