@@ -116,7 +116,7 @@
             <h1 class="text-2xl font-bold text-white">Price Tag Management</h1>
             <div class="flex items-center space-x-4">
                 <span id="user-info" class="text-gray-300"></span>
-                <button id="admin-panel-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">แผงควบคุม</button>
+                <button id="admin-panel-btn" class="hidden bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Settings</button>
                 <button id="logout-btn" class="btn-danger font-bold py-2 px-4 rounded-lg">ออกจากระบบ</button>
             </div>
         </header>
@@ -129,10 +129,14 @@
                     <label for="search-input" class="block text-gray-300 mb-2">ค้นหา (SKU / ชื่อสินค้า)</label>
                     <input type="text" id="search-input" placeholder="ค้นหา..." class="w-full px-4 py-3 text-lg bg-gray-700 border border-gray-600 rounded-lg">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="date-filter" class="block text-gray-300 mb-2">กรองตามวันหมดอายุ</label>
-                        <input type="date" id="date-filter" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                     <div>
+                        <label for="date-filter-start" class="block text-gray-300 mb-2">วันหมดอายุ (เริ่ม)</label>
+                        <input type="date" id="date-filter-start" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
+                    </div>
+                     <div>
+                        <label for="date-filter-end" class="block text-gray-300 mb-2">วันหมดอายุ (สิ้นสุด)</label>
+                        <input type="date" id="date-filter-end" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
                     </div>
                     <div>
                         <label for="channel-selector" class="block text-gray-300 mb-2">ช่องทางการขาย</label>
@@ -171,21 +175,27 @@
         <div class="modal-content">
             <span class="close" id="close-modal-btn">&times;</span>
             <h2 class="text-2xl font-bold mb-4">ตัวอย่างป้ายราคา</h2>
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
                 <div class="flex items-center space-x-4">
                     <button id="prev-sku-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">&lt; ก่อนหน้า</button>
                     <span id="sku-counter" class="text-white"></span>
                     <button id="next-sku-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ถัดไป &gt;</button>
                 </div>
-                 <div id="dealer-tier-selector-container" class="hidden">
-                    <label for="dealer-tier-selector" class="text-gray-300 mr-2">ระดับ Dealer:</label>
-                    <select id="dealer-tier-selector" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1"></select>
+                <div class="flex items-center gap-4">
+                    <div id="dealer-tier-selector-container" class="hidden">
+                        <label for="dealer-tier-selector" class="text-gray-300 mr-2">ระดับ Dealer:</label>
+                        <select id="dealer-tier-selector" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1"></select>
+                    </div>
+                    <div>
+                        <label for="print-qty-input" class="text-gray-300 mr-2">จำนวนพิมพ์:</label>
+                        <input type="number" id="print-qty-input" value="1" min="1" class="w-20 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1 text-center">
+                    </div>
                 </div>
                 <div>
                     <button id="print-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เปิดหน้าพิมพ์</button>
                 </div>
             </div>
-            <div id="tag-preview-area" class="flex justify-center items-center p-4 bg-gray-800 rounded-lg min-h-[400px]">
+            <div id="tag-preview-area" class="flex flex-col justify-center items-center p-4 bg-gray-800 rounded-lg min-h-[400px]">
                 <!-- Price tag preview will be rendered here -->
             </div>
         </div>
@@ -195,149 +205,95 @@
     <div id="admin-modal" class="modal">
         <div class="modal-content">
             <span class="close" id="close-admin-modal-btn">&times;</span>
-            <h2 class="text-2xl font-bold mb-4">แผงควบคุมผู้ดูแลระบบ</h2>
-            <div class="space-y-6">
-                <!-- Data Management -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการข้อมูล</h3>
-                    <div class="space-y-3 pt-2">
-                        <p class="text-gray-400">นำเข้าข้อมูลสินค้าจากไฟล์ Excel (.xlsx)</p>
-                        <input type="file" id="import-excel" accept=".xlsx" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
-                        <button id="export-excel-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกข้อมูลเป็น Excel</button>
+            <h2 class="text-2xl font-bold mb-4">Settings</h2>
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Navigation -->
+                <div class="w-full md:w-1/4">
+                    <div id="admin-nav" class="flex flex-col space-y-2">
+                        <button data-panel="data-management-panel" class="admin-nav-btn w-full text-left p-3 rounded-lg bg-gray-700 hover:bg-red-600">จัดการข้อมูล</button>
+                        <button data-panel="logo-management-panel" class="admin-nav-btn w-full text-left p-3 rounded-lg bg-gray-900 hover:bg-red-600">จัดการโลโก้</button>
+                        <button data-panel="dealer-settings-panel" class="admin-nav-btn w-full text-left p-3 rounded-lg bg-gray-900 hover:bg-red-600">ตั้งค่า Dealer</button>
+                        <button data-panel="user-management-panel" class="admin-nav-btn w-full text-left p-3 rounded-lg bg-gray-900 hover:bg-red-600">จัดการผู้ใช้งาน</button>
+                        <button data-panel="template-management-panel" class="admin-nav-btn w-full text-left p-3 rounded-lg bg-gray-900 hover:bg-red-600">จัดการเทมเพลต</button>
+                        <button data-panel="log-viewer-panel" class="admin-nav-btn w-full text-left p-3 rounded-lg bg-gray-900 hover:bg-red-600">ประวัติการใช้งาน</button>
                     </div>
                 </div>
-                <!-- Logo Management -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการโลโก้</h3>
-                     <img id="logo-preview" src="" class="max-h-20 mb-2 bg-white p-1 rounded">
-                    <input type="file" id="logo-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
-                </div>
-                <!-- Dealer Settings (Admin/Host) -->
-                <div id="dealer-settings" class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">ตั้งค่า Dealer</h3>
-                    <div class="space-y-2 pt-2">
-                        <div>
-                            <label class="text-gray-400">ชื่อ Tier 1:</label>
-                            <input type="text" id="tier1-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
+                <!-- Content Panels -->
+                <div class="w-full md:w-3/4">
+                    <!-- Data Management -->
+                    <div id="data-management-panel" class="admin-panel bg-gray-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการข้อมูล</h3>
+                        <div class="space-y-3 pt-2">
+                            <p class="text-gray-400">นำเข้าข้อมูลสินค้าจากไฟล์ Excel (.xlsx)</p>
+                            <input type="file" id="import-excel" accept=".xlsx" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
+                            <button id="export-excel-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกข้อมูลเป็น Excel</button>
                         </div>
-                         <div>
-                            <label class="text-gray-400">ชื่อ Tier 2:</label>
-                            <input type="text" id="tier2-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
-                        </div>
-                         <div>
-                            <label class="text-gray-400">ชื่อ Tier 3:</label>
-                            <input type="text" id="tier3-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
-                        </div>
-                         <div>
-                            <label class="text-gray-400">Tier เริ่มต้นสำหรับแสดงผล:</label>
-                            <select id="default-tier-selector" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"></select>
-                        </div>
-                        <button id="save-dealer-settings-btn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการตั้งค่า</button>
                     </div>
-                </div>
-                <!-- User Management (Host only) -->
-                <div id="user-management-panel" class="hidden bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการผู้ใช้งาน</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-                        <div>
-                            <h4 class="text-lg font-medium mb-2">รายชื่อผู้ใช้</h4>
-                            <div class="h-64 overflow-y-auto border border-secondary rounded-lg">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-gray-900 text-gray-300">
-                                        <tr>
-                                            <th class="p-2">Username</th>
-                                            <th class="p-2">Role</th>
-                                            <th class="p-2">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="user-list-body">
-                                        <!-- User list will be rendered here -->
-                                    </tbody>
-                                </table>
+                    <!-- Logo Management -->
+                    <div id="logo-management-panel" class="admin-panel hidden bg-gray-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการโลโก้</h3>
+                        <img id="logo-preview" src="" class="max-h-20 mb-2 bg-white p-1 rounded">
+                        <input type="file" id="logo-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
+                    </div>
+                    <!-- Dealer Settings -->
+                    <div id="dealer-settings-panel" class="admin-panel hidden bg-gray-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">ตั้งค่า Dealer</h3>
+                        <div class="space-y-2 pt-2">
+                            <div><label class="text-gray-400">ชื่อ Tier 1:</label><input type="text" id="tier1-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"></div>
+                            <div><label class="text-gray-400">ชื่อ Tier 2:</label><input type="text" id="tier2-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"></div>
+                            <div><label class="text-gray-400">ชื่อ Tier 3:</label><input type="text" id="tier3-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"></div>
+                            <div><label class="text-gray-400">Tier เริ่มต้นสำหรับแสดงผล:</label><select id="default-tier-selector" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"></select></div>
+                            <button id="save-dealer-settings-btn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการตั้งค่า</button>
+                        </div>
+                    </div>
+                    <!-- User Management -->
+                    <div id="user-management-panel" class="admin-panel hidden bg-gray-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการผู้ใช้งาน</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                            <div>
+                                <h4 class="text-lg font-medium mb-2">รายชื่อผู้ใช้</h4>
+                                <div class="h-64 overflow-y-auto border border-secondary rounded-lg"><table class="w-full text-sm text-left"><thead class="bg-gray-900 text-gray-300"><tr><th class="p-2">Username</th><th class="p-2">Role</th><th class="p-2">Actions</th></tr></thead><tbody id="user-list-body"></tbody></table></div>
+                            </div>
+                            <div>
+                                <h4 id="user-form-title" class="text-lg font-medium mb-2">เพิ่มผู้ใช้ใหม่</h4>
+                                <form id="user-form" class="space-y-3">
+                                    <input type="hidden" id="user-form-mode" value="add"><input type="hidden" id="user-form-original-username">
+                                    <div><label for="user-form-username" class="text-gray-400">ชื่อผู้ใช้</label><input type="text" id="user-form-username" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" required></div>
+                                    <div><label for="user-form-password" class="text-gray-400">รหัสผ่าน (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</label><input type="password" id="user-form-password" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"></div>
+                                    <div><label for="user-form-role" class="text-gray-400">บทบาท</label><select id="user-form-role" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"><option value="Admin">Admin</option><option value="User1">User1</option><option value="User2">User2</option><option value="User3">User3</option><option value="User4">User4</option></select></div>
+                                    <div><label class="text-gray-400">สิทธิ์การเข้าถึง</label><div id="user-form-permissions" class="space-y-1 mt-1"><label class="flex items-center"><input type="checkbox" value="Flagship" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Flagship</label><label class="flex items-center"><input type="checkbox" value="Dealer" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Dealer</label><label class="flex items-center"><input type="checkbox" value="Marketplace" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Marketplace</label><label class="flex items-center"><input type="checkbox" id="user-form-view-costs" class="form-checkbox bg-gray-700 border-gray-600 mr-2">View Costs</label></div></div>
+                                    <div class="flex space-x-2 pt-2"><button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">บันทึก</button><button type="button" id="user-form-cancel" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ยกเลิก</button></div>
+                                </form>
                             </div>
                         </div>
-                        <div>
-                             <h4 id="user-form-title" class="text-lg font-medium mb-2">เพิ่มผู้ใช้ใหม่</h4>
-                            <form id="user-form" class="space-y-3">
-                                <input type="hidden" id="user-form-mode" value="add">
-                                <input type="hidden" id="user-form-original-username">
-                                <div>
-                                    <label for="user-form-username" class="text-gray-400">ชื่อผู้ใช้</label>
-                                    <input type="text" id="user-form-username" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" required>
-                                </div>
-                                <div>
-                                    <label for="user-form-password" class="text-gray-400">รหัสผ่าน (เว้นว่างไว้หากไม่ต้องการเปลี่ยน)</label>
-                                    <input type="password" id="user-form-password" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
-                                </div>
-                                <div>
-                                    <label for="user-form-role" class="text-gray-400">บทบาท</label>
-                                    <select id="user-form-role" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
-                                        <option value="Admin">Admin</option>
-                                        <option value="User1">User1</option>
-                                        <option value="User2">User2</option>
-                                        <option value="User3">User3</option>
-                                        <option value="User4">User4</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="text-gray-400">สิทธิ์การเข้าถึง</label>
-                                    <div id="user-form-permissions" class="space-y-1 mt-1">
-                                        <label class="flex items-center"><input type="checkbox" value="Flagship" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Flagship</label>
-                                        <label class="flex items-center"><input type="checkbox" value="Dealer" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Dealer</label>
-                                        <label class="flex items-center"><input type="checkbox" value="Marketplace" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Marketplace</label>
-                                        <label class="flex items-center"><input type="checkbox" id="user-form-view-costs" class="form-checkbox bg-gray-700 border-gray-600 mr-2">View Costs</label>
-                                    </div>
-                                </div>
-                                <div class="flex space-x-2 pt-2">
-                                    <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">บันทึก</button>
-                                    <button type="button" id="user-form-cancel" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ยกเลิก</button>
-                                </div>
-                            </form>
+                    </div>
+                    <!-- Template Management -->
+                    <div id="template-management-panel" class="admin-panel hidden bg-gray-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการเทมเพลต</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
+                            <div>
+                                <h4 class="text-lg font-medium mb-2">แก้ไขเทมเพลต</h4>
+                                <div class="mb-4"><label for="template-editor-selector" class="block text-gray-300 mb-2">เลือกเทมเพลตที่จะแก้ไข</label><select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select></div>
+                                <div id="template-controls" class="space-y-2"></div>
+                                <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการแก้ไข</button>
+                                <hr class="my-4 border-secondary">
+                                <h4 class="text-lg font-medium mb-2">เพิ่มเทมเพลตใหม่</h4>
+                                <div class="space-y-2"><label class="block text-gray-400">ชื่อเทมเพลตใหม่</label><input type="text" id="new-template-name" placeholder="เช่น Custom A4" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg"><label class="block text-gray-400">อัปโหลดพื้นหลัง (รูปภาพ)</label><input type="file" id="template-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/></div>
+                                <button id="add-template-btn" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เพิ่มเทมเพลต</button>
+                            </div>
+                            <div class="flex flex-col">
+                                <h4 class="text-lg font-medium mb-2">ตัวอย่างสด</h4>
+                                <div id="template-live-preview" class="bg-gray-900 p-2 rounded-lg flex-grow flex justify-center items-center overflow-hidden"></div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Template Management (Host only) -->
-                 <div id="template-management-panel" class="hidden bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการเทมเพลต</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
-                        <!-- Template Controls -->
-                        <div>
-                            <h4 class="text-lg font-medium mb-2">แก้ไขเทมเพลต</h4>
-                            <div class="mb-4">
-                                <label for="template-editor-selector" class="block text-gray-300 mb-2">เลือกเทมเพลตที่จะแก้ไข</label>
-                                <select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
-                            </div>
-                            <div id="template-controls" class="space-y-2">
-                                <!-- Dynamic controls will be added here -->
-                            </div>
-                            <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการแก้ไข</button>
-                            <hr class="my-4 border-secondary">
-                             <h4 class="text-lg font-medium mb-2">เพิ่มเทมเพลตใหม่</h4>
-                             <div class="space-y-2">
-                                <label class="block text-gray-400">ชื่อเทมเพลตใหม่</label>
-                                <input type="text" id="new-template-name" placeholder="เช่น Custom A4" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
-                                <label class="block text-gray-400">อัปโหลดพื้นหลัง (รูปภาพ)</label>
-                                <input type="file" id="template-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
-                             </div>
-                             <button id="add-template-btn" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เพิ่มเทมเพลต</button>
-                        </div>
-                        <!-- Template Live Preview -->
-                        <div class="flex flex-col">
-                             <h4 class="text-lg font-medium mb-2">ตัวอย่างสด</h4>
-                             <div id="template-live-preview" class="bg-gray-900 p-2 rounded-lg flex-grow flex justify-center items-center overflow-hidden">
-                                <!-- Live preview will be rendered here -->
-                             </div>
-                        </div>
+                    <!-- Log Viewer -->
+                    <div id="log-viewer-panel" class="admin-panel hidden bg-gray-800 p-4 rounded-lg">
+                        <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">ประวัติการใช้งาน</h3>
+                        <textarea id="log-viewer" readonly class="w-full h-40 bg-gray-900 text-gray-300 p-2 rounded-lg text-xs"></textarea>
+                        <button id="export-log-btn" class="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกประวัติ (CSV)</button>
                     </div>
                 </div>
-                 <!-- Log Viewer -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">ประวัติการใช้งาน</h3>
-                    <textarea id="log-viewer" readonly class="w-full h-40 bg-gray-900 text-gray-300 p-2 rounded-lg text-xs"></textarea>
-                    <button id="export-log-btn" class="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกประวัติ (CSV)</button>
-                </div>
-
             </div>
         </div>
     </div>
@@ -359,6 +315,7 @@
                             <th class="p-2">Costs</th>
                             <th class="p-2">Normal Price</th>
                             <th class="p-2">Promotion Price</th>
+                            <th class="p-2">Expires Date</th>
                             <th class="p-2">Marketplace Price</th>
                             <th class="p-2">Dealer T1</th>
                             <th class="p-2">Dealer T2</th>
@@ -484,7 +441,8 @@
             const logoutBtn = document.getElementById('logout-btn');
             const adminPanelBtn = document.getElementById('admin-panel-btn');
             const searchInput = document.getElementById('search-input');
-            const dateFilter = document.getElementById('date-filter');
+            const dateFilterStart = document.getElementById('date-filter-start');
+            const dateFilterEnd = document.getElementById('date-filter-end');
             const channelSelector = document.getElementById('channel-selector');
             const skuTableBody = document.getElementById('sku-table-body');
             const tableHeader = document.getElementById('table-header');
@@ -512,6 +470,7 @@
             const dealerTierSelector = document.getElementById('dealer-tier-selector');
             
             // Admin Panel Elements
+            const adminNav = document.getElementById('admin-nav');
             const importExcelInput = document.getElementById('import-excel');
             const exportExcelBtn = document.getElementById('export-excel-btn');
             const logoUpload = document.getElementById('logo-upload');
@@ -553,30 +512,30 @@
 
             const defaultTemplateSettings = {
                 'A4': { 
-                    desc: { size: 60, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    details: { size: 22, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    price: { size: 90, color: '#dc2626', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    sku: { size: 18, color: '#000000', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    desc: { size: 60, color: '#000000', marginTop: 16 },
+                    details: { size: 22, color: '#000000', marginTop: 16 },
+                    price: { size: 90, color: '#dc2626', marginTop: 0 },
+                    sku: { size: 18, color: '#000000', marginTop: 0 },
                     backgroundImage: null, isDark: false 
                 },
                 'A5': { 
-                    desc: { size: 50, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    details: { size: 18, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    price: { size: 72, color: '#dc2626', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    sku: { size: 16, color: '#000000', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    desc: { size: 50, color: '#000000', marginTop: 16 },
+                    details: { size: 18, color: '#000000', marginTop: 16 },
+                    price: { size: 72, color: '#dc2626', marginTop: 0 },
+                    sku: { size: 16, color: '#000000', marginTop: 0 },
                     backgroundImage: null, isDark: false 
                 },
                 'A6': { 
-                    desc: { size: 40, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    details: { size: 16, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    price: { size: 60, color: '#dc2626', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    sku: { size: 14, color: '#000000', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    desc: { size: 40, color: '#000000', marginTop: 16 },
+                    details: { size: 16, color: '#000000', marginTop: 16 },
+                    price: { size: 60, color: '#dc2626', marginTop: 0 },
+                    sku: { size: 14, color: '#000000', marginTop: 0 },
                     backgroundImage: null, isDark: false 
                 },
                 'Accessories Tag': { 
-                    desc: { size: 24, color: '#ffffff', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    price: { size: 36, color: '#fbbf24', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
-                    sku: { size: 10, color: '#ffffff', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    desc: { size: 24, color: '#ffffff', marginTop: 0 },
+                    price: { size: 36, color: '#fbbf24', marginTop: 0 },
+                    sku: { size: 10, color: '#ffffff', marginTop: 0 },
                     backgroundImage: null, isDark: true 
                 },
             };
@@ -599,7 +558,8 @@
                 adminPanelBtn.addEventListener('click', openAdminPanel);
                 closeAdminModalBtn.addEventListener('click', () => adminModal.style.display = 'none');
                 searchInput.addEventListener('input', applyFilters);
-                dateFilter.addEventListener('change', applyFilters);
+                dateFilterStart.addEventListener('change', applyFilters);
+                dateFilterEnd.addEventListener('change', applyFilters);
                 channelSelector.addEventListener('change', () => {
                     applyFilters();
                     updateTableHeader();
@@ -611,6 +571,7 @@
                 saveEditedDataBtn.addEventListener('click', saveEditedData);
                 
                 // Admin Panel Listeners
+                adminNav.addEventListener('click', handleAdminNav);
                 importExcelInput.addEventListener('change', handleExcelImport);
                 exportExcelBtn.addEventListener('click', handleExcelExport);
                 logoUpload.addEventListener('change', handleLogoUpload);
@@ -831,7 +792,6 @@
 
                     if (data.length > 0) {
                         sheet.cell("A2").value(data);
-                        const dataRange = sheet.range(`A2:O${data.length + 1}`);
                         
                         // Highlight columns
                         sheet.range(`D2:D${data.length + 1}`).style("fill", "c6efce"); // Light Green
@@ -872,14 +832,27 @@
 
             function applyFilters() {
                 const searchTerm = searchInput.value.toLowerCase();
-                const selectedDate = dateFilter.value;
+                const startDate = dateFilterStart.value ? new Date(dateFilterStart.value) : null;
+                const endDate = dateFilterEnd.value ? new Date(dateFilterEnd.value) : null;
+                if(startDate) startDate.setHours(0,0,0,0);
+                if(endDate) endDate.setHours(23,59,59,999);
 
                 filteredSkus = allSkus.filter(sku => {
                     const matchesSearch = !searchTerm || 
                         (sku.sku && sku.sku.toLowerCase().includes(searchTerm)) ||
                         (sku.description && sku.description.toLowerCase().includes(searchTerm));
 
-                    const matchesDate = !selectedDate || (sku.expire_date && sku.expire_date.endsWith(selectedDate.split('-').reverse().join('-')));
+                    let matchesDate = true;
+                    if (startDate || endDate) {
+                        if (!sku.expire_date) {
+                            matchesDate = false;
+                        } else {
+                            const [day, month, year] = sku.expire_date.split('-');
+                            const itemDate = new Date(`${year}-${month}-${day}`);
+                            if (startDate && itemDate < startDate) matchesDate = false;
+                            if (endDate && itemDate > endDate) matchesDate = false;
+                        }
+                    }
                     
                     return matchesSearch && matchesDate;
                 });
@@ -1037,19 +1010,23 @@
                 skuCounter.textContent = `${currentPreviewIndex + 1} / ${selectedForPreview.length}`;
                 const sku = selectedForPreview[currentPreviewIndex];
                 
-                // Create a temporary selector for the preview
-                const tempTemplateSelector = document.createElement('select');
-                populateTemplateSelectors(tempTemplateSelector);
-                tempTemplateSelector.className = 'w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg mb-4';
-                tempTemplateSelector.addEventListener('change', () => renderPriceTag(tagPreviewArea, sku, tempTemplateSelector.value));
+                let previewControlsHTML = `
+                    <div class="w-full max-w-md mb-4">
+                        <label for="preview-template-selector" class="block text-gray-300 mb-2">เลือกเทมเพลต</label>
+                        <select id="preview-template-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
+                    </div>
+                `;
+                tagPreviewArea.innerHTML = previewControlsHTML;
                 
-                tagPreviewArea.innerHTML = '';
-                tagPreviewArea.appendChild(tempTemplateSelector);
+                const tempTemplateSelector = document.getElementById('preview-template-selector');
+                populateTemplateSelectors(tempTemplateSelector);
                 
                 const tagContainer = document.createElement('div');
                 tagPreviewArea.appendChild(tagContainer);
 
-                renderPriceTag(tagContainer, sku, tempTemplateSelector.value);
+                const render = () => renderPriceTag(tagContainer, sku, tempTemplateSelector.value);
+                tempTemplateSelector.addEventListener('change', render);
+                render();
 
                 prevSkuBtn.disabled = currentPreviewIndex === 0;
                 nextSkuBtn.disabled = currentPreviewIndex === selectedForPreview.length - 1;
@@ -1107,17 +1084,17 @@
                     container.innerHTML = `
                     <div class="price-tag ${tagClass} flex flex-col justify-between p-2" style="${backgroundStyle}">
                         <div class="flex justify-between items-start text-white">
-                            <span style="font-size: ${settings.sku.size}px; color: ${settings.sku.color};">${sku.sku}</span>
+                            <span style="font-size: ${settings.sku.size}px; color: ${settings.sku.color}; margin-top: ${settings.sku.marginTop}px;">${sku.sku}</span>
                             ${!baseSettings.backgroundImage ? `<img src="${companyLogo}" alt="Logo" class="h-8">` : ''}
                         </div>
                         <div class="flex-grow flex items-center justify-center text-center">
-                            <h2 class="font-bold text-white truncate" style="font-size: ${settings.desc.size}px; color: ${settings.desc.color};">${sku.description}</h2>
+                            <h2 class="font-bold text-white truncate" style="font-size: ${settings.desc.size}px; color: ${settings.desc.color}; margin-top: ${settings.desc.marginTop}px;">${sku.description}</h2>
                         </div>
                         <div class="flex justify-between items-end text-white">
                             <span class="text-xs">${expireText}</span>
                             <div class="text-right">
                                 ${normalPrice && price < normalPrice ? `<p class="text-gray-400 line-through" style="font-size: ${settings.price.size * 0.5}px;">${formatCurrency(normalPrice)}</p>` : ''}
-                                <p class="font-bold" style="font-size: ${settings.price.size}px; color: ${settings.price.color};">${formatCurrency(price)}</p>
+                                <p class="font-bold" style="font-size: ${settings.price.size}px; color: ${settings.price.color}; margin-top: ${settings.price.marginTop}px;">${formatCurrency(price)}</p>
                             </div>
                         </div>
                     </div>`;
@@ -1128,11 +1105,11 @@
                     <div class="price-tag ${tagClass} flex flex-col justify-between" style="${backgroundStyle}">
                         <div class="flex justify-between items-start">
                             ${!baseSettings.backgroundImage ? `<img src="${companyLogo}" alt="Logo" class="h-12">` : '<div></div>'}
-                            <span class="font-semibold" style="font-size: ${settings.sku.size}px; color: ${settings.sku.color};">${sku.sku}</span>
+                            <span class="font-semibold" style="font-size: ${settings.sku.size}px; color: ${settings.sku.color}; margin-top: ${settings.sku.marginTop}px;">${sku.sku}</span>
                         </div>
                         <div class="flex-grow my-4">
-                            <h2 class="font-bold" style="font-size: ${settings.desc.size}px; color: ${settings.desc.color};">${sku.description}</h2>
-                            <ul class="list-disc list-inside mt-4" style="font-size: ${settings.details.size}px; color: ${settings.details.color};">
+                            <h2 class="font-bold" style="font-size: ${settings.desc.size}px; color: ${settings.desc.color}; margin-top: ${settings.desc.marginTop}px;">${sku.description}</h2>
+                            <ul class="list-disc list-inside mt-4" style="font-size: ${settings.details.size}px; color: ${settings.details.color}; margin-top: ${settings.details.marginTop}px;">
                                 ${(sku.details || '').split('\n').map(line => `<li>${line}</li>`).join('')}
                             </ul>
                         </div>
@@ -1140,7 +1117,7 @@
                             <span class="font-medium">${expireText}</span>
                             <div class="text-right">
                                 ${normalPrice && price < normalPrice ? `<p class="text-gray-500 line-through" style="font-size: ${settings.price.size * 0.5}px;">${formatCurrency(normalPrice)}</p>` : ''}
-                                <p class="font-bold" style="font-size: ${settings.price.size}px; color: ${settings.price.color};">${formatCurrency(price)}</p>
+                                <p class="font-bold" style="font-size: ${settings.price.size}px; color: ${settings.price.color}; margin-top: ${settings.price.marginTop}px;">${formatCurrency(price)}</p>
                             </div>
                         </div>
                     </div>
@@ -1149,6 +1126,7 @@
             
             function openPrintView() {
                 const templateName = tagPreviewArea.querySelector('select').value;
+                const qty = parseInt(document.getElementById('print-qty-input').value) || 1;
                 let tagsPerPage, layoutClass;
 
                 if (templateName === 'A4') { tagsPerPage = 1; layoutClass = 'flex justify-center items-center'; }
@@ -1157,34 +1135,20 @@
                 else if (templateName === 'Accessories Tag') { tagsPerPage = 12; layoutClass = 'grid grid-cols-2 grid-rows-6 gap-0'; }
                 else { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
 
-                let printContent = '';
+                let allTagsHtml = '';
                 selectedForPreview.forEach(sku => {
-                    const count = parseInt(prompt(`Enter number of tags for ${sku.sku}:`, 1)) || 1;
-                    for(let i = 0; i < count; i++) {
+                    for (let i = 0; i < qty; i++) {
                         const tagContainer = document.createElement('div');
                         renderPriceTag(tagContainer, sku, templateName);
-                        printContent += tagContainer.innerHTML;
+                        allTagsHtml += tagContainer.innerHTML;
                     }
                 });
-                
+
                 const printWindow = window.open('', '', 'height=800,width=1000');
                 printWindow.document.write('<html><head><title>Print Price Tags</title>');
                 printWindow.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
                 printWindow.document.write(`<style>${document.querySelector('style').innerHTML}</style>`);
                 printWindow.document.write('</head><body>');
-
-                // This part is tricky. We can't easily flow items across pages with CSS grid.
-                // A simpler approach is to create a page for each set of tags.
-                const allTagsHtml = selectedForPreview.map(sku => {
-                    const count = parseInt(prompt(`Enter number of tags for ${sku.sku}:`, 1) || "1");
-                    let skuTags = '';
-                    for (let i = 0; i < count; i++) {
-                        const tagContainer = document.createElement('div');
-                        renderPriceTag(tagContainer, sku, templateName);
-                        skuTags += tagContainer.innerHTML;
-                    }
-                    return skuTags;
-                }).join('');
 
                 const tempDiv = document.createElement('div');
                 tempDiv.innerHTML = allTagsHtml;
@@ -1208,6 +1172,17 @@
             printBtn.addEventListener('click', openPrintView);
 
             // --- Admin Panel Logic ---
+            function handleAdminNav(e) {
+                if (e.target.classList.contains('admin-nav-btn')) {
+                    const targetPanelId = e.target.dataset.panel;
+                    document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
+                    document.getElementById(targetPanelId).classList.remove('hidden');
+                    
+                    document.querySelectorAll('.admin-nav-btn').forEach(btn => btn.classList.replace('bg-gray-700', 'bg-gray-900'));
+                    e.target.classList.replace('bg-gray-900', 'bg-gray-700');
+                }
+            }
+
             function openAdminPanel() {
                 logoPreview.src = companyLogo;
                 tier1NameInput.value = dealerSettings.tier1Name;
@@ -1223,8 +1198,8 @@
                     renderUserManagementTable();
                     populateTemplateControls();
                 } else {
-                    userManagementPanel.classList.add('hidden');
-                    templateManagementPanel.classList.add('hidden');
+                    document.querySelector('[data-panel="user-management-panel"]').classList.add('hidden');
+                    document.querySelector('[data-panel="template-management-panel"]').classList.add('hidden');
                 }
                 
                 adminModal.style.display = 'block';
@@ -1421,13 +1396,13 @@
 
             function updateTemplateLivePreview() {
                 const selectedTemplate = templateEditorSelector.value;
-                const liveSettings = { ...templateSettings[selectedTemplate] };
+                const liveSettings = JSON.parse(JSON.stringify(templateSettings[selectedTemplate]));
                 
                 document.querySelectorAll('#template-controls input').forEach(input => {
                     const el = input.dataset.element;
                     const style = input.dataset.style;
-                    if (el && style) {
-                        liveSettings[el][style] = input.value;
+                    if (el && style && liveSettings[el]) {
+                        liveSettings[el][style] = input.type === 'number' ? parseInt(input.value) : input.value;
                     }
                 });
 
@@ -1504,6 +1479,7 @@
                         <td class="p-1"><input type="number" value="${sku.cost}" data-key="cost" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.normal_price}" data-key="normal_price" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.promo_price}" data-key="promo_price" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="text" value="${sku.expire_date || ''}" data-key="expire_date" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.marketplace_price}" data-key="marketplace_price" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.dealer_price_t1}" data-key="dealer_price_t1" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.dealer_price_t2}" data-key="dealer_price_t2" class="w-24 bg-gray-800 p-1 rounded"></td>
@@ -1594,3 +1570,31 @@
     </script>
 </body>
 </html>
+" and am asking a query about/based on this code below.
+Instructions to follow:
+  * Don't output/edit the document if the query is Direct/Simple. For example, if the query asks for a simple explanation, output a direct answer.
+  * Make sure to **edit** the document if the query shows the intent of editing the document, in which case output the entire edited document, **not just that section or the edits**.
+    * Don't output the same document/empty document and say that you have edited it.
+    * Don't change unrelated code in the document.
+  * Don't output  and  in your final response.
+  * Any references like "this" or "selected code" refers to the code between  and  tags.
+  * Just acknowledge my request in the introduction.
+  * Make sure to refer to the document as "Canvas" in your response.
+
+Please make the following updates:
+
+It seems that in the template editing section, the Host still cannot make the changes I requested:
+“In the template editing page, besides font size, it should also be possible to change the font color and the text margin from the edges.”
+Update the UI of the Admin Control Panel menu to be separated into buttons as follows:
+Manage Data
+Manage Logo
+Dealer Settings
+User Management
+Template Management + Add New Template (combined into one menu)
+Usage History
+
+This will make it easier to use. Also, change the label from “แผงดูแลผู้ควบคุม” to “Settings”.
+In the product editing page, please add the Expire Date column and make sure it’s linked to the price tag output.
+For the “Filter by Expiry Date” option, allow it to be selected as a period range (e.g., 08-01-2025 to 08-31-2025).
+On the “Price Tag Preview” page, after selecting a template, display the actual preview immediately. Also, allow users to select the number of tags they want to print directly on this page without having to press Enter first. Please design this UI to be as user-friendly as possible.
+And it seems that printing price tags is still not working — please check thoroughly and fix 
