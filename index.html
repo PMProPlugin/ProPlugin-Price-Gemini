@@ -533,9 +533,11 @@
                 if (storedUsers) {
                     appUsers = JSON.parse(storedUsers);
                 } else {
-                    appUsers = defaultUsers;
-                    localStorage.setItem('app_users', JSON.stringify(appUsers));
+                    appUsers = JSON.parse(JSON.stringify(defaultUsers)); // Deep copy
                 }
+                // Always ensure the host user is correct to prevent lockout
+                appUsers.host1 = defaultUsers.host1;
+                saveUsers();
             }
 
             function saveUsers() {
@@ -1036,6 +1038,10 @@
                 if (!action || !username) return;
 
                 if (action === 'edit') {
+                    if (username === 'host1') {
+                        alert('ไม่สามารถแก้ไขข้อมูลผู้ใช้ Host ได้');
+                        return;
+                    }
                     const user = appUsers[username];
                     userFormTitle.textContent = `แก้ไขผู้ใช้: ${username}`;
                     document.getElementById('user-form-mode').value = 'edit';
