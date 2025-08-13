@@ -313,25 +313,31 @@
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Template Controls -->
                         <div>
+                            <h4 class="text-lg font-medium mb-2">แก้ไขเทมเพลต</h4>
                             <div class="mb-4">
                                 <label for="template-editor-selector" class="block text-gray-300 mb-2">เลือกเทมเพลตที่จะแก้ไข</label>
                                 <select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
                             </div>
                             <div id="template-controls" class="space-y-2">
-                                <!-- Font size controls will be added here -->
                                 <label class="block text-gray-400">ขนาดตัวอักษรชื่อสินค้า (px)</label>
                                 <input type="number" id="font-size-desc" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="descSize">
-                                
                                 <label class="block text-gray-400">ขนาดตัวอักษรรายละเอียด (px)</label>
                                 <input type="number" id="font-size-details" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="detailsSize">
-                                
                                 <label class="block text-gray-400">ขนาดตัวอักษรราคา (px)</label>
                                 <input type="number" id="font-size-price" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="priceSize">
-
                                 <label class="block text-gray-400">ขนาดตัวอักษร SKU (px)</label>
                                 <input type="number" id="font-size-sku" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="skuSize">
                             </div>
-                            <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกเทมเพลต</button>
+                            <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการแก้ไข</button>
+                            <hr class="my-4 border-secondary">
+                             <h4 class="text-lg font-medium mb-2">เพิ่มเทมเพลตใหม่</h4>
+                             <div class="space-y-2">
+                                <label class="block text-gray-400">ชื่อเทมเพลตใหม่</label>
+                                <input type="text" id="new-template-name" placeholder="เช่น Custom A4" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
+                                <label class="block text-gray-400">อัปโหลดพื้นหลัง (รูปภาพ)</label>
+                                <input type="file" id="template-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
+                             </div>
+                             <button id="add-template-btn" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เพิ่มเทมเพลต</button>
                         </div>
                         <!-- Template Live Preview -->
                         <div>
@@ -517,6 +523,9 @@
             const templateControls = document.getElementById('template-controls');
             const templateLivePreview = document.getElementById('template-live-preview');
             const saveTemplateBtn = document.getElementById('save-template-btn');
+            const addTemplateBtn = document.getElementById('add-template-btn');
+            const newTemplateNameInput = document.getElementById('new-template-name');
+            const templateUploadInput = document.getElementById('template-upload');
 
             // --- Default Users & Templates ---
             const defaultUsers = {
@@ -529,10 +538,10 @@
             };
 
             const defaultTemplateSettings = {
-                'A4': { descSize: 60, detailsSize: 22, priceSize: 90, skuSize: 18 },
-                'A5': { descSize: 50, detailsSize: 18, priceSize: 72, skuSize: 16 },
-                'A6': { descSize: 40, detailsSize: 16, priceSize: 60, skuSize: 14 },
-                'Accessories Tag': { descSize: 24, detailsSize: 12, priceSize: 36, skuSize: 10 },
+                'A4': { descSize: 60, detailsSize: 22, priceSize: 90, skuSize: 18, backgroundImage: null },
+                'A5': { descSize: 50, detailsSize: 18, priceSize: 72, skuSize: 16, backgroundImage: null },
+                'A6': { descSize: 40, detailsSize: 16, priceSize: 60, skuSize: 14, backgroundImage: null },
+                'Accessories Tag': { descSize: 24, detailsSize: 12, priceSize: 36, skuSize: 10, backgroundImage: null },
             };
 
             // --- Initialization ---
@@ -577,6 +586,7 @@
                 templateEditorSelector.addEventListener('change', populateTemplateControls);
                 templateControls.addEventListener('input', updateTemplateLivePreview);
                 saveTemplateBtn.addEventListener('click', saveCurrentTemplateSettings);
+                addTemplateBtn.addEventListener('click', handleAddTemplate);
             }
 
             // --- User Management ---
@@ -955,12 +965,13 @@
                 }
             });
 
-            function renderPriceTag(container, sku, templateName, liveSettings = null) {
-                const settings = liveSettings || templateSettings[templateName];
-                if (!settings) {
+            function renderPriceTag(container, sku, templateName, liveFontSettings = null) {
+                const baseSettings = templateSettings[templateName];
+                if (!baseSettings) {
                     console.error(`Template settings for "${templateName}" not found.`);
                     return;
                 }
+                const settings = liveFontSettings ? { ...baseSettings, ...liveFontSettings } : baseSettings;
 
                 const selectedChannel = channelSelector.value;
                 let price, normalPrice;
@@ -984,9 +995,11 @@
                 else if (templateName.includes('Acc')) tagClass = 'price-tag-acc';
 
                 const expireText = (selectedChannel === 'Flagship' && sku.expire_date) ? `Expire: ${sku.expire_date}` : '';
+                
+                const backgroundStyle = baseSettings.backgroundImage ? `background-image: url('${baseSettings.backgroundImage}'); background-size: cover; background-position: center; border: none;` : '';
 
                 container.innerHTML = `
-                    <div class="price-tag ${tagClass} flex flex-col justify-between">
+                    <div class="price-tag ${tagClass} flex flex-col justify-between" style="${backgroundStyle}">
                         <div class="flex justify-between items-start">
                             <img src="${companyLogo}" alt="Company Logo" class="h-12">
                             <span class="font-semibold" style="font-size: ${settings.skuSize}px;">${sku.sku}</span>
@@ -1251,7 +1264,7 @@
             }
 
             function updateTemplateLivePreview() {
-                const liveSettings = {
+                const liveFontSettings = {
                     descSize: document.getElementById('font-size-desc').value,
                     detailsSize: document.getElementById('font-size-details').value,
                     priceSize: document.getElementById('font-size-price').value,
@@ -1261,7 +1274,7 @@
                 const previewContainer = document.createElement('div');
                 previewContainer.style.transform = 'scale(0.5)';
                 previewContainer.style.transformOrigin = 'top left';
-                renderPriceTag(previewContainer, sampleSku, 'A6', liveSettings);
+                renderPriceTag(previewContainer, sampleSku, templateEditorSelector.value, liveFontSettings);
                 templateLivePreview.innerHTML = '';
                 templateLivePreview.appendChild(previewContainer);
             }
@@ -1269,6 +1282,7 @@
             function saveCurrentTemplateSettings() {
                 const selectedTemplate = templateEditorSelector.value;
                 templateSettings[selectedTemplate] = {
+                    ...templateSettings[selectedTemplate], // Preserve background image
                     descSize: document.getElementById('font-size-desc').value,
                     detailsSize: document.getElementById('font-size-details').value,
                     priceSize: document.getElementById('font-size-price').value,
@@ -1277,6 +1291,40 @@
                 saveTemplateSettings();
                 logAction(`Updated template: ${selectedTemplate}`);
                 alert('บันทึกการตั้งค่าเทมเพลตสำเร็จ!');
+            }
+
+            function handleAddTemplate() {
+                const newName = newTemplateNameInput.value.trim();
+                const file = templateUploadInput.files[0];
+
+                if (!newName) {
+                    alert('กรุณาใส่ชื่อสำหรับเทมเพลตใหม่');
+                    return;
+                }
+                if (templateSettings[newName]) {
+                    alert('ชื่อเทมเพลตนี้มีอยู่แล้ว');
+                    return;
+                }
+                if (!file) {
+                    alert('กรุณาเลือกไฟล์รูปภาพสำหรับพื้นหลัง');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const baseSettings = templateSettings[templateEditorSelector.value] || defaultTemplateSettings['A6'];
+                    templateSettings[newName] = {
+                        ...baseSettings, // Copy font sizes from selected template
+                        backgroundImage: e.target.result
+                    };
+                    saveTemplateSettings();
+                    populateTemplateSelectors();
+                    newTemplateNameInput.value = '';
+                    templateUploadInput.value = '';
+                    logAction(`Added new template: ${newName}`);
+                    alert(`เพิ่มเทมเพลต '${newName}' สำเร็จ!`);
+                };
+                reader.readAsDataURL(file);
             }
 
 
