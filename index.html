@@ -6,7 +6,6 @@
     <title>Price Tag Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&family=Prompt:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -145,8 +144,9 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="mb-4">
+            <div class="mb-4 space-x-2">
                 <button id="preview-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">ดูตัวอย่าง / พิมพ์</button>
+                <button id="edit-data-btn" class="hidden bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg">แก้ไขข้อมูลสินค้า</button>
             </div>
 
             <!-- SKU Table -->
@@ -185,7 +185,6 @@
                 </div>
                 <div>
                     <button id="print-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เปิดหน้าพิมพ์</button>
-                    <button id="export-pdf-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกเป็น PDF</button>
                 </div>
             </div>
             <div id="tag-preview-area" class="flex justify-center items-center p-4 bg-gray-800 rounded-lg min-h-[400px]">
@@ -340,9 +339,9 @@
                              <button id="add-template-btn" class="mt-4 w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เพิ่มเทมเพลต</button>
                         </div>
                         <!-- Template Live Preview -->
-                        <div>
+                        <div class="flex flex-col">
                              <h4 class="text-lg font-medium mb-2">ตัวอย่างสด</h4>
-                             <div id="template-live-preview" class="bg-gray-900 p-2 rounded-lg flex justify-center items-center">
+                             <div id="template-live-preview" class="bg-gray-900 p-2 rounded-lg flex-grow flex justify-center items-center overflow-hidden">
                                 <!-- Live preview will be rendered here -->
                              </div>
                         </div>
@@ -353,6 +352,37 @@
         </div>
     </div>
     
+    <!-- Data Editor Modal -->
+    <div id="edit-data-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="close-edit-data-modal-btn">&times;</span>
+            <h2 class="text-2xl font-bold mb-4">แก้ไขข้อมูลสินค้า</h2>
+            <div class="mb-4">
+                <button id="save-edited-data-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการเปลี่ยนแปลงทั้งหมด</button>
+            </div>
+            <div class="overflow-auto h-[75vh]">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-gray-700 text-gray-300 uppercase sticky top-0">
+                        <tr>
+                            <th class="p-2">SKU</th>
+                            <th class="p-2">Description</th>
+                            <th class="p-2">Costs</th>
+                            <th class="p-2">Normal Price</th>
+                            <th class="p-2">Promo Price</th>
+                            <th class="p-2">Dealer T1</th>
+                            <th class="p-2">Dealer T2</th>
+                            <th class="p-2">Dealer T3</th>
+                        </tr>
+                    </thead>
+                    <tbody id="edit-data-table-body">
+                        <!-- Editable rows will be generated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
     <!-- README in comments -->
     <!--
     ==================================================================
@@ -480,12 +510,17 @@
             const skuTableBody = document.getElementById('sku-table-body');
             const tableHeader = document.getElementById('table-header');
             const paginationContainer = document.getElementById('pagination');
+            const editDataBtn = document.getElementById('edit-data-btn');
             
             // Modals
             const previewModal = document.getElementById('preview-modal');
             const closeModalBtn = document.getElementById('close-modal-btn');
             const adminModal = document.getElementById('admin-modal');
             const closeAdminModalBtn = document.getElementById('close-admin-modal-btn');
+            const editDataModal = document.getElementById('edit-data-modal');
+            const closeEditDataModalBtn = document.getElementById('close-edit-data-modal-btn');
+            const saveEditedDataBtn = document.getElementById('save-edited-data-btn');
+            const editDataTableBody = document.getElementById('edit-data-table-body');
 
             // Preview Modal Elements
             const previewBtn = document.getElementById('preview-btn');
@@ -569,6 +604,9 @@
                 });
                 previewBtn.addEventListener('click', openPreviewModal);
                 closeModalBtn.addEventListener('click', () => previewModal.style.display = 'none');
+                editDataBtn.addEventListener('click', openDataEditor);
+                closeEditDataModalBtn.addEventListener('click', () => editDataModal.style.display = 'none');
+                saveEditedDataBtn.addEventListener('click', saveEditedData);
                 
                 // Admin Panel Listeners
                 importExcelInput.addEventListener('change', handleExcelImport);
@@ -673,6 +711,9 @@
 
                 if (['Host', 'Admin'].includes(currentUser.role)) {
                     adminPanelBtn.classList.remove('hidden');
+                    editDataBtn.classList.remove('hidden');
+                } else {
+                    editDataBtn.classList.add('hidden');
                 }
 
                 setupChannelSelector();
@@ -801,11 +842,12 @@
                     <th class="p-3"><input type="checkbox" id="select-all-checkbox"></th>
                     <th class="p-3">Item No. (SKU)</th>
                     <th class="p-3">Description</th>
+                    <th class="p-3">Details</th>
                 `;
                 if (currentUser.canViewCosts) {
                     headers += `<th class="p-3">Costs</th>`;
                 }
-                headers += `<th class="p-3">Details</th><th class="p-3">Normal Price</th>`;
+                headers += `<th class="p-3">Normal Price</th>`;
 
                 switch (selectedChannel) {
                     case 'Flagship':
@@ -857,16 +899,14 @@
                         <td class="p-3"><input type="checkbox" class="sku-checkbox" data-sku="${sku.sku}"></td>
                         <td class="p-3">${sku.sku || ''}</td>
                         <td class="p-3">${sku.description || ''}</td>
+                        <td class="p-3 text-sm text-gray-400">${(sku.details || '').split('\n').slice(0, 5).join('<br>')}</td>
                     `;
 
                     if (currentUser.canViewCosts) {
                         rowContent += `<td class="p-3 text-right">${formatCurrency(sku.cost)}</td>`;
                     }
 
-                    rowContent += `
-                        <td class="p-3 text-sm text-gray-400">${(sku.details || '').split('\n').slice(0, 5).join('<br>')}</td>
-                        <td class="p-3 text-right">${formatCurrency(sku.normal_price)}</td>
-                    `;
+                    rowContent += `<td class="p-3 text-right">${formatCurrency(sku.normal_price)}</td>`;
 
                     switch (selectedChannel) {
                         case 'Flagship':
@@ -996,7 +1036,7 @@
 
                 const expireText = (selectedChannel === 'Flagship' && sku.expire_date) ? `Expire: ${sku.expire_date}` : '';
                 
-                const backgroundStyle = baseSettings.backgroundImage ? `background-image: url('${baseSettings.backgroundImage}'); background-size: cover; background-position: center; border: none;` : '';
+                const backgroundStyle = baseSettings.backgroundImage ? `background-image: url('${baseSettings.backgroundImage}'); background-size: cover; background-position: center; border: none;` : 'background-color: white; border: 5px solid black;';
 
                 container.innerHTML = `
                     <div class="price-tag ${tagClass} flex flex-col justify-between" style="${backgroundStyle}">
@@ -1043,18 +1083,6 @@
                     printContent += `<div class="w-[210mm] h-[297mm] p-4 box-border price-tag-container ${layoutClass}">${pageTags}</div>`;
                 }
                 
-                const styles = Array.from(document.styleSheets)
-                    .map(styleSheet => {
-                        try {
-                            return Array.from(styleSheet.cssRules)
-                                .map(rule => rule.cssText)
-                                .join('');
-                        } catch (e) {
-                            console.log('Access to stylesheet %s is denied. Skipping.', styleSheet.href);
-                            return '';
-                        }
-                    }).join('\n');
-
                 const printWindow = window.open('', '', 'height=800,width=1000');
                 printWindow.document.write('<html><head><title>Print Price Tags</title>');
                 printWindow.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
@@ -1325,6 +1353,47 @@
                     alert(`เพิ่มเทมเพลต '${newName}' สำเร็จ!`);
                 };
                 reader.readAsDataURL(file);
+            }
+
+            // --- Data Editor ---
+            function openDataEditor() {
+                editDataTableBody.innerHTML = ''; // Clear previous data
+                allSkus.forEach((sku, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b border-secondary';
+                    row.dataset.index = index;
+                    row.innerHTML = `
+                        <td class="p-1">${sku.sku}</td>
+                        <td class="p-1"><input type="text" value="${sku.description}" data-key="description" class="w-full bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.cost}" data-key="cost" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.normal_price}" data-key="normal_price" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.promo_price}" data-key="promo_price" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.dealer_price_t1}" data-key="dealer_price_t1" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.dealer_price_t2}" data-key="dealer_price_t2" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.dealer_price_t3}" data-key="dealer_price_t3" class="w-24 bg-gray-800 p-1 rounded"></td>
+                    `;
+                    editDataTableBody.appendChild(row);
+                });
+                editDataModal.style.display = 'block';
+            }
+
+            function saveEditedData() {
+                const rows = editDataTableBody.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const index = parseInt(row.dataset.index);
+                    if (!isNaN(index) && allSkus[index]) {
+                        row.querySelectorAll('input').forEach(input => {
+                            const key = input.dataset.key;
+                            const value = input.type === 'number' ? parseFloat(input.value) : input.value;
+                            allSkus[index][key] = value;
+                        });
+                    }
+                });
+                localStorage.setItem('price_data', JSON.stringify(allSkus));
+                logAction('Saved all product data edits');
+                alert('บันทึกข้อมูลสินค้าทั้งหมดสำเร็จ!');
+                editDataModal.style.display = 'none';
+                applyFilters(); // Refresh main table
             }
 
 
