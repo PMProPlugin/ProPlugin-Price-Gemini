@@ -1221,46 +1221,84 @@
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet);
-                    
-                    const importedSkus = json.map(row => {
-                        let expireDate = row['Expire Date'];
-                         if (typeof expireDate === 'number') {
-                            const jsDate = new Date(Math.round((expireDate - 25569) * 864e5));
-                            expireDate = jsDate.toISOString().split('T')[0];
-                        } else if (expireDate instanceof Date) {
-                            expireDate = expireDate.toISOString().split('T')[0];
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, dateNF:'dd-mm-yyyy' });
+
+                        if (rows.length < 2) {
+                            alert('ไฟล์ Excel ไม่มีข้อมูล');
+                            return;
                         }
 
-                        return {
-                            itemNo: row['Item No.'] || '',
-                            description: row['Description'] || '',
-                            details: row['Details'] || '',
-                            normal_price: parseFloat(row['Normal Price']) || null,
-                            promo_price: parseFloat(row['Promotion Price']) || null,
-                            flagship_price: parseFloat(row['Flagship Price / Website']) || null,
-                            marketplace_price: parseFloat(row['Marketplace Price']) || null,
-                            market_gp: parseFloat(row['GP%']) ? parseFloat(row['GP%']) * 100 : null,
-                            expire_date: expireDate || null,
-                            dealer_price_t1: parseFloat(row['Dealer Price T1']) || null,
-                            dealer_gp_t1: parseFloat(row['Dealer GP% T1']) ? parseFloat(row['Dealer GP% T1']) * 100 : null,
-                            dealer_price_t2: parseFloat(row['Dealer Price T2']) || null,
-                            dealer_gp_t2: parseFloat(row['Dealer GP% T2']) ? parseFloat(row['Dealer GP% T2']) * 100 : null,
-                            dealer_price_t3: parseFloat(row['Dealer Price T3']) || null,
-                            dealer_gp_t3: parseFloat(row['Dealer GP% T3']) ? parseFloat(row['Dealer GP% T3']) * 100 : null,
-                            lastModified: new Date().toISOString().split('T')[0],
+                        // Find the header row by looking for 'Item No.'
+                        const headerRowIndex = rows.findIndex(row => row.includes('Item No.'));
+                        if (headerRowIndex === -1) {
+                            alert('ไม่พบ Header "Item No." ในไฟล์ Excel');
+                            return;
+                        }
+                        const headerRow = rows[headerRowIndex];
+                        const subHeaderRow = rows[headerRowIndex + 1]; // Assumes subheaders are right below
+                        
+                        // Map column indices
+                        const colMap = {
+                            itemNo: headerRow.indexOf('Item No.'),
+                            description: headerRow.indexOf('Description'),
+                            details: headerRow.indexOf('Details'),
+                            normalPrice: headerRow.indexOf('Normal Price'),
+                            promoPrice: headerRow.indexOf('Promotion Price'),
+                            flagshipPrice: headerRow.indexOf('Flagship Price / Website'),
+                            marketplacePrice: headerRow.indexOf('Marketplace Price'),
+                            marketGp: headerRow.indexOf('GP%'),
+                            expireDate: headerRow.indexOf('Expire Date'),
+                            dealerPriceT1: subHeaderRow.indexOf('1-20 Units'),
+                            dealerGpT1: subHeaderRow.indexOf('GP %', colMap.dealerPriceT1),
+                            dealerPriceT2: subHeaderRow.indexOf('21-30 Units'),
+                            dealerGpT2: subHeaderRow.indexOf('GP %', colMap.dealerPriceT2),
+                            dealerPriceT3: subHeaderRow.indexOf('31 Units Up'),
+                            dealerGpT3: subHeaderRow.indexOf('GP %', colMap.dealerPriceT3),
                         };
-                    }).filter(sku => sku.itemNo);
 
-                    state.allSkus = importedSkus;
-                    logAction(`Imported ${importedSkus.length} SKUs from Excel.`);
-                    saveState();
-                    renderTable();
-                    alert(`นำเข้าข้อมูล ${importedSkus.length} รายการสำเร็จ!`);
+                        const dataRows = rows.slice(headerRowIndex + 2);
+                        
+                        const importedSkus = dataRows.map(row => {
+                            const getFloat = (index) => parseFloat(row[index]) || null;
+                            const getGp = (index) => {
+                                const val = getFloat(index);
+                                return val ? val * 100 : null;
+                            };
+
+                            return {
+                                itemNo: row[colMap.itemNo] || '',
+                                description: row[colMap.description] || '',
+                                details: row[colMap.details] || '',
+                                normal_price: getFloat(colMap.normalPrice),
+                                promo_price: getFloat(colMap.promoPrice),
+                                flagship_price: getFloat(colMap.flagshipPrice),
+                                marketplace_price: getFloat(colMap.marketplacePrice),
+                                market_gp: getGp(colMap.marketGp),
+                                expire_date: row[colMap.expireDate] || null,
+                                dealer_price_t1: getFloat(colMap.dealerPriceT1),
+                                dealer_gp_t1: getGp(colMap.dealerGpT1),
+                                dealer_price_t2: getFloat(colMap.dealerPriceT2),
+                                dealer_gp_t2: getGp(colMap.dealerGpT2),
+                                dealer_price_t3: getFloat(colMap.dealerPriceT3),
+                                dealer_gp_t3: getGp(colMap.dealerGpT3),
+                                lastModified: new Date().toISOString().split('T')[0],
+                            };
+                        }).filter(sku => sku.itemNo);
+
+                        state.allSkus = importedSkus;
+                        logAction(`Imported ${importedSkus.length} SKUs from Excel.`);
+                        saveState();
+                        renderTable();
+                        alert(`นำเข้าข้อมูล ${importedSkus.length} รายการสำเร็จ!`);
+                    } catch (error) {
+                        console.error("Error processing Excel file:", error);
+                        alert("เกิดข้อผิดพลาดในการประมวลผลไฟล์ Excel โปรดตรวจสอบรูปแบบไฟล์และข้อมูล");
+                    }
                 };
                 reader.readAsArrayBuffer(file);
             };
@@ -1510,12 +1548,25 @@
                 DOMElements.previewModal.style.display = 'flex';
             };
 
-            const handlePrint = (skuIds) => {
+            const waitForImages = async (container) => {
+                const images = Array.from(container.querySelectorAll('img'));
+                const promises = images.map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = resolve; // Resolve even on error to not block printing
+                    });
+                });
+                await Promise.all(promises);
+            };
+
+            const handlePrint = async (skuIds) => {
                 if (skuIds.length === 0) return;
                 const tier = DOMElements.channelSelect.value === 'Dealer' ? state.dealerSettings.defaultTier : null;
                 preparePrintArea(skuIds, tier);
+                await waitForImages(DOMElements.printArea);
                 logAction(`Printed ${skuIds.length} tags with template ${DOMElements.templateSelect.value}.`);
-                setTimeout(() => window.print(), 500);
+                setTimeout(() => window.print(), 100); // Small delay for rendering
             };
             
             const preparePrintArea = (skuIds, tier = null) => {
@@ -1546,6 +1597,8 @@
                 
                 const tier = DOMElements.channelSelect.value === 'Dealer' ? state.dealerSettings.defaultTier : null;
                 preparePrintArea(skuIds, tier);
+                await waitForImages(DOMElements.printArea);
+
                 logAction(`Exported ${skuIds.length} tags to PDF with template ${DOMElements.templateSelect.value}.`);
 
                 const { jsPDF } = window.jspdf;
