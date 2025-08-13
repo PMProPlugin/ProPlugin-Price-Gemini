@@ -35,11 +35,11 @@
         }
         .modal-content {
             background-color: #2d2d2d;
-            margin: 5% auto;
+            margin: 2% auto;
             padding: 20px;
             border: 1px solid #888;
-            width: 80%;
-            max-width: 1200px;
+            width: 90%;
+            max-width: 1400px;
             border-radius: 8px;
         }
         .close {
@@ -62,6 +62,7 @@
             position: relative;
             box-sizing: border-box;
             overflow: hidden;
+            font-family: 'Prompt', sans-serif;
         }
         .price-tag-a4 { width: 210mm; height: 297mm; }
         .price-tag-a5 { width: 148mm; height: 210mm; }
@@ -140,10 +141,6 @@
                 <div>
                     <label for="template-selector" class="block text-gray-300 mb-2">เลือกเทมเพลต</label>
                     <select id="template-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg">
-                        <option value="A4">A4</option>
-                        <option value="A5">A5</option>
-                        <option value="A6" selected>A6</option>
-                        <option value="Accessories Tag">Accessories Tag</option>
                     </select>
                 </div>
             </div>
@@ -309,6 +306,42 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Template Management (Host only) -->
+                 <div id="template-management-panel" class="hidden md:col-span-2 bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3">จัดการเทมเพลต</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Template Controls -->
+                        <div>
+                            <div class="mb-4">
+                                <label for="template-editor-selector" class="block text-gray-300 mb-2">เลือกเทมเพลตที่จะแก้ไข</label>
+                                <select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
+                            </div>
+                            <div id="template-controls" class="space-y-2">
+                                <!-- Font size controls will be added here -->
+                                <label class="block text-gray-400">ขนาดตัวอักษรชื่อสินค้า (px)</label>
+                                <input type="number" id="font-size-desc" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="descSize">
+                                
+                                <label class="block text-gray-400">ขนาดตัวอักษรรายละเอียด (px)</label>
+                                <input type="number" id="font-size-details" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="detailsSize">
+                                
+                                <label class="block text-gray-400">ขนาดตัวอักษรราคา (px)</label>
+                                <input type="number" id="font-size-price" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="priceSize">
+
+                                <label class="block text-gray-400">ขนาดตัวอักษร SKU (px)</label>
+                                <input type="number" id="font-size-sku" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="skuSize">
+                            </div>
+                            <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกเทมเพลต</button>
+                        </div>
+                        <!-- Template Live Preview -->
+                        <div>
+                             <h4 class="text-lg font-medium mb-2">ตัวอย่างสด</h4>
+                             <div id="template-live-preview" class="bg-gray-900 p-2 rounded-lg flex justify-center items-center">
+                                <!-- Live preview will be rendered here -->
+                             </div>
+                        </div>
+                    </div>
+                </div>
 
             </div>
         </div>
@@ -427,6 +460,7 @@
                 tier3Name: 'Dealer Tier 3',
                 defaultTier: 'dealer_price_t1'
             };
+            let templateSettings = {};
 
             // --- UI Elements ---
             const loginScreen = document.getElementById('login-screen');
@@ -439,6 +473,7 @@
             const searchInput = document.getElementById('search-input');
             const dateFilter = document.getElementById('date-filter');
             const channelSelector = document.getElementById('channel-selector');
+            const mainTemplateSelector = document.getElementById('template-selector');
             const skuTableBody = document.getElementById('sku-table-body');
             const tableHeader = document.getElementById('table-header');
             const paginationContainer = document.getElementById('pagination');
@@ -479,7 +514,14 @@
             const userFormTitle = document.getElementById('user-form-title');
             const userFormCancelBtn = document.getElementById('user-form-cancel');
 
-            // --- Default Users ---
+            // Template Management Elements
+            const templateManagementPanel = document.getElementById('template-management-panel');
+            const templateEditorSelector = document.getElementById('template-editor-selector');
+            const templateControls = document.getElementById('template-controls');
+            const templateLivePreview = document.getElementById('template-live-preview');
+            const saveTemplateBtn = document.getElementById('save-template-btn');
+
+            // --- Default Users & Templates ---
             const defaultUsers = {
                 host1: { password: 'host123', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'] },
                 admin1: { password: 'admin123', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'] },
@@ -489,9 +531,17 @@
                 user4: { password: 'u4pass', role: 'User4', channels: ['Marketplace'] }
             };
 
+            const defaultTemplateSettings = {
+                'A4': { descSize: 60, detailsSize: 22, priceSize: 90, skuSize: 18 },
+                'A5': { descSize: 50, detailsSize: 18, priceSize: 72, skuSize: 16 },
+                'A6': { descSize: 40, detailsSize: 16, priceSize: 60, skuSize: 14 },
+                'Accessories Tag': { descSize: 24, detailsSize: 12, priceSize: 36, skuSize: 10 },
+            };
+
             // --- Initialization ---
             function init() {
                 loadUsers();
+                loadTemplateSettings();
                 const sessionUser = JSON.parse(sessionStorage.getItem('currentUser'));
                 if (sessionUser) {
                     currentUser = sessionUser;
@@ -525,6 +575,11 @@
                 userForm.addEventListener('submit', handleUserFormSubmit);
                 userFormCancelBtn.addEventListener('click', resetUserForm);
                 userListBody.addEventListener('click', handleUserListActions);
+
+                // Template Management Listeners
+                templateEditorSelector.addEventListener('change', populateTemplateControls);
+                templateControls.addEventListener('input', updateTemplateLivePreview);
+                saveTemplateBtn.addEventListener('click', saveCurrentTemplateSettings);
             }
 
             // --- User Management ---
@@ -535,13 +590,44 @@
                 } else {
                     appUsers = JSON.parse(JSON.stringify(defaultUsers)); // Deep copy
                 }
-                // Always ensure the host user is correct to prevent lockout
                 appUsers.host1 = defaultUsers.host1;
                 saveUsers();
             }
 
             function saveUsers() {
                 localStorage.setItem('app_users', JSON.stringify(appUsers));
+            }
+
+            // --- Template Management ---
+            function loadTemplateSettings() {
+                const storedSettings = localStorage.getItem('template_settings');
+                if (storedSettings) {
+                    templateSettings = JSON.parse(storedSettings);
+                } else {
+                    templateSettings = JSON.parse(JSON.stringify(defaultTemplateSettings));
+                }
+                // Ensure default templates exist
+                Object.keys(defaultTemplateSettings).forEach(key => {
+                    if (!templateSettings[key]) {
+                        templateSettings[key] = defaultTemplateSettings[key];
+                    }
+                });
+                saveTemplateSettings();
+                populateTemplateSelectors();
+            }
+
+            function saveTemplateSettings() {
+                 localStorage.setItem('template_settings', JSON.stringify(templateSettings));
+            }
+
+            function populateTemplateSelectors() {
+                const templateNames = Object.keys(templateSettings);
+                mainTemplateSelector.innerHTML = '';
+                templateEditorSelector.innerHTML = '';
+                templateNames.forEach(name => {
+                    mainTemplateSelector.innerHTML += `<option value="${name}">${name}</option>`;
+                    templateEditorSelector.innerHTML += `<option value="${name}">${name}</option>`;
+                });
             }
 
             // --- Authentication & UI Switching ---
@@ -591,7 +677,7 @@
             // --- Data Handling ---
             async function loadData() {
                 const localData = localStorage.getItem('price_data');
-                if (localData) {
+                if (localData && localData !== '[]') {
                     allSkus = JSON.parse(localData);
                 } else {
                     try {
@@ -603,7 +689,7 @@
                         logAction('Loaded sample_data.json');
                     } catch (error) {
                         console.error('Error loading initial data:', error);
-                        allSkus = [];
+                        allSkus = [{sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', normal_price: 100, promo_price: 80}];
                     }
                 }
             }
@@ -837,8 +923,8 @@
 
                 skuCounter.textContent = `${currentPreviewIndex + 1} / ${selectedForPreview.length}`;
                 const sku = selectedForPreview[currentPreviewIndex];
-                const template = document.getElementById('template-selector').value;
-                renderPriceTag(tagPreviewArea, sku, template);
+                const templateName = mainTemplateSelector.value;
+                renderPriceTag(tagPreviewArea, sku, templateName);
 
                 prevSkuBtn.disabled = currentPreviewIndex === 0;
                 nextSkuBtn.disabled = currentPreviewIndex === selectedForPreview.length - 1;
@@ -858,7 +944,13 @@
                 }
             });
 
-            function renderPriceTag(container, sku, template) {
+            function renderPriceTag(container, sku, templateName, liveSettings = null) {
+                const settings = liveSettings || templateSettings[templateName];
+                if (!settings) {
+                    console.error(`Template settings for "${templateName}" not found.`);
+                    return;
+                }
+
                 const selectedChannel = channelSelector.value;
                 let price, normalPrice;
 
@@ -874,30 +966,31 @@
                     normalPrice = sku.promo_price > 0 ? sku.normal_price : null;
                 }
                 
-                let tagClass = 'price-tag-a6';
-                if (template === 'A4') tagClass = 'price-tag-a4';
-                if (template === 'A5') tagClass = 'price-tag-a5';
-                if (template === 'Accessories Tag') tagClass = 'price-tag-acc';
+                let tagClass = '';
+                if (templateName.includes('A4')) tagClass = 'price-tag-a4';
+                else if (templateName.includes('A5')) tagClass = 'price-tag-a5';
+                else if (templateName.includes('A6')) tagClass = 'price-tag-a6';
+                else if (templateName.includes('Acc')) tagClass = 'price-tag-acc';
 
                 const expireText = sku.expire_date ? `Expire: ${sku.expire_date}` : '';
 
                 container.innerHTML = `
-                    <div class="price-tag ${tagClass} flex flex-col justify-between font-sans" style="font-family: 'Prompt', sans-serif;">
+                    <div class="price-tag ${tagClass} flex flex-col justify-between">
                         <div class="flex justify-between items-start">
                             <img src="${companyLogo}" alt="Company Logo" class="h-12">
-                            <span class="text-sm font-semibold">${sku.sku}</span>
+                            <span class="font-semibold" style="font-size: ${settings.skuSize}px;">${sku.sku}</span>
                         </div>
                         <div class="flex-grow my-4">
-                            <h2 class="text-3xl md:text-5xl font-bold">${sku.description}</h2>
-                            <ul class="list-disc list-inside mt-4 text-base md:text-lg">
+                            <h2 class="font-bold" style="font-size: ${settings.descSize}px;">${sku.description}</h2>
+                            <ul class="list-disc list-inside mt-4" style="font-size: ${settings.detailsSize}px;">
                                 ${(sku.details || '').split('\n').map(line => `<li>${line}</li>`).join('')}
                             </ul>
                         </div>
                         <div class="flex justify-between items-end">
-                            <span class="text-lg font-medium">${expireText}</span>
+                            <span class="font-medium">${expireText}</span>
                             <div class="text-right">
-                                ${normalPrice && price < normalPrice ? `<p class="text-2xl md:text-4xl text-gray-500 line-through">${formatCurrency(normalPrice)}</p>` : ''}
-                                <p class="text-5xl md:text-7xl font-bold text-red-600">${formatCurrency(price)}</p>
+                                ${normalPrice && price < normalPrice ? `<p class="text-gray-500 line-through" style="font-size: ${settings.priceSize * 0.5}px;">${formatCurrency(normalPrice)}</p>` : ''}
+                                <p class="font-bold text-red-600" style="font-size: ${settings.priceSize}px;">${formatCurrency(price)}</p>
                             </div>
                         </div>
                     </div>
@@ -905,20 +998,18 @@
             }
             
             printBtn.addEventListener('click', () => {
-                const template = document.getElementById('template-selector').value;
+                const templateName = mainTemplateSelector.value;
                 const printArea = document.getElementById('print-area');
                 printArea.innerHTML = '';
                 printArea.classList.remove('hidden');
 
-                let tagsPerPage;
-                let layoutClass = '';
-                switch(template) {
-                    case 'A4': tagsPerPage = 1; break;
-                    case 'A5': tagsPerPage = 2; layoutClass = 'grid grid-cols-1'; break;
-                    case 'A6': tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2'; break;
-                    case 'Accessories Tag': tagsPerPage = 12; layoutClass = 'grid grid-cols-3 grid-rows-4'; break;
-                    default: tagsPerPage = 4;
-                }
+                let tagsPerPage, layoutClass;
+                if (templateName.includes('A4')) { tagsPerPage = 1; layoutClass = ''; }
+                else if (templateName.includes('A5')) { tagsPerPage = 2; layoutClass = 'grid grid-cols-1'; }
+                else if (templateName.includes('A6')) { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2'; }
+                else if (templateName.includes('Acc')) { tagsPerPage = 12; layoutClass = 'grid grid-cols-3 grid-rows-4'; }
+                else { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2'; }
+
 
                 for (let i = 0; i < selectedForPreview.length; i += tagsPerPage) {
                     const pageChunk = selectedForPreview.slice(i, i + tagsPerPage);
@@ -927,13 +1018,13 @@
                     
                     pageChunk.forEach(sku => {
                         const tagContainer = document.createElement('div');
-                        renderPriceTag(tagContainer, sku, template);
+                        renderPriceTag(tagContainer, sku, templateName);
                         pageContainer.appendChild(tagContainer.firstElementChild);
                     });
                     printArea.appendChild(pageContainer);
                 }
 
-                logAction(`Printed ${selectedForPreview.length} tags with template ${template}`);
+                logAction(`Printed ${selectedForPreview.length} tags with template ${templateName}`);
                 window.print();
                 printArea.classList.add('hidden');
                 printArea.innerHTML = '';
@@ -951,9 +1042,12 @@
 
                 if (currentUser.role === 'Host') {
                     userManagementPanel.classList.remove('hidden');
+                    templateManagementPanel.classList.remove('hidden');
                     renderUserManagementTable();
+                    populateTemplateControls();
                 } else {
                     userManagementPanel.classList.add('hidden');
+                    templateManagementPanel.classList.add('hidden');
                 }
                 
                 adminModal.style.display = 'block';
@@ -1048,7 +1142,7 @@
                     document.getElementById('user-form-original-username').value = username;
                     const usernameInput = document.getElementById('user-form-username');
                     usernameInput.value = username;
-                    usernameInput.readOnly = true; // Prevent changing username on edit
+                    usernameInput.readOnly = true;
                     document.getElementById('user-form-password').value = '';
                     document.getElementById('user-form-password').placeholder = 'เว้นว่างไว้หากไม่ต้องการเปลี่ยน';
                     document.getElementById('user-form-role').value = user.role;
@@ -1057,7 +1151,6 @@
                         cb.checked = user.channels.includes(cb.value);
                     });
                 } else if (action === 'delete') {
-                    // As per instructions, no confirm dialog. In a real app, this is dangerous.
                     delete appUsers[username];
                     saveUsers();
                     logAction(`Deleted user: ${username}`);
@@ -1112,6 +1205,49 @@
                 const usernameInput = document.getElementById('user-form-username');
                 usernameInput.readOnly = false;
                 document.getElementById('user-form-password').placeholder = 'รหัสผ่าน';
+            }
+
+            // --- Host Template Management ---
+            function populateTemplateControls() {
+                const selectedTemplate = templateEditorSelector.value;
+                const settings = templateSettings[selectedTemplate];
+                if (!settings) return;
+
+                document.getElementById('font-size-desc').value = settings.descSize;
+                document.getElementById('font-size-details').value = settings.detailsSize;
+                document.getElementById('font-size-price').value = settings.priceSize;
+                document.getElementById('font-size-sku').value = settings.skuSize;
+                updateTemplateLivePreview();
+            }
+
+            function updateTemplateLivePreview() {
+                const liveSettings = {
+                    descSize: document.getElementById('font-size-desc').value,
+                    detailsSize: document.getElementById('font-size-details').value,
+                    priceSize: document.getElementById('font-size-price').value,
+                    skuSize: document.getElementById('font-size-sku').value,
+                };
+                const sampleSku = allSkus[0] || {sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', normal_price: 100, promo_price: 80};
+                // Use a scaled-down version for preview
+                const previewContainer = document.createElement('div');
+                previewContainer.style.transform = 'scale(0.5)';
+                previewContainer.style.transformOrigin = 'top left';
+                renderPriceTag(previewContainer, sampleSku, 'A6', liveSettings);
+                templateLivePreview.innerHTML = '';
+                templateLivePreview.appendChild(previewContainer);
+            }
+
+            function saveCurrentTemplateSettings() {
+                const selectedTemplate = templateEditorSelector.value;
+                templateSettings[selectedTemplate] = {
+                    descSize: document.getElementById('font-size-desc').value,
+                    detailsSize: document.getElementById('font-size-details').value,
+                    priceSize: document.getElementById('font-size-price').value,
+                    skuSize: document.getElementById('font-size-sku').value,
+                };
+                saveTemplateSettings();
+                logAction(`Updated template: ${selectedTemplate}`);
+                alert('บันทึกการตั้งค่าเทมเพลตสำเร็จ!');
             }
 
 
