@@ -6,6 +6,7 @@
     <title>Price Tag Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-populate@1.21.0/browser/xlsx-populate.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&family=Prompt:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -66,7 +67,7 @@
         .price-tag-a4 { width: 210mm; height: 297mm; }
         .price-tag-a5 { width: 148mm; height: 210mm; }
         .price-tag-a6 { width: 105mm; height: 148mm; }
-        .price-tag-acc { width: 105mm; height: 49mm; }
+        .price-tag-acc { width: 105mm; height: 49.3mm; } /* 1/6 of A4 height */
 
         @media print {
             body {
@@ -123,23 +124,20 @@
         <!-- Main Content -->
         <main class="p-4 md:p-8">
             <!-- Controls -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 p-4 bg-secondary rounded-lg">
-                <div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-secondary rounded-lg">
+                <div class="md:col-span-2">
                     <label for="search-input" class="block text-gray-300 mb-2">ค้นหา (SKU / ชื่อสินค้า)</label>
-                    <input type="text" id="search-input" placeholder="ค้นหา..." class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg">
+                    <input type="text" id="search-input" placeholder="ค้นหา..." class="w-full px-4 py-3 text-lg bg-gray-700 border border-gray-600 rounded-lg">
                 </div>
-                <div>
-                    <label for="date-filter" class="block text-gray-300 mb-2">กรองตามวันหมดอายุ</label>
-                    <input type="date" id="date-filter" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg">
-                </div>
-                <div>
-                    <label for="channel-selector" class="block text-gray-300 mb-2">ช่องทางการขาย</label>
-                    <select id="channel-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
-                </div>
-                <div>
-                    <label for="template-selector" class="block text-gray-300 mb-2">เลือกเทมเพลต</label>
-                    <select id="template-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg">
-                    </select>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="date-filter" class="block text-gray-300 mb-2">กรองตามวันหมดอายุ</label>
+                        <input type="date" id="date-filter" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="channel-selector" class="block text-gray-300 mb-2">ช่องทางการขาย</label>
+                        <select id="channel-selector" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg"></select>
+                    </div>
                 </div>
             </div>
 
@@ -198,11 +196,11 @@
         <div class="modal-content">
             <span class="close" id="close-admin-modal-btn">&times;</span>
             <h2 class="text-2xl font-bold mb-4">แผงควบคุมผู้ดูแลระบบ</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-6">
                 <!-- Data Management -->
                 <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3">จัดการข้อมูล</h3>
-                    <div class="space-y-3">
+                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการข้อมูล</h3>
+                    <div class="space-y-3 pt-2">
                         <p class="text-gray-400">นำเข้าข้อมูลสินค้าจากไฟล์ Excel (.xlsx)</p>
                         <input type="file" id="import-excel" accept=".xlsx" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
                         <button id="export-excel-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกข้อมูลเป็น Excel</button>
@@ -210,14 +208,14 @@
                 </div>
                 <!-- Logo Management -->
                 <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3">จัดการโลโก้</h3>
+                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการโลโก้</h3>
                      <img id="logo-preview" src="" class="max-h-20 mb-2 bg-white p-1 rounded">
                     <input type="file" id="logo-upload" accept="image/*" class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"/>
                 </div>
                 <!-- Dealer Settings (Admin/Host) -->
                 <div id="dealer-settings" class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3">ตั้งค่า Dealer</h3>
-                    <div class="space-y-2">
+                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">ตั้งค่า Dealer</h3>
+                    <div class="space-y-2 pt-2">
                         <div>
                             <label class="text-gray-400">ชื่อ Tier 1:</label>
                             <input type="text" id="tier1-name" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
@@ -237,17 +235,10 @@
                         <button id="save-dealer-settings-btn" class="mt-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการตั้งค่า</button>
                     </div>
                 </div>
-                <!-- Log Viewer -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3">ประวัติการใช้งาน</h3>
-                    <textarea id="log-viewer" readonly class="w-full h-40 bg-gray-900 text-gray-300 p-2 rounded-lg text-xs"></textarea>
-                    <button id="export-log-btn" class="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกประวัติ (CSV)</button>
-                </div>
-
                 <!-- User Management (Host only) -->
-                <div id="user-management-panel" class="hidden md:col-span-2 bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3">จัดการผู้ใช้งาน</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div id="user-management-panel" class="hidden bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการผู้ใช้งาน</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
                         <div>
                             <h4 class="text-lg font-medium mb-2">รายชื่อผู้ใช้</h4>
                             <div class="h-64 overflow-y-auto border border-secondary rounded-lg">
@@ -307,9 +298,9 @@
                 </div>
                 
                 <!-- Template Management (Host only) -->
-                 <div id="template-management-panel" class="hidden md:col-span-2 bg-gray-800 p-4 rounded-lg">
-                    <h3 class="text-xl font-semibold mb-3">จัดการเทมเพลต</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 <div id="template-management-panel" class="hidden bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">จัดการเทมเพลต</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
                         <!-- Template Controls -->
                         <div>
                             <h4 class="text-lg font-medium mb-2">แก้ไขเทมเพลต</h4>
@@ -318,14 +309,7 @@
                                 <select id="template-editor-selector" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg"></select>
                             </div>
                             <div id="template-controls" class="space-y-2">
-                                <label class="block text-gray-400">ขนาดตัวอักษรชื่อสินค้า (px)</label>
-                                <input type="number" id="font-size-desc" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="descSize">
-                                <label class="block text-gray-400">ขนาดตัวอักษรรายละเอียด (px)</label>
-                                <input type="number" id="font-size-details" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="detailsSize">
-                                <label class="block text-gray-400">ขนาดตัวอักษรราคา (px)</label>
-                                <input type="number" id="font-size-price" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="priceSize">
-                                <label class="block text-gray-400">ขนาดตัวอักษร SKU (px)</label>
-                                <input type="number" id="font-size-sku" class="w-full mt-1 px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg" data-stylekey="skuSize">
+                                <!-- Dynamic controls will be added here -->
                             </div>
                             <button id="save-template-btn" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">บันทึกการแก้ไข</button>
                             <hr class="my-4 border-secondary">
@@ -346,6 +330,12 @@
                              </div>
                         </div>
                     </div>
+                </div>
+                 <!-- Log Viewer -->
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-3 border-b border-secondary pb-2">ประวัติการใช้งาน</h3>
+                    <textarea id="log-viewer" readonly class="w-full h-40 bg-gray-900 text-gray-300 p-2 rounded-lg text-xs"></textarea>
+                    <button id="export-log-btn" class="mt-3 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกประวัติ (CSV)</button>
                 </div>
 
             </div>
@@ -368,7 +358,8 @@
                             <th class="p-2">Description</th>
                             <th class="p-2">Costs</th>
                             <th class="p-2">Normal Price</th>
-                            <th class="p-2">Promo Price</th>
+                            <th class="p-2">Promotion Price</th>
+                            <th class="p-2">Marketplace Price</th>
                             <th class="p-2">Dealer T1</th>
                             <th class="p-2">Dealer T2</th>
                             <th class="p-2">Dealer T3</th>
@@ -410,32 +401,21 @@
     B. Excel Column Mapping:
        The application expects specific column headers in your Excel file.
        The headers are case-insensitive and can be in Thai or English.
-
-       Required Mappings:
-       - SKU: 'Item No.' or 'sku'
-       - Description: 'Description' or 'description'
-       - Details: 'Details' or 'details' (use newline for bullets)
-       - Costs: 'Costs' or 'cost'
-       - Normal Price: 'Normal Price' or 'normal_price'
-       - Promotion Price: 'Promotion Price' or 'promo_price'
-       - Expire Date: 'Expire Date' or 'expire_date' (format DD-MM-YYYY)
-       
-       Channel Specific Prices:
-       - Flagship: 'Flagship Price' or 'flagship_price'
-       - Marketplace: 'Marketplace Price' or 'marketplace_price'
-       - Marketplace GP%: 'GP%' (in the Marketplace section) or 'market_gp'
-
-       Dealer Tiers (MUST be present for Dealer channel):
-       - Tier 1 Price: 'Dealer Price T1' or 'dealer_price_t1' or '1-20 Units'
-       - Tier 1 GP%: 'Dealer GP% T1' or 'dealer_gp_t1' or 'GP %' (first dealer GP column)
-       - Tier 2 Price: 'Dealer Price T2' or 'dealer_price_t2' or '21-30 Units'
-       - Tier 2 GP%: 'Dealer GP% T2' or 'dealer_gp_t2' or 'GP %' (second dealer GP column)
-       - Tier 3 Price: 'Dealer Price T3' or 'dealer_price_t3' or '31 Units Up'
-       - Tier 3 GP%: 'Dealer GP% T3' or 'dealer_gp_t3' or 'GP %' (third dealer GP column)
-
-       *Note*: If a channel-specific price is blank, the app uses a fallback:
-       - Flagship: `promo_price` if available, otherwise `normal_price`.
-       - Other channels: `normal_price`.
+       - Col A: SKU ('Item No.' or 'sku')
+       - Col B: Description ('Description')
+       - Col C: Details ('Details')
+       - Col D: Costs ('Costs' or 'cost')
+       - Col E: Normal Price ('Normal Price')
+       - Col F: Promotion Price ('Promotion Price')
+       - Col G: Expires Date ('Expire Date')
+       - Col H: Marketplace Price ('Marketplace Price')
+       - Col I: Marketplace GP% (Ignored, will be auto-calculated)
+       - Col J: Dealer Price Tier 1 ('Dealer Price T1' or '1-20 Units')
+       - Col K: GP% T1 (Ignored, will be auto-calculated)
+       - Col L: Dealer Price Tier 2 ('Dealer Price T2' or '21-30 Units')
+       - Col M: GP% T2 (Ignored, will be auto-calculated)
+       - Col N: Dealer Price Tier 3 ('Dealer Price T3' or '31 Units Up')
+       - Col O: GP% T3 (Ignored, will be auto-calculated)
 
     ------------------------------------------------------------------
     2. How to Deploy to GitHub Pages / Vercel
@@ -506,7 +486,6 @@
             const searchInput = document.getElementById('search-input');
             const dateFilter = document.getElementById('date-filter');
             const channelSelector = document.getElementById('channel-selector');
-            const mainTemplateSelector = document.getElementById('template-selector');
             const skuTableBody = document.getElementById('sku-table-body');
             const tableHeader = document.getElementById('table-header');
             const paginationContainer = document.getElementById('pagination');
@@ -573,10 +552,33 @@
             };
 
             const defaultTemplateSettings = {
-                'A4': { descSize: 60, detailsSize: 22, priceSize: 90, skuSize: 18, backgroundImage: null },
-                'A5': { descSize: 50, detailsSize: 18, priceSize: 72, skuSize: 16, backgroundImage: null },
-                'A6': { descSize: 40, detailsSize: 16, priceSize: 60, skuSize: 14, backgroundImage: null },
-                'Accessories Tag': { descSize: 24, detailsSize: 12, priceSize: 36, skuSize: 10, backgroundImage: null },
+                'A4': { 
+                    desc: { size: 60, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    details: { size: 22, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    price: { size: 90, color: '#dc2626', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    sku: { size: 18, color: '#000000', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    backgroundImage: null, isDark: false 
+                },
+                'A5': { 
+                    desc: { size: 50, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    details: { size: 18, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    price: { size: 72, color: '#dc2626', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    sku: { size: 16, color: '#000000', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    backgroundImage: null, isDark: false 
+                },
+                'A6': { 
+                    desc: { size: 40, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    details: { size: 16, color: '#000000', marginTop: 16, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    price: { size: 60, color: '#dc2626', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    sku: { size: 14, color: '#000000', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    backgroundImage: null, isDark: false 
+                },
+                'Accessories Tag': { 
+                    desc: { size: 24, color: '#ffffff', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    price: { size: 36, color: '#fbbf24', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    sku: { size: 10, color: '#ffffff', marginTop: 0, marginRight: 0, marginBottom: 0, marginLeft: 0 },
+                    backgroundImage: null, isDark: true 
+                },
             };
 
             // --- Initialization ---
@@ -665,13 +667,18 @@
                  localStorage.setItem('template_settings', JSON.stringify(templateSettings));
             }
 
-            function populateTemplateSelectors() {
+            function populateTemplateSelectors(selectorElement) {
                 const templateNames = Object.keys(templateSettings);
-                mainTemplateSelector.innerHTML = '';
-                templateEditorSelector.innerHTML = '';
-                templateNames.forEach(name => {
-                    mainTemplateSelector.innerHTML += `<option value="${name}">${name}</option>`;
-                    templateEditorSelector.innerHTML += `<option value="${name}">${name}</option>`;
+                const selectors = selectorElement ? [selectorElement] : [document.getElementById('template-selector'), templateEditorSelector];
+                selectors.forEach(selector => {
+                    if (selector) {
+                        const currentVal = selector.value;
+                        selector.innerHTML = '';
+                        templateNames.forEach(name => {
+                            selector.innerHTML += `<option value="${name}">${name}</option>`;
+                        });
+                        selector.value = currentVal;
+                    }
                 });
             }
 
@@ -713,6 +720,7 @@
                     adminPanelBtn.classList.remove('hidden');
                     editDataBtn.classList.remove('hidden');
                 } else {
+                    adminPanelBtn.classList.add('hidden');
                     editDataBtn.classList.add('hidden');
                 }
 
@@ -752,7 +760,7 @@
                     const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { raw: false });
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                     
                     const mappedData = mapExcelData(jsonData);
                     allSkus = mappedData;
@@ -764,46 +772,91 @@
                 reader.readAsArrayBuffer(file);
             }
             
+            function calculateGP(price, cost) {
+                if (!price || !cost || price === 0) return 0;
+                return (price - cost) / price;
+            }
+
             function mapExcelData(data) {
-                return data.map(row => {
-                    const getVal = (keys) => {
-                        for (const key of keys) {
-                            if (row[key] !== undefined) return row[key];
-                        }
-                        return null;
-                    };
-                    
-                    const dealerPrices = Object.keys(row).filter(k => k.toLowerCase().includes('units') || k.toLowerCase().includes('dealer price'));
-                    const dealerGPs = Object.keys(row).filter(k => k.toLowerCase().startsWith('gp %'));
+                // Remove header rows
+                const rows = data.slice(2); 
+                return rows.map(row => {
+                    const cost = parseFloat(row[3]) || 0;
+                    const marketplacePrice = parseFloat(row[7]) || 0;
+                    const dealerT1 = parseFloat(row[9]) || 0;
+                    const dealerT2 = parseFloat(row[11]) || 0;
+                    const dealerT3 = parseFloat(row[13]) || 0;
 
                     return {
-                        sku: getVal(['Item No.', 'sku']),
-                        description: getVal(['Description', 'description']),
-                        details: getVal(['Details', 'details']),
-                        cost: parseFloat(getVal(['Costs', 'cost'])) || 0,
-                        normal_price: parseFloat(getVal(['Normal Price', 'normal_price'])) || 0,
-                        promo_price: parseFloat(getVal(['Promotion Price', 'promo_price'])) || 0,
-                        flagship_price: parseFloat(getVal(['Flagship Price / Website', 'flagship_price'])) || 0,
-                        marketplace_price: parseFloat(getVal(['Marketplace Price', 'marketplace_price'])) || 0,
-                        market_gp: parseFloat(getVal(['GP%', 'market_gp'])) || 0,
-                        expire_date: getVal(['Expire Date', 'expire_date']),
-                        dealer_price_t1: parseFloat(getVal([dealerPrices[0], 'dealer_price_t1'])) || 0,
-                        dealer_gp_t1: parseFloat(getVal([dealerGPs[0], 'dealer_gp_t1'])) || 0,
-                        dealer_price_t2: parseFloat(getVal([dealerPrices[1], 'dealer_price_t2'])) || 0,
-                        dealer_gp_t2: parseFloat(getVal([dealerGPs[1], 'dealer_gp_t2'])) || 0,
-                        dealer_price_t3: parseFloat(getVal([dealerPrices[2], 'dealer_price_t3'])) || 0,
-                        dealer_gp_t3: parseFloat(getVal([dealerGPs[2], 'dealer_gp_t3'])) || 0,
+                        sku: row[0] || '',
+                        description: row[1] || '',
+                        details: row[2] || '',
+                        cost: cost,
+                        normal_price: parseFloat(row[4]) || 0,
+                        promo_price: parseFloat(row[5]) || 0,
+                        expire_date: row[6] || '',
+                        marketplace_price: marketplacePrice,
+                        market_gp: calculateGP(marketplacePrice, cost),
+                        dealer_price_t1: dealerT1,
+                        dealer_gp_t1: calculateGP(dealerT1, cost),
+                        dealer_price_t2: dealerT2,
+                        dealer_gp_t2: calculateGP(dealerT2, cost),
+                        dealer_price_t3: dealerT3,
+                        dealer_gp_t3: calculateGP(dealerT3, cost),
                     };
                 });
             }
 
-            function handleExcelExport() {
-                const ws = XLSX.utils.json_to_sheet(allSkus);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Products");
-                XLSX.writeFile(wb, "price_data_export.xlsx");
-                logAction('Exported data to Excel');
+            async function handleExcelExport() {
+                const headers = [
+                    "SKU", "Description", "Details", "Costs", "Normal Price", 
+                    "Promotion Price", "Expires Date", "Marketplace Price", "Marketplace GP%",
+                    "Dealer Price Tier 1", "GP% T1", "Dealer Price Tier 2", "GP% T2",
+                    "Dealer Price Tier 3", "GP% T3"
+                ];
+
+                const data = allSkus.map(sku => [
+                    sku.sku, sku.description, sku.details, sku.cost, sku.normal_price,
+                    sku.promo_price, sku.expire_date, sku.marketplace_price, sku.market_gp,
+                    sku.dealer_price_t1, sku.dealer_gp_t1, sku.dealer_price_t2, sku.dealer_gp_t2,
+                    sku.dealer_price_t3, sku.dealer_gp_t3
+                ]);
+
+                try {
+                    const workbook = await XlsxPopulate.fromBlankAsync();
+                    const sheet = workbook.sheet(0);
+                    
+                    sheet.cell("A1").value([headers]);
+                    sheet.range("A1:O1").style("bold", true);
+
+                    if (data.length > 0) {
+                        sheet.cell("A2").value(data);
+                        const dataRange = sheet.range(`A2:O${data.length + 1}`);
+                        
+                        // Highlight columns
+                        sheet.range(`D2:D${data.length + 1}`).style("fill", "c6efce"); // Light Green
+                        sheet.range(`F2:G${data.length + 1}`).style("fill", "ffeb9c"); // Yellow
+
+                        // Format GP% columns
+                        sheet.range(`I2:I${data.length + 1}`).style("numberFormat", "0.00%");
+                        sheet.range(`K2:K${data.length + 1}`).style("numberFormat", "0.00%");
+                        sheet.range(`M2:M${data.length + 1}`).style("numberFormat", "0.00%");
+                        sheet.range(`O2:O${data.length + 1}`).style("numberFormat", "0.00%");
+                    }
+
+                    const blob = await workbook.outputAsync();
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "price_data_export.xlsx";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    logAction('Exported data to Excel');
+                } catch (err) {
+                    console.error("Error exporting to Excel:", err);
+                }
             }
+
 
             // --- UI Rendering ---
             function setupChannelSelector() {
@@ -840,7 +893,7 @@
                 const selectedChannel = channelSelector.value;
                 let headers = `
                     <th class="p-3"><input type="checkbox" id="select-all-checkbox"></th>
-                    <th class="p-3">Item No. (SKU)</th>
+                    <th class="p-3">SKU</th>
                     <th class="p-3">Description</th>
                     <th class="p-3">Details</th>
                 `;
@@ -851,7 +904,7 @@
 
                 switch (selectedChannel) {
                     case 'Flagship':
-                        headers += `<th class="p-3">Flagship Price</th>`;
+                        headers += `<th class="p-3">Promotion Price</th>`;
                         break;
                     case 'Marketplace':
                         headers += `<th class="p-3">Marketplace Price</th><th class="p-3">GP%</th>`;
@@ -910,8 +963,7 @@
 
                     switch (selectedChannel) {
                         case 'Flagship':
-                            const flagshipPrice = sku.flagship_price > 0 ? sku.flagship_price : (sku.promo_price > 0 ? sku.promo_price : sku.normal_price);
-                            rowContent += `<td class="p-3 text-right font-bold text-red-400">${formatCurrency(flagshipPrice)}</td>`;
+                            rowContent += `<td class="p-3 text-right font-bold text-red-400">${formatCurrency(sku.promo_price)}</td>`;
                             break;
                         case 'Marketplace':
                             rowContent += `<td class="p-3 text-right font-bold text-red-400">${formatCurrency(sku.marketplace_price)}</td>`;
@@ -984,8 +1036,20 @@
 
                 skuCounter.textContent = `${currentPreviewIndex + 1} / ${selectedForPreview.length}`;
                 const sku = selectedForPreview[currentPreviewIndex];
-                const templateName = mainTemplateSelector.value;
-                renderPriceTag(tagPreviewArea, sku, templateName);
+                
+                // Create a temporary selector for the preview
+                const tempTemplateSelector = document.createElement('select');
+                populateTemplateSelectors(tempTemplateSelector);
+                tempTemplateSelector.className = 'w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg mb-4';
+                tempTemplateSelector.addEventListener('change', () => renderPriceTag(tagPreviewArea, sku, tempTemplateSelector.value));
+                
+                tagPreviewArea.innerHTML = '';
+                tagPreviewArea.appendChild(tempTemplateSelector);
+                
+                const tagContainer = document.createElement('div');
+                tagPreviewArea.appendChild(tagContainer);
+
+                renderPriceTag(tagContainer, sku, tempTemplateSelector.value);
 
                 prevSkuBtn.disabled = currentPreviewIndex === 0;
                 nextSkuBtn.disabled = currentPreviewIndex === selectedForPreview.length - 1;
@@ -1029,32 +1093,54 @@
                 }
                 
                 let tagClass = '';
-                if (templateName.includes('A4')) tagClass = 'price-tag-a4';
-                else if (templateName.includes('A5')) tagClass = 'price-tag-a5';
-                else if (templateName.includes('A6')) tagClass = 'price-tag-a6';
-                else if (templateName.includes('Acc')) tagClass = 'price-tag-acc';
+                if (templateName === 'A4') tagClass = 'price-tag-a4';
+                else if (templateName === 'A5') tagClass = 'price-tag-a5';
+                else if (templateName === 'A6') tagClass = 'price-tag-a6';
+                else if (templateName === 'Accessories Tag') tagClass = 'price-tag-acc';
 
                 const expireText = (selectedChannel === 'Flagship' && sku.expire_date) ? `Expire: ${sku.expire_date}` : '';
                 
-                const backgroundStyle = baseSettings.backgroundImage ? `background-image: url('${baseSettings.backgroundImage}'); background-size: cover; background-position: center; border: none;` : 'background-color: white; border: 5px solid black;';
+                const backgroundStyle = baseSettings.backgroundImage ? `background-image: url('${baseSettings.backgroundImage}'); background-size: cover; background-position: center; border: none;` 
+                                      : (baseSettings.isDark ? 'background-color: black; border: none;' : 'background-color: white; border: 5px solid black;');
+
+                if (templateName === 'Accessories Tag') {
+                    container.innerHTML = `
+                    <div class="price-tag ${tagClass} flex flex-col justify-between p-2" style="${backgroundStyle}">
+                        <div class="flex justify-between items-start text-white">
+                            <span style="font-size: ${settings.sku.size}px; color: ${settings.sku.color};">${sku.sku}</span>
+                            ${!baseSettings.backgroundImage ? `<img src="${companyLogo}" alt="Logo" class="h-8">` : ''}
+                        </div>
+                        <div class="flex-grow flex items-center justify-center text-center">
+                            <h2 class="font-bold text-white truncate" style="font-size: ${settings.desc.size}px; color: ${settings.desc.color};">${sku.description}</h2>
+                        </div>
+                        <div class="flex justify-between items-end text-white">
+                            <span class="text-xs">${expireText}</span>
+                            <div class="text-right">
+                                ${normalPrice && price < normalPrice ? `<p class="text-gray-400 line-through" style="font-size: ${settings.price.size * 0.5}px;">${formatCurrency(normalPrice)}</p>` : ''}
+                                <p class="font-bold" style="font-size: ${settings.price.size}px; color: ${settings.price.color};">${formatCurrency(price)}</p>
+                            </div>
+                        </div>
+                    </div>`;
+                    return;
+                }
 
                 container.innerHTML = `
                     <div class="price-tag ${tagClass} flex flex-col justify-between" style="${backgroundStyle}">
                         <div class="flex justify-between items-start">
-                            <img src="${companyLogo}" alt="Company Logo" class="h-12">
-                            <span class="font-semibold" style="font-size: ${settings.skuSize}px;">${sku.sku}</span>
+                            ${!baseSettings.backgroundImage ? `<img src="${companyLogo}" alt="Logo" class="h-12">` : '<div></div>'}
+                            <span class="font-semibold" style="font-size: ${settings.sku.size}px; color: ${settings.sku.color};">${sku.sku}</span>
                         </div>
                         <div class="flex-grow my-4">
-                            <h2 class="font-bold" style="font-size: ${settings.descSize}px;">${sku.description}</h2>
-                            <ul class="list-disc list-inside mt-4" style="font-size: ${settings.detailsSize}px;">
+                            <h2 class="font-bold" style="font-size: ${settings.desc.size}px; color: ${settings.desc.color};">${sku.description}</h2>
+                            <ul class="list-disc list-inside mt-4" style="font-size: ${settings.details.size}px; color: ${settings.details.color};">
                                 ${(sku.details || '').split('\n').map(line => `<li>${line}</li>`).join('')}
                             </ul>
                         </div>
                         <div class="flex justify-between items-end">
                             <span class="font-medium">${expireText}</span>
                             <div class="text-right">
-                                ${normalPrice && price < normalPrice ? `<p class="text-gray-500 line-through" style="font-size: ${settings.priceSize * 0.5}px;">${formatCurrency(normalPrice)}</p>` : ''}
-                                <p class="font-bold text-red-600" style="font-size: ${settings.priceSize}px;">${formatCurrency(price)}</p>
+                                ${normalPrice && price < normalPrice ? `<p class="text-gray-500 line-through" style="font-size: ${settings.price.size * 0.5}px;">${formatCurrency(normalPrice)}</p>` : ''}
+                                <p class="font-bold" style="font-size: ${settings.price.size}px; color: ${settings.price.color};">${formatCurrency(price)}</p>
                             </div>
                         </div>
                     </div>
@@ -1062,38 +1148,61 @@
             }
             
             function openPrintView() {
-                const templateName = mainTemplateSelector.value;
+                const templateName = tagPreviewArea.querySelector('select').value;
                 let tagsPerPage, layoutClass;
 
-                if (templateName.includes('A4')) { tagsPerPage = 1; layoutClass = ''; }
-                else if (templateName.includes('A5')) { tagsPerPage = 2; layoutClass = 'grid grid-cols-1 gap-0'; }
-                else if (templateName.includes('A6')) { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
-                else if (templateName.includes('Acc')) { tagsPerPage = 12; layoutClass = 'grid grid-cols-3 grid-rows-4 gap-0'; }
+                if (templateName === 'A4') { tagsPerPage = 1; layoutClass = 'flex justify-center items-center'; }
+                else if (templateName === 'A5') { tagsPerPage = 2; layoutClass = 'grid grid-cols-2 gap-0'; }
+                else if (templateName === 'A6') { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
+                else if (templateName === 'Accessories Tag') { tagsPerPage = 12; layoutClass = 'grid grid-cols-2 grid-rows-6 gap-0'; }
                 else { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
 
                 let printContent = '';
-                for (let i = 0; i < selectedForPreview.length; i += tagsPerPage) {
-                    const pageChunk = selectedForPreview.slice(i, i + tagsPerPage);
-                    let pageTags = '';
-                    pageChunk.forEach(sku => {
+                selectedForPreview.forEach(sku => {
+                    const count = parseInt(prompt(`Enter number of tags for ${sku.sku}:`, 1)) || 1;
+                    for(let i = 0; i < count; i++) {
                         const tagContainer = document.createElement('div');
                         renderPriceTag(tagContainer, sku, templateName);
-                        pageTags += tagContainer.innerHTML;
-                    });
-                    printContent += `<div class="w-[210mm] h-[297mm] p-4 box-border price-tag-container ${layoutClass}">${pageTags}</div>`;
-                }
+                        printContent += tagContainer.innerHTML;
+                    }
+                });
                 
                 const printWindow = window.open('', '', 'height=800,width=1000');
                 printWindow.document.write('<html><head><title>Print Price Tags</title>');
                 printWindow.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
                 printWindow.document.write(`<style>${document.querySelector('style').innerHTML}</style>`);
                 printWindow.document.write('</head><body>');
-                printWindow.document.write(printContent);
+
+                // This part is tricky. We can't easily flow items across pages with CSS grid.
+                // A simpler approach is to create a page for each set of tags.
+                const allTagsHtml = selectedForPreview.map(sku => {
+                    const count = parseInt(prompt(`Enter number of tags for ${sku.sku}:`, 1) || "1");
+                    let skuTags = '';
+                    for (let i = 0; i < count; i++) {
+                        const tagContainer = document.createElement('div');
+                        renderPriceTag(tagContainer, sku, templateName);
+                        skuTags += tagContainer.innerHTML;
+                    }
+                    return skuTags;
+                }).join('');
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = allTagsHtml;
+                const allTags = Array.from(tempDiv.children);
+
+                for (let i = 0; i < allTags.length; i += tagsPerPage) {
+                    const pageChunk = allTags.slice(i, i + tagsPerPage);
+                    let pageHtml = `<div class="w-[210mm] h-[297mm] p-2 box-border price-tag-container ${layoutClass}">`;
+                    pageHtml += pageChunk.map(tag => tag.outerHTML).join('');
+                    pageHtml += `</div>`;
+                    printWindow.document.write(pageHtml);
+                }
+
                 printWindow.document.write('</body></html>');
                 printWindow.document.close();
                 printWindow.focus();
                 setTimeout(() => { printWindow.print(); }, 500); // Wait for styles to apply
-                logAction(`Opened print view for ${selectedForPreview.length} tags with template ${templateName}`);
+                logAction(`Opened print view for selected tags with template ${templateName}`);
             }
 
             printBtn.addEventListener('click', openPrintView);
@@ -1284,38 +1393,65 @@
                 const settings = templateSettings[selectedTemplate];
                 if (!settings) return;
 
-                document.getElementById('font-size-desc').value = settings.descSize;
-                document.getElementById('font-size-details').value = settings.detailsSize;
-                document.getElementById('font-size-price').value = settings.priceSize;
-                document.getElementById('font-size-sku').value = settings.skuSize;
+                const controlsContainer = document.getElementById('template-controls');
+                controlsContainer.innerHTML = ''; // Clear existing controls
+
+                const elementsToControl = settings.details 
+                    ? ['desc', 'details', 'price', 'sku'] 
+                    : ['desc', 'price', 'sku'];
+
+                elementsToControl.forEach(el => {
+                    const elSettings = settings[el];
+                    const elName = el.charAt(0).toUpperCase() + el.slice(1);
+                    const controlHtml = `
+                        <div class="border border-secondary p-2 rounded-lg">
+                            <p class="font-semibold text-gray-300">${elName}</p>
+                            <div class="grid grid-cols-2 gap-2 mt-1">
+                                <div><label class="text-xs text-gray-400">Size (px)</label><input type="number" data-element="${el}" data-style="size" value="${elSettings.size}" class="w-full bg-gray-900 p-1 rounded"></div>
+                                <div><label class="text-xs text-gray-400">Color</label><input type="color" data-element="${el}" data-style="color" value="${elSettings.color}" class="w-full h-8 bg-gray-900 p-0 rounded"></div>
+                                <div><label class="text-xs text-gray-400">Margin Top (px)</label><input type="number" data-element="${el}" data-style="marginTop" value="${elSettings.marginTop}" class="w-full bg-gray-900 p-1 rounded"></div>
+                            </div>
+                        </div>
+                    `;
+                    controlsContainer.innerHTML += controlHtml;
+                });
+
                 updateTemplateLivePreview();
             }
 
             function updateTemplateLivePreview() {
-                const liveFontSettings = {
-                    descSize: document.getElementById('font-size-desc').value,
-                    detailsSize: document.getElementById('font-size-details').value,
-                    priceSize: document.getElementById('font-size-price').value,
-                    skuSize: document.getElementById('font-size-sku').value,
-                };
+                const selectedTemplate = templateEditorSelector.value;
+                const liveSettings = { ...templateSettings[selectedTemplate] };
+                
+                document.querySelectorAll('#template-controls input').forEach(input => {
+                    const el = input.dataset.element;
+                    const style = input.dataset.style;
+                    if (el && style) {
+                        liveSettings[el][style] = input.value;
+                    }
+                });
+
                 const sampleSku = allSkus[0] || {sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', cost: 50, normal_price: 100, promo_price: 80};
                 const previewContainer = document.createElement('div');
                 previewContainer.style.transform = 'scale(0.5)';
                 previewContainer.style.transformOrigin = 'top left';
-                renderPriceTag(previewContainer, sampleSku, templateEditorSelector.value, liveFontSettings);
+                renderPriceTag(previewContainer, sampleSku, selectedTemplate, liveSettings);
                 templateLivePreview.innerHTML = '';
                 templateLivePreview.appendChild(previewContainer);
             }
 
             function saveCurrentTemplateSettings() {
                 const selectedTemplate = templateEditorSelector.value;
-                templateSettings[selectedTemplate] = {
-                    ...templateSettings[selectedTemplate], // Preserve background image
-                    descSize: document.getElementById('font-size-desc').value,
-                    detailsSize: document.getElementById('font-size-details').value,
-                    priceSize: document.getElementById('font-size-price').value,
-                    skuSize: document.getElementById('font-size-sku').value,
-                };
+                const newSettings = { ...templateSettings[selectedTemplate] };
+
+                document.querySelectorAll('#template-controls input').forEach(input => {
+                    const el = input.dataset.element;
+                    const style = input.dataset.style;
+                    if (el && style) {
+                        newSettings[el][style] = input.type === 'number' ? parseInt(input.value) : input.value;
+                    }
+                });
+                templateSettings[selectedTemplate] = newSettings;
                 saveTemplateSettings();
                 logAction(`Updated template: ${selectedTemplate}`);
                 alert('บันทึกการตั้งค่าเทมเพลตสำเร็จ!');
@@ -1342,7 +1478,7 @@
                 reader.onload = (e) => {
                     const baseSettings = templateSettings[templateEditorSelector.value] || defaultTemplateSettings['A6'];
                     templateSettings[newName] = {
-                        ...baseSettings, // Copy font sizes from selected template
+                        ...JSON.parse(JSON.stringify(baseSettings)), // Deep copy base settings
                         backgroundImage: e.target.result
                     };
                     saveTemplateSettings();
@@ -1368,6 +1504,7 @@
                         <td class="p-1"><input type="number" value="${sku.cost}" data-key="cost" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.normal_price}" data-key="normal_price" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.promo_price}" data-key="promo_price" class="w-24 bg-gray-800 p-1 rounded"></td>
+                        <td class="p-1"><input type="number" value="${sku.marketplace_price}" data-key="marketplace_price" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.dealer_price_t1}" data-key="dealer_price_t1" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.dealer_price_t2}" data-key="dealer_price_t2" class="w-24 bg-gray-800 p-1 rounded"></td>
                         <td class="p-1"><input type="number" value="${sku.dealer_price_t3}" data-key="dealer_price_t3" class="w-24 bg-gray-800 p-1 rounded"></td>
@@ -1384,9 +1521,15 @@
                     if (!isNaN(index) && allSkus[index]) {
                         row.querySelectorAll('input').forEach(input => {
                             const key = input.dataset.key;
-                            const value = input.type === 'number' ? parseFloat(input.value) : input.value;
+                            const value = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
                             allSkus[index][key] = value;
                         });
+                        // Recalculate GPs
+                        const sku = allSkus[index];
+                        sku.market_gp = calculateGP(sku.marketplace_price, sku.cost);
+                        sku.dealer_gp_t1 = calculateGP(sku.dealer_price_t1, sku.cost);
+                        sku.dealer_gp_t2 = calculateGP(sku.dealer_price_t2, sku.cost);
+                        sku.dealer_gp_t3 = calculateGP(sku.dealer_price_t3, sku.cost);
                     }
                 });
                 localStorage.setItem('price_data', JSON.stringify(allSkus));
@@ -1441,7 +1584,7 @@
             }
             
             function formatPercent(num) {
-                if (isNaN(num) || num === null) return '-';
+                if (isNaN(num) || num === null || !isFinite(num)) return '-';
                 return `${(num * 100).toFixed(0)}%`;
             }
 
