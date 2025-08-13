@@ -70,17 +70,16 @@
         .price-tag-acc { width: 105mm; height: 49mm; }
 
         @media print {
-            body * {
-                visibility: hidden;
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
-            #print-area, #print-area * {
-                visibility: visible;
+            .no-print {
+                display: none;
             }
-            #print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
+            @page {
+                size: A4;
+                margin: 0;
             }
             .price-tag-container {
                 page-break-inside: avoid;
@@ -185,7 +184,7 @@
                     <select id="dealer-tier-selector" class="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1"></select>
                 </div>
                 <div>
-                    <button id="print-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">พิมพ์ทั้งหมด</button>
+                    <button id="print-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">เปิดหน้าพิมพ์</button>
                     <button id="export-pdf-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">ส่งออกเป็น PDF</button>
                 </div>
             </div>
@@ -291,11 +290,12 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-gray-400">ช่องทางที่เข้าถึงได้</label>
-                                    <div id="user-form-channels" class="space-y-1 mt-1">
-                                        <label class="flex items-center"><input type="checkbox" value="Flagship" class="form-checkbox bg-gray-700 border-gray-600 mr-2">Flagship</label>
-                                        <label class="flex items-center"><input type="checkbox" value="Dealer" class="form-checkbox bg-gray-700 border-gray-600 mr-2">Dealer</label>
-                                        <label class="flex items-center"><input type="checkbox" value="Marketplace" class="form-checkbox bg-gray-700 border-gray-600 mr-2">Marketplace</label>
+                                    <label class="text-gray-400">สิทธิ์การเข้าถึง</label>
+                                    <div id="user-form-permissions" class="space-y-1 mt-1">
+                                        <label class="flex items-center"><input type="checkbox" value="Flagship" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Flagship</label>
+                                        <label class="flex items-center"><input type="checkbox" value="Dealer" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Dealer</label>
+                                        <label class="flex items-center"><input type="checkbox" value="Marketplace" class="form-checkbox channel-perm bg-gray-700 border-gray-600 mr-2">Marketplace</label>
+                                        <label class="flex items-center"><input type="checkbox" id="user-form-view-costs" class="form-checkbox bg-gray-700 border-gray-600 mr-2">View Costs</label>
                                     </div>
                                 </div>
                                 <div class="flex space-x-2 pt-2">
@@ -347,10 +347,6 @@
         </div>
     </div>
     
-    <!-- Print Area -->
-    <div id="print-area" class="hidden"></div>
-
-
     <!-- README in comments -->
     <!--
     ==================================================================
@@ -383,6 +379,7 @@
        - SKU: 'Item No.' or 'sku'
        - Description: 'Description' or 'description'
        - Details: 'Details' or 'details' (use newline for bullets)
+       - Costs: 'Costs' or 'cost'
        - Normal Price: 'Normal Price' or 'normal_price'
        - Promotion Price: 'Promotion Price' or 'promo_price'
        - Expire Date: 'Expire Date' or 'expire_date' (format DD-MM-YYYY)
@@ -434,11 +431,11 @@
     Username / Password -> Role (Visible Channels)
     The user list is now manageable by the 'Host' user and stored in the browser's local storage.
     Default users are:
-    - host1 / host123    -> Host (Full Access: Flagship, Dealer, Marketplace. Can manage users).
-    - admin1 / admin123  -> Admin (Admin Access: Flagship, Dealer, Marketplace. No user management).
+    - host1 / host123    -> Host (Full Access, Can manage users, Can see Costs).
+    - admin1 / admin123  -> Admin (Admin Access, Can see Costs).
     - user1 / u1pass     -> User1 (Flagship only).
     - user2 / u2pass     -> User2 (Flagship only).
-    - user3 / u3pass     -> User3 (Dealer only, sees all 3 tiers + GP%).
+    - user3 / u3pass     -> User3 (Dealer only, all 3 tiers + GP%).
     - user4 / u4pass     -> User4 (Marketplace only, sees GP%).
 
     ==================================================================
@@ -523,12 +520,12 @@
 
             // --- Default Users & Templates ---
             const defaultUsers = {
-                host1: { password: 'host123', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'] },
-                admin1: { password: 'admin123', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'] },
-                user1: { password: 'u1pass', role: 'User1', channels: ['Flagship'] },
-                user2: { password: 'u2pass', role: 'User2', channels: ['Flagship'] },
-                user3: { password: 'u3pass', role: 'User3', channels: ['Dealer'] },
-                user4: { password: 'u4pass', role: 'User4', channels: ['Marketplace'] }
+                host1: { password: 'host123', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'], canViewCosts: true },
+                admin1: { password: 'admin123', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'], canViewCosts: true },
+                user1: { password: 'u1pass', role: 'User1', channels: ['Flagship'], canViewCosts: false },
+                user2: { password: 'u2pass', role: 'User2', channels: ['Flagship'], canViewCosts: false },
+                user3: { password: 'u3pass', role: 'User3', channels: ['Dealer'], canViewCosts: false },
+                user4: { password: 'u4pass', role: 'User4', channels: ['Marketplace'], canViewCosts: false }
             };
 
             const defaultTemplateSettings = {
@@ -689,7 +686,7 @@
                         logAction('Loaded sample_data.json');
                     } catch (error) {
                         console.error('Error loading initial data:', error);
-                        allSkus = [{sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', normal_price: 100, promo_price: 80}];
+                        allSkus = [{sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', cost: 50, normal_price: 100, promo_price: 80}];
                     }
                 }
             }
@@ -732,6 +729,7 @@
                         sku: getVal(['Item No.', 'sku']),
                         description: getVal(['Description', 'description']),
                         details: getVal(['Details', 'details']),
+                        cost: parseFloat(getVal(['Costs', 'cost'])) || 0,
                         normal_price: parseFloat(getVal(['Normal Price', 'normal_price'])) || 0,
                         promo_price: parseFloat(getVal(['Promotion Price', 'promo_price'])) || 0,
                         flagship_price: parseFloat(getVal(['Flagship Price / Website', 'flagship_price'])) || 0,
@@ -793,9 +791,11 @@
                     <th class="p-3"><input type="checkbox" id="select-all-checkbox"></th>
                     <th class="p-3">Item No. (SKU)</th>
                     <th class="p-3">Description</th>
-                    <th class="p-3">Details</th>
-                    <th class="p-3">Normal Price</th>
                 `;
+                if (currentUser.canViewCosts) {
+                    headers += `<th class="p-3">Costs</th>`;
+                }
+                headers += `<th class="p-3">Details</th><th class="p-3">Normal Price</th>`;
 
                 switch (selectedChannel) {
                     case 'Flagship':
@@ -812,7 +812,9 @@
                         `;
                         break;
                 }
-                headers += `<th class="p-3">Expire Date</th>`;
+                if (selectedChannel === 'Flagship') {
+                    headers += `<th class="p-3">Expire Date</th>`;
+                }
                 tableHeader.innerHTML = `<tr>${headers}</tr>`;
                 
                 const selectAllCheckbox = document.getElementById('select-all-checkbox');
@@ -845,6 +847,13 @@
                         <td class="p-3"><input type="checkbox" class="sku-checkbox" data-sku="${sku.sku}"></td>
                         <td class="p-3">${sku.sku || ''}</td>
                         <td class="p-3">${sku.description || ''}</td>
+                    `;
+
+                    if (currentUser.canViewCosts) {
+                        rowContent += `<td class="p-3 text-right">${formatCurrency(sku.cost)}</td>`;
+                    }
+
+                    rowContent += `
                         <td class="p-3 text-sm text-gray-400">${(sku.details || '').split('\n').slice(0, 5).join('<br>')}</td>
                         <td class="p-3 text-right">${formatCurrency(sku.normal_price)}</td>
                     `;
@@ -870,7 +879,9 @@
                             break;
                     }
                     
-                    rowContent += `<td class="p-3">${sku.expire_date || ''}</td>`;
+                    if (selectedChannel === 'Flagship') {
+                        rowContent += `<td class="p-3">${sku.expire_date || ''}</td>`;
+                    }
                     row.innerHTML = rowContent;
                     skuTableBody.appendChild(row);
                 });
@@ -972,7 +983,7 @@
                 else if (templateName.includes('A6')) tagClass = 'price-tag-a6';
                 else if (templateName.includes('Acc')) tagClass = 'price-tag-acc';
 
-                const expireText = sku.expire_date ? `Expire: ${sku.expire_date}` : '';
+                const expireText = (selectedChannel === 'Flagship' && sku.expire_date) ? `Expire: ${sku.expire_date}` : '';
 
                 container.innerHTML = `
                     <div class="price-tag ${tagClass} flex flex-col justify-between">
@@ -997,38 +1008,54 @@
                 `;
             }
             
-            printBtn.addEventListener('click', () => {
+            function openPrintView() {
                 const templateName = mainTemplateSelector.value;
-                const printArea = document.getElementById('print-area');
-                printArea.innerHTML = '';
-                printArea.classList.remove('hidden');
-
                 let tagsPerPage, layoutClass;
+
                 if (templateName.includes('A4')) { tagsPerPage = 1; layoutClass = ''; }
-                else if (templateName.includes('A5')) { tagsPerPage = 2; layoutClass = 'grid grid-cols-1'; }
-                else if (templateName.includes('A6')) { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2'; }
-                else if (templateName.includes('Acc')) { tagsPerPage = 12; layoutClass = 'grid grid-cols-3 grid-rows-4'; }
-                else { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2'; }
+                else if (templateName.includes('A5')) { tagsPerPage = 2; layoutClass = 'grid grid-cols-1 gap-0'; }
+                else if (templateName.includes('A6')) { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
+                else if (templateName.includes('Acc')) { tagsPerPage = 12; layoutClass = 'grid grid-cols-3 grid-rows-4 gap-0'; }
+                else { tagsPerPage = 4; layoutClass = 'grid grid-cols-2 grid-rows-2 gap-0'; }
 
-
+                let printContent = '';
                 for (let i = 0; i < selectedForPreview.length; i += tagsPerPage) {
                     const pageChunk = selectedForPreview.slice(i, i + tagsPerPage);
-                    const pageContainer = document.createElement('div');
-                    pageContainer.className = `w-[210mm] h-[297mm] p-4 box-border price-tag-container ${layoutClass} gap-2`;
-                    
+                    let pageTags = '';
                     pageChunk.forEach(sku => {
                         const tagContainer = document.createElement('div');
                         renderPriceTag(tagContainer, sku, templateName);
-                        pageContainer.appendChild(tagContainer.firstElementChild);
+                        pageTags += tagContainer.innerHTML;
                     });
-                    printArea.appendChild(pageContainer);
+                    printContent += `<div class="w-[210mm] h-[297mm] p-4 box-border price-tag-container ${layoutClass}">${pageTags}</div>`;
                 }
+                
+                const styles = Array.from(document.styleSheets)
+                    .map(styleSheet => {
+                        try {
+                            return Array.from(styleSheet.cssRules)
+                                .map(rule => rule.cssText)
+                                .join('');
+                        } catch (e) {
+                            console.log('Access to stylesheet %s is denied. Skipping.', styleSheet.href);
+                            return '';
+                        }
+                    }).join('\n');
 
-                logAction(`Printed ${selectedForPreview.length} tags with template ${templateName}`);
-                window.print();
-                printArea.classList.add('hidden');
-                printArea.innerHTML = '';
-            });
+                const printWindow = window.open('', '', 'height=800,width=1000');
+                printWindow.document.write('<html><head><title>Print Price Tags</title>');
+                printWindow.document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+                printWindow.document.write(`<style>${document.querySelector('style').innerHTML}</style>`);
+                printWindow.document.write('</head><body>');
+                printWindow.document.write(printContent);
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.focus();
+                setTimeout(() => { printWindow.print(); }, 500); // Wait for styles to apply
+                logAction(`Opened print view for ${selectedForPreview.length} tags with template ${templateName}`);
+            }
+
+            printBtn.addEventListener('click', openPrintView);
 
             // --- Admin Panel Logic ---
             function openAdminPanel() {
@@ -1147,9 +1174,10 @@
                     document.getElementById('user-form-password').placeholder = 'เว้นว่างไว้หากไม่ต้องการเปลี่ยน';
                     document.getElementById('user-form-role').value = user.role;
                     
-                    document.querySelectorAll('#user-form-channels input[type="checkbox"]').forEach(cb => {
+                    document.querySelectorAll('.channel-perm').forEach(cb => {
                         cb.checked = user.channels.includes(cb.value);
                     });
+                    document.getElementById('user-form-view-costs').checked = user.canViewCosts;
                 } else if (action === 'delete') {
                     delete appUsers[username];
                     saveUsers();
@@ -1164,7 +1192,8 @@
                 const username = document.getElementById('user-form-username').value;
                 const password = document.getElementById('user-form-password').value;
                 const role = document.getElementById('user-form-role').value;
-                const channels = Array.from(document.querySelectorAll('#user-form-channels input:checked')).map(cb => cb.value);
+                const channels = Array.from(document.querySelectorAll('.channel-perm:checked')).map(cb => cb.value);
+                const canViewCosts = document.getElementById('user-form-view-costs').checked;
 
                 if (!username) {
                     alert('กรุณากรอกชื่อผู้ใช้');
@@ -1180,7 +1209,7 @@
                          alert('กรุณากรอกรหัสผ่านสำหรับผู้ใช้ใหม่');
                         return;
                     }
-                    appUsers[username] = { password, role, channels };
+                    appUsers[username] = { password, role, channels, canViewCosts };
                     logAction(`Added new user: ${username}`);
                 } else { // edit mode
                     const originalUsername = document.getElementById('user-form-original-username').value;
@@ -1190,6 +1219,7 @@
                     }
                     userToUpdate.role = role;
                     userToUpdate.channels = channels;
+                    userToUpdate.canViewCosts = canViewCosts;
                     logAction(`Updated user: ${username}`);
                 }
                 
@@ -1227,8 +1257,7 @@
                     priceSize: document.getElementById('font-size-price').value,
                     skuSize: document.getElementById('font-size-sku').value,
                 };
-                const sampleSku = allSkus[0] || {sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', normal_price: 100, promo_price: 80};
-                // Use a scaled-down version for preview
+                const sampleSku = allSkus[0] || {sku: 'SAMPLE-01', description: 'Sample Product', details: '• Feature 1\n• Feature 2', cost: 50, normal_price: 100, promo_price: 80};
                 const previewContainer = document.createElement('div');
                 previewContainer.style.transform = 'scale(0.5)';
                 previewContainer.style.transformOrigin = 'top left';
