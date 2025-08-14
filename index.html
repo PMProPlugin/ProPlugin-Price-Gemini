@@ -129,14 +129,13 @@
                     <label for="search-input" class="block text-gray-300 mb-2">ค้นหา (SKU / ชื่อสินค้า)</label>
                     <input type="text" id="search-input" placeholder="ค้นหา..." class="w-full px-4 py-3 text-lg bg-gray-700 border border-gray-600 rounded-lg">
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                     <div>
-                        <label for="date-filter-start" class="block text-gray-300 mb-2">วันหมดอายุ (เริ่ม)</label>
-                        <input type="date" id="date-filter-start" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
-                    </div>
-                     <div>
-                        <label for="date-filter-end" class="block text-gray-300 mb-2">วันหมดอายุ (สิ้นสุด)</label>
-                        <input type="date" id="date-filter-end" class="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                     <div class="bg-gray-800 p-2 rounded-lg">
+                        <label class="block text-gray-300 mb-2 text-center">วันหมดอายุ</label>
+                        <div class="flex gap-2">
+                            <input type="date" id="date-filter-start" class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
+                            <input type="date" id="date-filter-end" class="w-full px-2 py-1 bg-gray-700 border border-gray-600 rounded-lg">
+                        </div>
                     </div>
                     <div>
                         <label for="channel-selector" class="block text-gray-300 mb-2">ช่องทางการขาย</label>
@@ -495,12 +494,12 @@
 
             // --- Default Users & Templates ---
             const defaultUsers = {
-                host1: { password: 'host123', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'], canViewCosts: true },
-                admin1: { password: 'admin123', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'], canViewCosts: true },
-                user1: { password: 'u1pass', role: 'User1', channels: ['Flagship'], canViewCosts: false },
-                user2: { password: 'u2pass', role: 'User2', channels: ['Flagship'], canViewCosts: false },
-                user3: { password: 'u3pass', role: 'User3', channels: ['Dealer'], canViewCosts: false },
-                user4: { password: 'u4pass', role: 'User4', channels: ['Marketplace'], canViewCosts: false }
+                host1: { password: 'host123', role: 'Host', channels: ['Flagship', 'Dealer', 'Marketplace'], canViewCosts: true, canPrint: true },
+                admin1: { password: 'admin123', role: 'Admin', channels: ['Flagship', 'Dealer', 'Marketplace'], canViewCosts: true, canPrint: true },
+                user1: { password: 'u1pass', role: 'User1', channels: ['Flagship'], canViewCosts: false, canPrint: true },
+                user2: { password: 'u2pass', role: 'User2', channels: ['Flagship'], canViewCosts: false, canPrint: true },
+                user3: { password: 'u3pass', role: 'User3', channels: ['Dealer'], canViewCosts: false, canPrint: false },
+                user4: { password: 'u4pass', role: 'User4', channels: ['Marketplace'], canViewCosts: false, canPrint: false }
             };
 
             const defaultTemplateSettings = {
@@ -680,6 +679,12 @@
                     editDataBtn.classList.add('hidden');
                 }
 
+                if (currentUser.canPrint) {
+                    printPageBtn.classList.remove('hidden');
+                } else {
+                    printPageBtn.classList.add('hidden');
+                }
+
                 setupChannelSelector();
                 await loadData();
                 updateTableHeader();
@@ -728,16 +733,17 @@
                 reader.readAsArrayBuffer(file);
             }
             
-            function calculateGP(price, cost) {
-                if (!price || !cost || price === 0) return 0;
-                return (price - cost) / price;
+            function calculateMarkup(price, cost) {
+                if (!price || !cost || cost === 0) return 0;
+                return (price - cost) / cost;
             }
 
             function mapExcelData(data) {
                 // Remove header rows
-                const rows = data.slice(2); 
+                const rows = data.slice(1); 
                 return rows.map(row => {
                     const cost = parseFloat(row[3]) || 0;
+                    const promoPrice = parseFloat(row[5]) || 0;
                     const marketplacePrice = parseFloat(row[7]) || 0;
                     const dealerT1 = parseFloat(row[9]) || 0;
                     const dealerT2 = parseFloat(row[11]) || 0;
@@ -749,16 +755,17 @@
                         details: row[2] || '',
                         cost: cost,
                         normal_price: parseFloat(row[4]) || 0,
-                        promo_price: parseFloat(row[5]) || 0,
+                        promo_price: promoPrice,
+                        promo_gp: calculateMarkup(promoPrice, cost),
                         expire_date: row[6] || '',
                         marketplace_price: marketplacePrice,
-                        market_gp: calculateGP(marketplacePrice, cost),
+                        market_gp: calculateMarkup(marketplacePrice, cost),
                         dealer_price_t1: dealerT1,
-                        dealer_gp_t1: calculateGP(dealerT1, cost),
+                        dealer_gp_t1: calculateMarkup(dealerT1, cost),
                         dealer_price_t2: dealerT2,
-                        dealer_gp_t2: calculateGP(dealerT2, cost),
+                        dealer_gp_t2: calculateMarkup(dealerT2, cost),
                         dealer_price_t3: dealerT3,
-                        dealer_gp_t3: calculateGP(dealerT3, cost),
+                        dealer_gp_t3: calculateMarkup(dealerT3, cost),
                     };
                 });
             }
@@ -872,7 +879,7 @@
 
                 switch (selectedChannel) {
                     case 'Flagship':
-                        headers += `<th class="p-3">Promotion Price</th>`;
+                        headers += `<th class="p-3">Promotion Price</th><th class="p-3">GP%</th>`;
                         break;
                     case 'Marketplace':
                         headers += `<th class="p-3">Marketplace Price</th><th class="p-3">GP%</th>`;
@@ -887,6 +894,9 @@
                 }
                 if (selectedChannel === 'Flagship') {
                     headers += `<th class="p-3">Expire Date</th>`;
+                }
+                 if (['Host', 'Admin'].includes(currentUser.role)) {
+                    headers += `<th class="p-3">Actions</th>`;
                 }
                 tableHeader.innerHTML = `<tr>${headers}</tr>`;
                 
@@ -932,6 +942,7 @@
                     switch (selectedChannel) {
                         case 'Flagship':
                             rowContent += `<td class="p-3 text-right font-bold text-red-400">${formatCurrency(sku.promo_price)}</td>`;
+                            rowContent += `<td class="p-3 text-right">${formatPercent(sku.promo_gp)}</td>`;
                             break;
                         case 'Marketplace':
                             rowContent += `<td class="p-3 text-right font-bold text-red-400">${formatCurrency(sku.marketplace_price)}</td>`;
@@ -952,8 +963,17 @@
                     if (selectedChannel === 'Flagship') {
                         rowContent += `<td class="p-3">${sku.expire_date || ''}</td>`;
                     }
+
+                    if (['Host', 'Admin'].includes(currentUser.role)) {
+                        rowContent += `<td class="p-3 text-center"><button class="delete-sku-btn" data-sku="${sku.sku}">🗑️</button></td>`;
+                    }
+
                     row.innerHTML = rowContent;
                     skuTableBody.appendChild(row);
+                });
+
+                document.querySelectorAll('.delete-sku-btn').forEach(btn => {
+                    btn.addEventListener('click', handleDeleteSku);
                 });
             }
 
@@ -981,7 +1001,7 @@
             function openPrintModal() {
                 selectedForPrinting = Array.from(document.querySelectorAll('.sku-checkbox:checked'))
                     .map(cb => cb.dataset.sku)
-                    .map(skuId => filteredSkus.find(s => s.sku === skuId));
+                    .map(skuId => allSkus.find(s => s.sku === skuId));
 
                 if (selectedForPrinting.length === 0) {
                     alert('กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อพิมพ์');
@@ -1494,10 +1514,11 @@
                         });
                         // Recalculate GPs
                         const sku = allSkus[index];
-                        sku.market_gp = calculateGP(sku.marketplace_price, sku.cost);
-                        sku.dealer_gp_t1 = calculateGP(sku.dealer_price_t1, sku.cost);
-                        sku.dealer_gp_t2 = calculateGP(sku.dealer_price_t2, sku.cost);
-                        sku.dealer_gp_t3 = calculateGP(sku.dealer_price_t3, sku.cost);
+                        sku.promo_gp = calculateMarkup(sku.promo_price, sku.cost);
+                        sku.market_gp = calculateMarkup(sku.marketplace_price, sku.cost);
+                        sku.dealer_gp_t1 = calculateMarkup(sku.dealer_price_t1, sku.cost);
+                        sku.dealer_gp_t2 = calculateMarkup(sku.dealer_price_t2, sku.cost);
+                        sku.dealer_gp_t3 = calculateMarkup(sku.dealer_price_t3, sku.cost);
                     }
                 });
                 localStorage.setItem('price_data', JSON.stringify(allSkus));
@@ -1505,6 +1526,14 @@
                 alert('บันทึกข้อมูลสินค้าทั้งหมดสำเร็จ!');
                 editDataModal.style.display = 'none';
                 applyFilters(); // Refresh main table
+            }
+
+            function handleDeleteSku(e) {
+                const skuToDelete = e.target.dataset.sku;
+                allSkus = allSkus.filter(sku => sku.sku !== skuToDelete);
+                localStorage.setItem('price_data', JSON.stringify(allSkus));
+                logAction(`Deleted SKU: ${skuToDelete}`);
+                applyFilters();
             }
 
 
