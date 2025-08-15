@@ -223,6 +223,25 @@
     </div>
   </div>
 </div>
+<div id="addNewTemplateModal" class="hidden fixed inset-0 z-[70] bg-black/70">
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+    <h2 class="text-xl font-semibold mb-4">Add New Template</h2>
+    <label class="text-sm text-zinc-400">Template Name</label>
+    <input id="newTplName" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="e.g. A4 Brochure" />
+    <label class="text-sm text-zinc-400 mt-4 block">Choose a Template Kind</label>
+    <select id="newTplKind" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700">
+      <option value="A4">A4 (1 per sheet)</option>
+      <option value="A5">A5 (2 per A4 landscape)</option>
+      <option value="A6">A6 (4 per sheet)</option>
+      <option value="ACC">Accessories (12 per sheet)</option>
+      <option value="IMAGE">Image (full page background)</option>
+    </select>
+    <div class="flex items-center gap-4 mt-6">
+      <button id="btnCreateNewTpl" class="flex-1 py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create Template</button>
+      <button id="btnCloseNewTplModal" class="flex-1 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <script>
 /* ================= CORE STATE / STORAGE ================= */
@@ -796,10 +815,7 @@ function renderSettings(tab){
       <div class="flex items-center justify-between">
         <div class="text-2xl font-semibold mb-2">Template Management</div>
         <div class="flex items-center gap-2">
-          <label class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 cursor-pointer">
-            <input type="file" id="tplUploadNew" accept="image/png, image/jpeg" class="hidden">
-            Upload New Template
-          </label>
+          <button id="btnOpenNewTplModal" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
         </div>
       </div>
       <div class="text-sm text-zinc-400 mb-3">All templates are fully customizable.</div>
@@ -919,7 +935,7 @@ function renderSettings(tab){
         const t = list[i]; if(!t) return;
         try{
           const b64 = await fileToBase64(file);
-          t.imageData = b64; t.kind = t.kind || 'IMAGE';
+          t.imageData = b64;
           localStorage.setItem(LS.TEMPLATES, JSON.stringify(list));
           templates = list;
           log('update_template_image', t.name);
@@ -929,29 +945,34 @@ function renderSettings(tab){
       }
     });
 
-    $('#settingsContent #tplUploadNew').onchange = async (e)=>{
-      const f = e.target.files && e.target.files[0]; if(!f) return;
-      const nm = prompt('Enter a name for this new template:'); if(!nm){ e.target.value=''; return; }
-      try{
-        const imageData = await fileToBase64(f);
+    $('#btnOpenNewTplModal').onclick=()=>{
+      $('#newTplName').value = '';
+      $('#newTplKind').value = 'A4';
+      $('#addNewTemplateModal').classList.remove('hidden');
+    };
+    $('#btnCreateNewTpl').onclick=()=>{
+        const nm = $('#newTplName').value.trim();
+        const kind = $('#newTplKind').value;
+        if(!nm) { alert('Please enter a template name.'); return; }
+        
         const id = 'user-' + Math.random().toString(36).slice(2,10);
-        const base = defaultTemplates()[2] || {styles:{}};
+        const baseTemplate = defaultTemplates().find(t => t.kind === kind) || defaultTemplates()[0];
         const newTpl = {
-          id, name: nm, kind: 'IMAGE', imageData,
-          showLogo: false,
-          logoStyles: { size: 40, margin: 6 },
-          styles: JSON.parse(JSON.stringify(base.styles||{}))
+          id, name: nm, kind, imageData: null,
+          showLogo: true,
+          logoStyles: JSON.parse(JSON.stringify(baseTemplate.logoStyles||{})),
+          styles: JSON.parse(JSON.stringify(baseTemplate.styles||{}))
         };
         const list = JSON.parse(localStorage.getItem(LS.TEMPLATES)||'[]');
         list.push(newTpl);
         localStorage.setItem(LS.TEMPLATES, JSON.stringify(list));
         templates = list;
-        log('create_template_image', nm);
+        log('create_template', nm);
+        $('#addNewTemplateModal').classList.add('hidden');
         openSettings('templates');
         alert('New template created.');
-      }catch(err){ alert('Failed to create template: '+err.message); }
-      e.target.value='';
     };
+    $('#btnCloseNewTplModal').onclick=()=>$('#addNewTemplateModal').classList.add('hidden');
   }
   if(tab==='cloud'){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
