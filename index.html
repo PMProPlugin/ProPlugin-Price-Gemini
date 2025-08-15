@@ -367,8 +367,14 @@ async function cloudLoad(gistId, token){
   const resp = await gistRequest('GET','/gists/'+gistId, null, token);
   const file = resp.files?.['proplugin-data.json'];
   if(!file) throw new Error('proplugin-data.json not found in gist');
-  const text = await fetch(file.raw_url, { headers: {'Authorization': 'Bearer ' + token} }).then(r=>r.text());
+
+  // Use a CORS proxy to fetch the raw data
+  const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+  const rawUrl = file.raw_url;
+  
+  const text = await fetch(proxyUrl + rawUrl, { headers: {'Authorization': 'Bearer ' + token} }).then(r=>r.text());
   const data = JSON.parse(text);
+  
   setAppState(data);
   log('cloud_load', gistId);
   alert('Loaded from cloud.');
