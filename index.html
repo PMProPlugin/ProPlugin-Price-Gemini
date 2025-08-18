@@ -247,8 +247,10 @@
 <script>
 /* ================= CORE STATE / STORAGE ================= */
 const LS = {
-  GIST_ID: 'pp_cloud_gist_id_v2', // Now stores Gist ID on a temporary basis
-  TOKEN: 'pp_cloud_token_v2',     // Now stores Token on a temporary basis
+  GIST_ID: 'pp_cloud_gist_id_v2',
+  TOKEN: 'pp_cloud_token_v2',
+  // New flag for one-time load
+  GIST_LOADED: 'pp_gist_loaded_v1'
 };
 const defaultDealerNames = {t1:'Dealer T1', t2:'Dealer T2', t3:'Dealer T3'};
 const Channels = ['Flagship','Marketplace','Dealer'];
@@ -256,7 +258,7 @@ const Channels = ['Flagship','Marketplace','Dealer'];
 const sampleProducts = [{
   sku:'MP-00010',
   description:'iCon Pro Audio GoLive Pro',
-  details:'Audio interface for live streaming with remote control\n24-bit/48kHz with onboard DSP (Reverb, EQ, Vocal Tune)\nBuilt-in 5000mAh battery up to 6 hours\nMic input mini-XLR (48V) & 1/4-inch\nBluetooth for music & control',
+  details:'Audio interface for live streaming with remote control\\n24-bit/48kHz with onboard DSP (Reverb, EQ, Vocal Tune)\\nBuilt-in 5000mAh battery up to 6 hours\\nMic input mini-XLR (48V) & 1/4-inch\\nBluetooth for music & control',
   costs:4200, normalPrice:7990, promoPrice:5990, expiresDate:'2099-09-09',
   marketplacePrice:5990, dealer1:5600, dealer2:5400, dealer3:5200
 }];
@@ -1314,40 +1316,48 @@ function bindEvents() {
 function initialCheck() {
   const gistId = sessionStorage.getItem(LS.GIST_ID);
   const token = sessionStorage.getItem(LS.TOKEN);
+
   if (gistId && token) {
+    // If credentials exist, hide cloud setup and show login
     $('#cloudSetupView').classList.add('hidden');
     $('#loginView').classList.remove('hidden');
-    
-    // Auto load data on startup
-    cloudLoad(gistId, token)
-      .then(() => {
-        const hostUser = appData.users.find(u => u.username === 'host');
-        if (hostUser) {
-          currentUser = hostUser;
+
+    // Attempt to load data if it's the first time this session
+    if (!appData) {
+      cloudLoad(gistId, token)
+        .then(() => {
+          // If load is successful, check for host user and log in
+          const hostUser = appData.users.find(u => u.username === 'host');
+          if (hostUser) {
+            currentUser = hostUser;
+            $('#loginView').classList.add('hidden');
+            $('#appView').classList.remove('hidden');
+            $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
+            const isHost = currentUser.role === 'Host';
+            const isAdmin = currentUser.role === 'Admin';
+            $('#btnSettings').classList.toggle('hidden', !(isHost || isAdmin));
+            initFiltersForUser();
+            updateLocalDataAndSave();
+            console.log("Auto-loaded and auto-logged in as Host.");
+          } else {
+            updateLocalDataAndSave();
+            console.log("Auto-loaded data. Please log in.");
+          }
+        })
+        .catch(e => {
+          console.error("Auto-load failed, returning to cloud setup:", e);
+          // If auto-load fails, clear credentials and show cloud setup
+          sessionStorage.removeItem(LS.GIST_ID);
+          sessionStorage.removeItem(LS.TOKEN);
+          $('#cloudSetupView').classList.remove('hidden');
           $('#loginView').classList.add('hidden');
-          $('#appView').classList.remove('hidden');
-          $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
-          const isHost = currentUser.role === 'Host';
-          const isAdmin = currentUser.role === 'Admin';
-          $('#btnSettings').classList.toggle('hidden', !(isHost || isAdmin));
-          initFiltersForUser();
-          updateLocalDataAndSave();
-          console.log("Auto-loaded and auto-logged in as Host.");
-        } else {
-          updateLocalDataAndSave();
-          console.log("Auto-loaded data. Please log in.");
-        }
-      })
-      .catch(e => {
-        console.error("Auto-load failed, returning to cloud setup:", e);
-        sessionStorage.removeItem(LS.GIST_ID);
-        sessionStorage.removeItem(LS.TOKEN);
-        $('#cloudSetupView').classList.remove('hidden');
-        $('#loginView').classList.add('hidden');
-        alert("Failed to auto-load from cloud. Please check your Gist ID and Token, or create a new Gist.");
-      });
+          alert("Failed to auto-load from cloud. Please check your Gist ID and Token, or create a new Gist.");
+        });
+    }
   } else {
+    // If no credentials, show the cloud setup screen
     $('#cloudSetupView').classList.remove('hidden');
+    $('#loginView').classList.add('hidden');
   }
 }
 
