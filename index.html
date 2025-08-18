@@ -363,21 +363,19 @@ async function cloudSave(gistId, token){
   log('cloud_save', gistId);
 }
 async function cloudLoad(gistId, token){
-  if(!gistId) throw new Error('Gist ID is required');
-  const resp = await gistRequest('GET','/gists/'+gistId, null, token);
-  const file = resp.files?.['proplugin-data.json'];
-  if(!file) throw new Error('proplugin-data.json not found in gist');
-
-  // Use a CORS proxy to fetch the raw data
-  const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-  const rawUrl = file.raw_url;
-  
-  const text = await fetch(proxyUrl + rawUrl, { headers: {'Authorization': 'Bearer ' + token} }).then(r=>r.text());
-  const data = JSON.parse(text);
-  
-  setAppState(data);
-  log('cloud_load', gistId);
-  alert('Loaded from cloud.');
+  if (!gistId) throw new Error('Gist ID is required');
+  try {
+    const resp = await gistRequest('GET', '/gists/' + gistId, null, token);
+    const file = resp.files?.['proplugin-data.json'];
+    if (!file) throw new Error('proplugin-data.json not found in gist');
+    const data = JSON.parse(file.content);
+    setAppState(data);
+    log('cloud_load', gistId);
+    alert('Loaded from cloud.');
+  } catch (e) {
+    console.error("Cloud Load Error:", e);
+    alert("Failed to load from cloud. Please check your Gist ID and Token. Details: " + e.message);
+  }
 }
 let cloudSyncInterval = null;
 function startAutoSync(){
