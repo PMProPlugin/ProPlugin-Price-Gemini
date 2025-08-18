@@ -1371,6 +1371,142 @@ function init() {
 }
 
 init();
+
+  /*
+ * Cloud + Login Fix (drop‑in)
+ * Paste this <script> AFTER your existing script (or replace same‑named functions).
+ * What it does:
+ * 1) Persist GitHub Gist ID + Token to localStorage (so you click “Load from Existing Gist” ONCE).
+ * 2) Fix Sign Out: you can log in again right away without refreshing (we no longer wipe appData on logout).
+ * 3) Auto‑load from saved cloud config at startup.
+ *
+ * Safe with your current code: it overrides cloudCreateGist, cloudLoad, initialCheck, logout.
+ */
+
+// ---- Helpers to persist cloud credentials locally (config only, not your data) ----
+const CLOUD_LOCAL = {
+  GIST_ID: 'pp_cloud_gist_id_persist',
+  TOKEN:   'pp_cloud_token_persist'
+};
+
+function saveCloudConfigToStorage(gistId, token){
+  try{
+    if(gistId) localStorage.setItem(CLOUD_LOCAL.GIST_ID, gistId);
+    if(token)  localStorage.setItem(CLOUD_LOCAL.TOKEN, token);
+    // Keep writing to sessionStorage too for backward compatibility
+    if(typeof LS !== 'undefined'){
+      if(gistId) sessionStorage.setItem(LS.GIST_ID, gistId);
+      if(token)  sessionStorage.setItem(LS.TOKEN, token);
+    }
+  }catch(e){ console.warn('Cannot access localStorage. Cloud config will not persist across sessions.', e); }
+}
+
+function readCloudConfigFromStorage(){
+  let gistId = null, token = null;
+  try{
+    gistId = localStorage.getItem(CLOUD_LOCAL.GIST_ID) || (typeof LS!=='undefined' ? sessionStorage.getItem(LS.GIST_ID) : null);
+    token  = localStorage.getItem(CLOUD_LOCAL.TOKEN)   || (typeof LS!=='undefined' ? sessionStorage.getItem(LS.TOKEN)   : null);
+  }catch(e){ /* ignore */ }
+  return { gistId, token };
+}
+
+function clearCloudConfigFromStorage(){
+  try{
+    localStorage.removeItem(CLOUD_LOCAL.GIST_ID);
+    localStorage.removeItem(CLOUD_LOCAL.TOKEN);
+    if(typeof LS !== 'undefined'){
+      sessionStorage.removeItem(LS.GIST_ID);
+      sessionStorage.removeItem(LS.TOKEN);
+    }
+  }catch(e){ /* ignore */ }
+}
+
+// ---- Override: create new gist and persist config ----
+async function cloudCreateGist(token, appState){
+  if(!token) throw new Error('GitHub Token is required');
+  const resp = await gistRequest('POST','/gists',{
+    public:false,
+    files:{ 'proplugin-data.json':{ content: JSON.stringify(appState, null, 2) } }
+  }, token);
+  saveCloudConfigToStorage(resp.id, token);
+  return resp.id;
+}
+
+// ---- Override: load gist and persist config ----
+async function cloudLoad(gistId, token){
+  if(!gistId) throw new Error('Gist ID is required');
+  const resp = await gistRequest('GET', '/gists/' + gistId, null, token);
+  const file = resp.files?.['proplugin-data.json'];
+  if (!file) throw new Error('proplugin-data.json not found in gist');
+  const data = JSON.parse(file.content);
+  appData = data;                 // keep data in memory
+  saveCloudConfigToStorage(gistId, token); // remember config for next visits
+}
+
+// ---- Override: logout (do NOT wipe appData; just go back to login) ----
+function logout(){
+  currentUser = null;
+  try{ $('#appView').classList.add('hidden'); }catch(e){}
+  try{ $('#loginView').classList.remove('hidden'); }catch(e){}
+  try{ $('#loginPass').value = ''; }catch(e){}
+  // Keep appData in memory so you can log in again immediately without refresh.
+}
+
+// ---- Override: initial check (auto‑load from saved cloud config once) ----
+async function initialCheck(){
+  const { gistId, token } = readCloudConfigFromStorage();
+
+  if(gistId && token){
+    try{
+      if(!appData){
+        // first visit or after hard reload -> pull from cloud
+        await cloudLoad(gistId, token);
+        // refresh UI with loaded data
+        if(typeof updateLocalDataAndSave === 'function') updateLocalDataAndSave();
+      }
+      // Route based on current state
+      if(appData?.users?.length === 1 && appData.users[0].username === 'host'){
+        // optional: auto‑login host on very first run
+        currentUser = appData.users[0];
+        try{ $('#cloudSetupView').classList.add('hidden'); }catch(e){}
+        try{ $('#loginView').classList.add('hidden'); }catch(e){}
+        try{ $('#appView').classList.remove('hidden'); }catch(e){}
+        if(typeof initFiltersForUser === 'function') initFiltersForUser();
+        if(typeof updateLocalDataAndSave === 'function') updateLocalDataAndSave();
+      }else{
+        // Show login so user can sign in again without reloading
+        try{ $('#cloudSetupView').classList.add('hidden'); }catch(e){}
+        try{ $('#loginView').classList.remove('hidden'); }catch(e){}
+      }
+    }catch(e){
+      console.error('Initial cloud load failed:', e);
+      clearCloudConfigFromStorage();
+      try{ $('#cloudSetupView').classList.remove('hidden'); }catch(_){}
+      try{ $('#loginView').classList.add('hidden'); }catch(_){}
+      alert('Initial cloud load failed. Please check your Gist ID and Token, or create a new Gist.');
+    }
+  }else{
+    // No saved credentials yet -> show cloud setup just this once
+    try{ $('#cloudSetupView').classList.remove('hidden'); }catch(_){}
+    try{ $('#loginView').classList.add('hidden'); }catch(_){}
+  }
+}
+
+// ---- Optional: if you add a “Forget Cloud on this device” button with id=btnCloudForget ----
+(function(){
+  const btn = document.getElementById('btnCloudForget');
+  if(btn){
+    btn.addEventListener('click', ()=>{
+      if(confirm('Remove saved Gist ID & Token on this device?')){
+        clearCloudConfigFromStorage();
+        alert('This browser is now disconnected from your cloud config.');
+        location.reload();
+      }
+    });
+  }
+})();
+
+  
 </script>
 
 </body>
