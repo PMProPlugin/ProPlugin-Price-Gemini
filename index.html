@@ -73,6 +73,26 @@
   </div>
 </section>
 
+<section id="cloudSetupView" class="min-h-screen grid place-items-center">
+  <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
+    <div class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">
+        <img src=""
+          style="width:45px; height:45px" alt="">
+      </div>
+      <div class="text-2xl font-semibold">Cloud Setup</div>
+    </div>
+    <p class="text-zinc-400 mb-4">Please set up GitHub Gist for cloud storage. You can create a new Gist or load from an existing one.</p>
+    <label class="text-sm text-zinc-400">GitHub Personal Access Token (scope: gist)</label>
+    <input id="cloudToken" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="ghp_..." />
+    <label class="text-sm text-zinc-400 mt-4 block">Gist ID (optional for new Gist)</label>
+    <input id="cloudGistId" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="e.g. a1b2c3d4..." />
+    <div class="flex flex-col gap-4 mt-6">
+      <button id="btnCloudCreate" class="w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create New Gist</button>
+      <button id="btnCloudLoad" class="w-full py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Load from Existing Gist</button>
+    </div>
+  </div>
+</section>
 
 <section id="appView" class="hidden min-h-screen">
   <header class="sticky top-0 z-40 bg-brand.dark/95 backdrop-blur border-b border-zinc-800">
@@ -227,15 +247,8 @@
 <script>
 /* ================= CORE STATE / STORAGE ================= */
 const LS = {
-  PRODUCTS: 'pp_products_en_v5',
-  USERS: 'pp_users_en_v5',
-  LOGO: 'pp_logo_base64_v3',
-  TEMPLATES: 'pp_templates_en_v5',
-  LOGS: 'pp_logs_en_v5',
-  LASTUSER: 'pp_last_user_en',
-  DEALER_NAMES: 'pp_dealer_names_en',
-  CLOUD_GIST_ID: 'pp_cloud_gist_id_v1',
-  CLOUD_TOKEN: 'pp_cloud_token_v1'
+  GIST_ID: 'pp_cloud_gist_id_v2', // Now stores Gist ID on a temporary basis
+  TOKEN: 'pp_cloud_token_v2',     // Now stores Token on a temporary basis
 };
 const defaultDealerNames = {t1:'Dealer T1', t2:'Dealer T2', t3:'Dealer T3'};
 const Channels = ['Flagship','Marketplace','Dealer'];
@@ -247,30 +260,31 @@ const sampleProducts = [{
   costs:4200, normalPrice:7990, promoPrice:5990, expiresDate:'2099-09-09',
   marketplacePrice:5990, dealer1:5600, dealer2:5400, dealer3:5200
 }];
+const defaultAppState = {
+    version: 1,
+    products: sampleProducts,
+    templates: [
+        { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
+          styles:{ sku:{fs:16,color:'#ffffff',mt:0}, description:{fs:30,color:'#ffffff',mt:0}, details:{fs:14,color:'#ffffff',mt:0}, price:{fs:72,color:'#ffffff',mt:0}, oldPrice:{fs:20,color:'#ff4d4f',mt:0}, expire:{fs:13,color:'#ffffff',mt:0} } },
+        { id:'t-a5',  name:'A5 (2 per A4 landscape)', kind:'A5',  showLogo:true, imageData:null, logoStyles: { size: 50, margin: 8 },
+          styles:{ sku:{fs:14,color:'#ffffff',mt:0}, description:{fs:26,color:'#ffffff',mt:0}, details:{fs:13,color:'#ffffff',mt:0}, price:{fs:60,color:'#ffffff',mt:0}, oldPrice:{fs:18,color:'#ff4d4f',mt:0}, expire:{fs:12,color:'#ffffff',mt:0} } },
+        { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: 6 },
+          styles:{ sku:{fs:12,color:'#ffffff',mt:0}, description:{fs:22,color:'#ffffff',mt:0}, details:{fs:12,color:'#ffffff',mt:0}, price:{fs:48,color:'#ffffff',mt:0}, oldPrice:{fs:16,color:'#ff4d4f',mt:0}, expire:{fs:11,color:'#ffffff',mt:0} } },
+        { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: 4 },
+          styles:{ sku:{fs:11,color:'#ffffff',mt:2}, description:{fs:15,color:'#ffffff',mt:0, align:'center'}, price:{fs:22,color:'#ffffff',mt:0}, oldPrice:{fs:12,color:'#B91C1C',mt:0}, expire:{fs:10,color:'#ffffff',mt:0} } }
+    ],
+    dealerNames: defaultDealerNames,
+    users: [],
+    logo: '',
+    logs: []
+};
 
-function defaultTemplates(){
-  return [
-    { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null,
-      logoStyles: { size: 64, margin: 10 },
-      styles:{ sku:{fs:16,color:'#ffffff',mt:0}, description:{fs:30,color:'#ffffff',mt:0},
-        details:{fs:14,color:'#ffffff',mt:0}, price:{fs:72,color:'#ffffff',mt:0},
-        oldPrice:{fs:20,color:'#ff4d4f',mt:0}, expire:{fs:13,color:'#ffffff',mt:0} } },
-    { id:'t-a5',  name:'A5 (2 per A4 landscape)', kind:'A5',  showLogo:true, imageData:null,
-      logoStyles: { size: 50, margin: 8 },
-      styles:{ sku:{fs:14,color:'#ffffff',mt:0}, description:{fs:26,color:'#ffffff',mt:0},
-        details:{fs:13,color:'#ffffff',mt:0}, price:{fs:60,color:'#ffffff',mt:0},
-        oldPrice:{fs:18,color:'#ff4d4f',mt:0}, expire:{fs:12,color:'#ffffff',mt:0} } },
-    { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null,
-      logoStyles: { size: 40, margin: 6 },
-      styles:{ sku:{fs:12,color:'#ffffff',mt:0}, description:{fs:22,color:'#ffffff',mt:0},
-        details:{fs:12,color:'#ffffff',mt:0}, price:{fs:48,color:'#ffffff',mt:0},
-        oldPrice:{fs:16,color:'#ff4d4f',mt:0}, expire:{fs:11,color:'#ffffff',mt:0} } },
-    { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null,
-      logoStyles: { size: 30, margin: 4 },
-      styles:{ sku:{fs:11,color:'#ffffff',mt:2}, description:{fs:15,color:'#ffffff',mt:0, align:'center'},
-        price:{fs:22,color:'#ffffff',mt:0}, oldPrice:{fs:12,color:'#B91C1C',mt:0}, expire:{fs:10,color:'#ffffff',mt:0} } }
-  ];
-}
+// Application state (in-memory, not localStorage)
+let appData = null;
+let currentUser = null;
+let editingIndex = -1;
+let currentPage = 1;
+const itemsPerPage = 20;
 
 /* ================= UTILITIES ================= */
 const $  = (s,r=document)=>r.querySelector(s);
@@ -284,14 +298,6 @@ const fromExcelDate = v => {
   return '';
 };
 const gpPct = (price,cost)=> (cost>0 ? ((price - (cost||0))/cost)*100 : 0);
-const log = (action,meta='')=>{
-  try {
-    const logs = JSON.parse(localStorage.getItem(LS.LOGS)||'[]');
-    logs.unshift({ts:new Date().toISOString(), user:currentUser?.username||'-', action, meta});
-    localStorage.setItem(LS.LOGS, JSON.stringify(logs.slice(0,3000)));
-  } catch (e) { console.error("Failed to write log:", e); }
-};
-const ellip = (s,max=40)=> !s ? '' : (s.length<=max? s : s.slice(0,max-3)+'...');
 async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
@@ -299,42 +305,30 @@ async function hashPassword(password) {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+const ellip = (s,max=40)=> !s ? '' : (s.length<=max? s : s.slice(0,max-3)+'...');
 
-/* ================= APP STATE ================= */
-let currentUser=null, products=[], templates=[], editingIndex=-1, dealerNames=defaultDealerNames;
-let currentPage = 1;
-const itemsPerPage = 20;
+function updateLocalDataAndSave(newData) {
+    if (newData) {
+        appData = newData;
+    }
+    // Update UI based on new data
+    applyDealerNamesToUI();
+    renderTable();
+    if (appData.logo) {
+        $('#logoImg').src = appData.logo;
+        $('#logoImg').classList.remove('hidden');
+        $('#logoFallback').classList.add('hidden');
+    } else {
+        $('#logoImg').classList.add('hidden');
+        $('#logoFallback').classList.remove('hidden');
+    }
 
-function loadState(){
-  try { products = JSON.parse(localStorage.getItem(LS.PRODUCTS) || 'null') || sampleProducts; } catch { products = sampleProducts; }
-  localStorage.setItem(LS.PRODUCTS, JSON.stringify(products));
-
-  try { templates = JSON.parse(localStorage.getItem(LS.TEMPLATES) || 'null') || defaultTemplates(); } catch { templates = defaultTemplates(); }
-  localStorage.setItem(LS.TEMPLATES, JSON.stringify(templates));
-
-  try { dealerNames = JSON.parse(localStorage.getItem(LS.DEALER_NAMES) || 'null') || defaultDealerNames; } catch { dealerNames = defaultDealerNames; }
-  localStorage.setItem(LS.DEALER_NAMES, JSON.stringify(dealerNames));
-
-  const base64 = localStorage.getItem(LS.LOGO);
-  if(base64){ $('#logoImg').src=base64; $('#logoImg').classList.remove('hidden'); $('#logoFallback').classList.add('hidden'); }
-}
-function getAppState(){
-  return {
-    version: 1,
-    products, templates, dealerNames,
-    users: JSON.parse(localStorage.getItem(LS.USERS)||'[]'),
-    logo: localStorage.getItem(LS.LOGO)||'',
-    logs: JSON.parse(localStorage.getItem(LS.LOGS)||'[]')
-  };
-}
-function setAppState(data){
-  if(data.products){ products = data.products; localStorage.setItem(LS.PRODUCTS, JSON.stringify(products)); }
-  if(data.templates){ templates = data.templates; localStorage.setItem(LS.TEMPLATES, JSON.stringify(templates)); }
-  if(data.dealerNames){ dealerNames = data.dealerNames; localStorage.setItem(LS.DEALER_NAMES, JSON.stringify(dealerNames)); }
-  if(data.users){ localStorage.setItem(LS.USERS, JSON.stringify(data.users)); }
-  if('logo' in data){ if(data.logo){ localStorage.setItem(LS.LOGO, data.logo); $('#logoImg').src=data.logo; $('#logoImg').classList.remove('hidden'); $('#logoFallback').classList.add('hidden'); } else { localStorage.removeItem(LS.LOGO); $('#logoImg').classList.add('hidden'); $('#logoFallback').classList.remove('hidden'); } }
-  if(data.logs){ localStorage.setItem(LS.LOGS, JSON.stringify(data.logs)); }
-  applyDealerNamesToUI(); renderTable();
+    // Immediately save to cloud if host is logged in
+    const gistId = sessionStorage.getItem(LS.GIST_ID);
+    const token = sessionStorage.getItem(LS.TOKEN);
+    if (currentUser?.role === 'Host' && gistId && token) {
+        cloudSave(gistId, token).catch(e => console.error("Auto-save failed:", e));
+    }
 }
 
 /* ================= CLOUD SYNC (GitHub Gist) ================= */
@@ -346,93 +340,56 @@ async function gistRequest(method, path, body, token){
   if(!res.ok){ const t=await res.text(); throw new Error(`GitHub ${res.status}: ${t}`); }
   return res.json();
 }
-async function cloudCreateGist(token){
-  const data = getAppState();
-  const resp = await gistRequest('POST','/gists',{ public:false, files:{ 'proplugin-data.json':{ content: JSON.stringify(data,null,2) } } }, token);
-  localStorage.setItem(LS.CLOUD_GIST_ID, resp.id);
-  localStorage.setItem(LS.CLOUD_TOKEN, token); // Save token for auto sync
-  log('cloud_create_gist', resp.id);
-  alert('Gist created: '+resp.id);
+async function cloudCreateGist(token, appState){
+  const resp = await gistRequest('POST','/gists',{ public:false, files:{ 'proplugin-data.json':{ content: JSON.stringify(appState,null,2) } } }, token);
+  sessionStorage.setItem(LS.GIST_ID, resp.id);
+  sessionStorage.setItem(LS.TOKEN, token);
   return resp.id;
 }
 async function cloudSave(gistId, token){
   if(!gistId) throw new Error('Gist ID is required');
-  const data = getAppState();
-  const body = { files:{ 'proplugin-data.json':{ content: JSON.stringify(data,null,2) } } };
+  const body = { files:{ 'proplugin-data.json':{ content: JSON.stringify(appData,null,2) } } };
   await gistRequest('PATCH','/gists/'+gistId, body, token);
-  log('cloud_save', gistId);
 }
 async function cloudLoad(gistId, token){
   if (!gistId) throw new Error('Gist ID is required');
-  try {
-    const resp = await gistRequest('GET', '/gists/' + gistId, null, token);
-    const file = resp.files?.['proplugin-data.json'];
-    if (!file) throw new Error('proplugin-data.json not found in gist');
-    const data = JSON.parse(file.content);
-    setAppState(data);
-    log('cloud_load', gistId);
-    alert('Loaded from cloud.');
-  } catch (e) {
-    console.error("Cloud Load Error:", e);
-    alert("Failed to load from cloud. Please check your Gist ID and Token. Details: " + e.message);
-  }
-}
-let cloudSyncInterval = null;
-function startAutoSync(){
-    const gistId = localStorage.getItem(LS.CLOUD_GIST_ID);
-    const token = localStorage.getItem(LS.CLOUD_TOKEN);
-    if(gistId && token && currentUser?.role === 'Host'){
-        console.log("Starting auto-sync interval...");
-        // Auto-save every 5 minutes
-        cloudSyncInterval = setInterval(()=>{
-            cloudSave(gistId, token).then(()=>console.log("Auto-saved to cloud.")).catch(e=>console.error("Auto-save failed:", e.message));
-        }, 5 * 60 * 1000);
-    }
-}
-function stopAutoSync(){
-    if(cloudSyncInterval){
-        console.log("Stopping auto-sync interval.");
-        clearInterval(cloudSyncInterval);
-        cloudSyncInterval = null;
-    }
+  const resp = await gistRequest('GET', '/gists/' + gistId, null, token);
+  const file = resp.files?.['proplugin-data.json'];
+  if (!file) throw new Error('proplugin-data.json not found in gist');
+  const data = JSON.parse(file.content);
+  appData = data;
+  sessionStorage.setItem(LS.GIST_ID, gistId);
+  sessionStorage.setItem(LS.TOKEN, token);
 }
 
 /* ================= AUTH ================= */
-function allUsers(){
-  try { return JSON.parse(localStorage.getItem(LS.USERS) || '[]'); }
-  catch { return []; }
-}
-function setUsers(u){
-  localStorage.setItem(LS.USERS, JSON.stringify(u));
-}
 async function login(){
   const u=$('#loginUser').value.trim();
   const p=$('#loginPass').value;
   const pHash = await hashPassword(p);
-  const found = allUsers().find(x=>x.username===u && x.passwordHash===pHash);
+  const found = appData.users.find(x=>x.username===u && x.passwordHash===pHash);
   if(!found) return alert('Invalid credentials');
 
   currentUser=found;
-  localStorage.setItem(LS.LASTUSER, u);
   $('#loginView').classList.add('hidden');
   $('#appView').classList.remove('hidden');
   $('#roleBadge').textContent=`${currentUser.role} • ${currentUser.username}`;
   const isHost = currentUser.role==='Host';
   const isAdmin = currentUser.role==='Admin';
   $('#btnSettings').classList.toggle('hidden', !(isHost||isAdmin));
-  loadState();
   initFiltersForUser();
-  applyDealerNamesToUI();
-  renderTable();
-  log('login');
-  if(isHost) startAutoSync();
+  updateLocalDataAndSave();
 }
 function logout(){
-  stopAutoSync();
   currentUser=null;
   $('#loginPass').value='';
   $('#appView').classList.add('hidden');
   $('#loginView').classList.remove('hidden');
+  // clear in-memory data
+  appData = null;
+  // Clear temporary credentials, force cloud setup again
+  sessionStorage.removeItem(LS.GIST_ID);
+  sessionStorage.removeItem(LS.TOKEN);
 }
 
 /* ================= FILTERS & COLUMN VISIBILITY ================= */
@@ -456,6 +413,7 @@ function updateColumnVisibility(){
 
 /* ================= APPLY DEALER NAMES ================= */
 function applyDealerNamesToUI(){
+  const dealerNames = appData.dealerNames || defaultDealerNames;
   $('#lblT1').textContent = dealerNames.t1 || 'Dealer T1';
   $('#lblT2').textContent = dealerNames.t2 || 'Dealer T2';
   $('#lblT3').textContent = dealerNames.t3 || 'Dealer T3';
@@ -469,7 +427,7 @@ function filteredProducts(){
   const q=$('#searchInput').value.trim().toLowerCase();
   const ds=$('#dateStart').value, de=$('#dateEnd').value;
   const isFlagship = $('#channelSelect').value==='Flagship';
-  return products.filter(p=>{
+  return appData.products.filter(p=>{
     const hit = !q || (p.sku||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q);
     let dateOk = true;
     if(isFlagship && (ds||de)){
@@ -538,10 +496,8 @@ function renderTable(){
   $$('button[data-del]').forEach(b=>b.addEventListener('click',()=>{
     const sku=b.getAttribute('data-del');
     if(confirm(`Delete SKU ${sku}? This cannot be undone.`)){
-      products = products.filter(x=>x.sku!==sku);
-      localStorage.setItem(LS.PRODUCTS, JSON.stringify(products));
-      log('delete_sku', sku); renderTable();
-      if(currentUser?.role === 'Host') cloudSave(localStorage.getItem(LS.CLOUD_GIST_ID), localStorage.getItem(LS.CLOUD_TOKEN)).catch(console.error);
+      appData.products = appData.products.filter(x=>x.sku!==sku);
+      log('delete_sku', sku); updateLocalDataAndSave();
     }
   }));
   renderPagination(allFiltered.length);
@@ -552,8 +508,8 @@ function renderTable(){
 function openEditor(sku = null) {
   if(!['Host','Admin'].includes(currentUser.role)) return;
   if (sku) {
-    editingIndex = products.findIndex(x=>x.sku===sku);
-    const p = products[editingIndex];
+    editingIndex = appData.products.findIndex(x=>x.sku===sku);
+    const p = appData.products[editingIndex];
     $('#editorTitle').textContent = 'Edit Product';
     $('#edSku').value = p.sku;
     $('#edSku').disabled = true;
@@ -599,18 +555,16 @@ async function saveEditor() {
     dealer2:parseFloat($('#edT2').value)||0, dealer3:parseFloat($('#edT3').value)||0
   };
   if (editingIndex > -1) {
-    Object.assign(products[editingIndex], newProductData);
+    Object.assign(appData.products[editingIndex], newProductData);
     log('edit_product', sku);
   } else {
-    if (products.some(p => p.sku === sku)) {
+    if (appData.products.some(p => p.sku === sku)) {
       alert(`SKU "${sku}" already exists. Please use a unique SKU.`); return;
     }
-    products.unshift(newProductData);
+    appData.products.unshift(newProductData);
     log('add_product', sku);
   }
-  localStorage.setItem(LS.PRODUCTS, JSON.stringify(products));
-  closeEditor(); renderTable();
-  if(currentUser?.role === 'Host') await cloudSave(localStorage.getItem(LS.CLOUD_GIST_ID), localStorage.getItem(LS.CLOUD_TOKEN)).catch(console.error);
+  closeEditor(); updateLocalDataAndSave();
 }
 
 /* ================= SETTINGS ================= */
@@ -654,7 +608,7 @@ function renderSettings(tab){
   }
   if(tab==='logo'){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const base64 = localStorage.getItem(LS.LOGO)||'';
+    const base64 = appData.logo || '';
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-2">Manage Logo</div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -675,15 +629,22 @@ function renderSettings(tab){
     `;
     $('#btnSaveLogo').onclick=async()=>{
       const f=$('#logoFile').files[0]; if(!f) return alert('Choose a file.');
-      const b64=await fileToBase64(f); localStorage.setItem(LS.LOGO,b64);
-      $('#logoImg').src=b64; $('#logoImg').classList.remove('hidden'); $('#logoFallback').classList.add('hidden');
-      log('update_logo'); openSettings('logo');
+      const b64=await fileToBase64(f);
+      appData.logo = b64;
+      log('update_logo');
+      updateLocalDataAndSave();
+      openSettings('logo');
     };
-    $('#btnRemoveLogo').onclick=()=>{ localStorage.removeItem(LS.LOGO); $('#logoImg').classList.add('hidden'); $('#logoFallback').classList.remove('hidden'); log('remove_logo'); openSettings('logo'); }
+    $('#btnRemoveLogo').onclick=()=>{
+      appData.logo = '';
+      log('remove_logo');
+      updateLocalDataAndSave();
+      openSettings('logo');
+    }
   }
   if(tab==='dealer'){
     if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
-    const names = JSON.parse(localStorage.getItem(LS.DEALER_NAMES)||'{}');
+    const names = appData.dealerNames || {};
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-4">Dealer Settings</div>
       <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
@@ -696,10 +657,10 @@ function renderSettings(tab){
       </div>
     `;
     $('#btnSaveDealer').onclick=()=>{
-      dealerNames = {t1:$('#nameT1').value.trim()||'Dealer T1', t2:$('#nameT2').value.trim()||'Dealer T2', t3:$('#nameT3').value.trim()||'Dealer T3'};
-      localStorage.setItem(LS.DEALER_NAMES, JSON.stringify(dealerNames));
+      appData.dealerNames = {t1:$('#nameT1').value.trim()||'Dealer T1', t2:$('#nameT2').value.trim()||'Dealer T2', t3:$('#nameT3').value.trim()||'Dealer T3'};
       applyDealerNamesToUI();
-      alert('Saved'); log('save_dealer_names', JSON.stringify(dealerNames));
+      alert('Saved'); log('save_dealer_names', JSON.stringify(appData.dealerNames));
+      updateLocalDataAndSave();
     };
   }
   if(tab==='users'){
@@ -738,15 +699,18 @@ function renderSettings(tab){
     $('#btnAddUser').onclick=()=>$('#addUserBox').classList.toggle('hidden');
     $('#nuCreate').onclick=async ()=>{
       const name=$('#nuName').value.trim(); const pass=$('#nuPass').value.trim(); if(!name||!pass) return alert('Username & password required');
-      if(allUsers().some(u=>u.username===name)) return alert('Username already exists');
+      if(appData.users.some(u=>u.username===name)) return alert('Username already exists');
       const role=$('#nuRole').value; const canSee=$('#nuSeeCosts').checked; const canPrint=$('#nuCanPrint').checked;
       const chs=$$('.nuCh').filter(x=>x.checked).map(x=>x.value); if(!chs.length) return alert('Select at least one channel');
       const passHash = await hashPassword(pass);
-      const list=allUsers(); list.push({username:name, passwordHash:passHash, role, channels:chs, canSeeCosts:canSee, canPrint});
-      setUsers(list); log('add_user',name); openSettings('users'); alert('User created');
+      const list=appData.users; list.push({username:name, passwordHash:passHash, role, channels:chs, canSeeCosts:canSee, canPrint});
+      appData.users = list;
+      log('add_user',name);
+      updateLocalDataAndSave();
+      openSettings('users'); alert('User created');
     };
     const tbody=$('#userRows'); tbody.innerHTML='';
-    allUsers().forEach((u,i)=>{
+    appData.users.forEach((u,i)=>{
       const tr=document.createElement('tr'); tr.className='border-b border-zinc-800';
       tr.innerHTML=`
         <td class="px-3 py-2">${u.username}</td>
@@ -769,29 +733,33 @@ function renderSettings(tab){
       tbody.appendChild(tr);
     });
     $$('button[data-saveu]').forEach(b=>b.addEventListener('click', async (e) => {
-      const i=+e.target.getAttribute('data-saveu'); const list=allUsers(); const u=list[i];
+      const i=+e.target.getAttribute('data-saveu'); const list=appData.users; const u=list[i];
       u.role=$(`select[data-role="${i}"]`).value;
       u.canSeeCosts=$(`input[data-cost="${i}"]`).checked;
       u.canPrint=$(`input[data-print="${i}"]`).checked;
       const newPass = $(`input[data-pass="${i}"]`).value.trim();
       if(newPass) { u.passwordHash = await hashPassword(newPass); }
       u.channels=Channels.filter(ch=> $(`input[data-ch="${i}|${ch}"]`).checked );
-      setUsers(list);
-      if(currentUser.username===u.username){ currentUser=u; initFiltersForUser(); renderTable(); }
+      appData.users = list;
+      if(currentUser.username===u.username){ currentUser=u; initFiltersForUser(); }
       log('update_user',u.username); alert('Saved.');
+      updateLocalDataAndSave();
       openSettings('users');
     }));
     $$('button[data-delu]').forEach(b=>b.addEventListener('click', (e) => {
-      const i=+e.target.getAttribute('data-delu'); const list=allUsers(); const u=list[i];
+      const i=+e.target.getAttribute('data-delu'); const list=appData.users; const u=list[i];
       if(u.username==='host') return alert('Cannot delete the default host account.');
       if(confirm(`Delete user "${u.username}"?`)){
-        list.splice(i,1); setUsers(list); log('delete_user',u.username); openSettings('users');
+        appData.users = list.filter(user => user.username !== u.username);
+        log('delete_user',u.username);
+        updateLocalDataAndSave();
+        openSettings('users');
       }
     }));
   }
   if(tab==='templates'){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const arr = JSON.parse(localStorage.getItem(LS.TEMPLATES)||'[]');
+    const arr = appData.templates || [];
     box.innerHTML = `
       <div class="flex items-center justify-between">
         <div class="text-2xl font-semibold mb-2">Template Management</div>
@@ -875,7 +843,7 @@ function renderSettings(tab){
       const saveBtn = ev.target.closest('button[data-savtpl]');
       if(saveBtn){
         const i = +saveBtn.getAttribute('data-savtpl');
-        const list = JSON.parse(localStorage.getItem(LS.TEMPLATES)||'[]');
+        const list = appData.templates;
         const t = list[i]; if(!t) return;
         t.name = $(`#settingsContent input[data-name="${i}"]`)?.value?.trim() || t.name || 'Untitled Template';
         ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
@@ -888,22 +856,21 @@ function renderSettings(tab){
         t.logoStyles = t.logoStyles || {};
         t.logoStyles.size = parseInt($(`#settingsContent input[data-logosize="${i}"]`)?.value)||64;
         t.logoStyles.margin = parseInt($(`#settingsContent input[data-logomargin="${i}"]`)?.value)||10;
-        localStorage.setItem(LS.TEMPLATES, JSON.stringify(list));
-        templates = list;
+        appData.templates = list;
         log('save_template', t.name);
         alert('Template saved');
+        updateLocalDataAndSave();
         return;
       }
       const delBtn = ev.target.closest('button[data-del]');
       if(delBtn){
         const i = +delBtn.getAttribute('data-del');
-        const list = JSON.parse(localStorage.getItem(LS.TEMPLATES)||'[]');
+        const list = appData.templates;
         const t = list[i]; if(!t) return;
         if(confirm(`Delete template "${t.name}"?`)){
-          list.splice(i,1);
-          localStorage.setItem(LS.TEMPLATES, JSON.stringify(list));
-          templates = list;
+          appData.templates = list.filter(tpl => tpl.id !== t.id);
           log('delete_template', t.name);
+          updateLocalDataAndSave();
           openSettings('templates');
         }
       }
@@ -915,14 +882,14 @@ function renderSettings(tab){
         const i = +fInput.getAttribute('data-img');
         const file = fInput.files && fInput.files[0];
         if(!file) return;
-        const list = JSON.parse(localStorage.getItem(LS.TEMPLATES)||'[]');
+        const list = appData.templates;
         const t = list[i]; if(!t) return;
         try{
           const b64 = await fileToBase64(file);
           t.imageData = b64; t.kind = t.kind || 'IMAGE';
-          localStorage.setItem(LS.TEMPLATES, JSON.stringify(list));
-          templates = list;
+          appData.templates = list;
           log('update_template_image', t.name);
+          updateLocalDataAndSave();
           openSettings('templates');
         }catch(err){ alert('Failed to update image: '+err.message); }
         fInput.value = '';
@@ -942,11 +909,11 @@ function renderSettings(tab){
           logoStyles: { size: 40, margin: 6 },
           styles: JSON.parse(JSON.stringify(base.styles||{}))
         };
-        const list = JSON.parse(localStorage.getItem(LS.TEMPLATES)||'[]');
+        const list = appData.templates;
         list.push(newTpl);
-        localStorage.setItem(LS.TEMPLATES, JSON.stringify(list));
-        templates = list;
+        appData.templates = list;
         log('create_template_image', nm);
+        updateLocalDataAndSave();
         openSettings('templates');
         alert('New template created.');
       }catch(err){ alert('Failed to create template: '+err.message); }
@@ -955,55 +922,26 @@ function renderSettings(tab){
   }
   if(tab==='cloud'){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const gistId = localStorage.getItem(LS.CLOUD_GIST_ID) || '';
+    const gistId = sessionStorage.getItem(LS.GIST_ID) || '';
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-2">Cloud Sync (GitHub Gist)</div>
-      <p class="text-sm text-zinc-400 mb-4">Sync data via a private GitHub Gist.</p>
-      <div class="grid md:grid-cols-2 gap-6">
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
-          <label class="text-xs text-zinc-400">GitHub Personal Access Token (scope: gist)</label>
-          <input id="cloudToken" type="password" class="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" placeholder="ghp_..." value="${localStorage.getItem(LS.CLOUD_TOKEN)||''}">
-          <label class="text-xs text-zinc-400">Gist ID</label>
-          <input id="cloudGistId" class="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" placeholder="e.g. a1b2c3d4..." value="${gistId}">
-          <div class="flex flex-wrap gap-2">
-            <button id="cloudCreate" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Create New Gist</button>
-            <button id="cloudSave" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Save to Cloud</button>
-            <button id="cloudLoad" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Load from Cloud</button>
-          </div>
-        </div>
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div class="font-semibold mb-2">Notes</div>
-          <ul class="list-disc pl-6 text-sm text-zinc-400 space-y-1">
-            <li>After creating a new Gist, its ID and token will be saved locally.</li>
-            <li>Once configured, data will auto-sync to the cloud every 5 minutes.</li>
-          </ul>
-        </div>
-      </div>
+      <p class="text-sm text-zinc-400 mb-4">Current Gist ID: ${gistId || 'Not set'}</p>
+      <button id="btnCloudLoadRefresh" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Refresh from Cloud</button>
+      <p class="text-xs text-zinc-400 mt-2">Data will be automatically saved on every change.</p>
     `;
-    $('#cloudGistId').oninput = (e) => localStorage.setItem(LS.CLOUD_GIST_ID, e.target.value.trim());
-    $('#cloudToken').oninput = (e) => localStorage.setItem(LS.CLOUD_TOKEN, e.target.value.trim());
-
-    $('#cloudCreate').onclick=async()=>{
-      const token = $('#cloudToken').value.trim();
+    $('#btnCloudLoadRefresh').onclick=async()=>{
+      const token = sessionStorage.getItem(LS.TOKEN);
+      if(!gistId || !token) { alert('Gist ID and Token not found. Please set them up first.'); return; }
       try {
-        const newGistId = await cloudCreateGist(token);
-        $('#cloudGistId').value = newGistId;
+        await cloudLoad(gistId, token);
+        updateLocalDataAndSave();
+        alert('Refreshed from cloud successfully.');
       } catch(e){ alert(e.message); }
-    };
-    $('#cloudSave').onclick=async()=>{
-      const token = $('#cloudToken').value.trim();
-      const gistId = $('#cloudGistId').value.trim();
-      try { await cloudSave(gistId, token); alert('Saved to cloud.'); } catch(e){ alert(e.message); }
-    };
-    $('#cloudLoad').onclick=async()=>{
-      const token = $('#cloudToken').value.trim();
-      const gistId = $('#cloudGistId').value.trim();
-      try { await cloudLoad(gistId, token); } catch(e){ alert(e.message); }
     };
   }
   if(tab==='history'){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const logs=JSON.parse(localStorage.getItem(LS.LOGS)||'[]');
+    const logs=appData.logs || [];
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-2">Usage History</div>
       <div class="max-h-[65vh] overflow-auto border border-zinc-800 rounded-2xl">
@@ -1030,7 +968,7 @@ async function doImport(){
   const newItems=[], importedSkus = new Set();
   for(let i=start;i<rows.length;i++){
     const r=rows[i]; const sku = (r[0]||'').toString().trim(); if(!sku) continue;
-    if (importedSkus.has(sku) || products.some(p => p.sku === sku)) {
+    if (importedSkus.has(sku) || appData.products.some(p => p.sku === sku)) {
       console.warn(`Skipping duplicate SKU: ${sku}`); continue;
     }
     importedSkus.add(sku);
@@ -1042,15 +980,15 @@ async function doImport(){
     });
   }
   if(!newItems.length) return alert('No new valid products found to import.');
-  products=[...newItems, ...products];
-  localStorage.setItem(LS.PRODUCTS, JSON.stringify(products)); renderTable(); log('import_excel', `${newItems.length} rows`);
+  appData.products=[...newItems, ...appData.products];
+  log('import_excel', `${newItems.length} rows`);
   alert('Imported: '+newItems.length+' new rows. Duplicates were skipped.');
-  if(currentUser?.role === 'Host') await cloudSave(localStorage.getItem(LS.CLOUD_GIST_ID), localStorage.getItem(LS.CLOUD_TOKEN)).catch(console.error);
+  updateLocalDataAndSave();
 }
 async function doExport(){
   const wb=await XlsxPopulate.fromBlankAsync(); const sh=wb.sheet(0).name('PriceData');
   const header=['SKU','Description','Details','Costs','Normal Price','Promotion Price','Expires Date','Marketplace Price','Marketplace GP%','Dealer Price Tier 1','GP% T1','Dealer Price Tier 2','GP% T2','Dealer Price Tier 3','GP% T3','Promotion GP%'];
-  const dataRows = products.map(p=>[
+  const dataRows = appData.products.map(p=>[
     p.sku,p.description,p.details,p.costs,p.normalPrice,p.promoPrice,p.expiresDate?toDateInput(p.expiresDate):'',
     p.marketplacePrice, +gpPct(p.marketplacePrice,p.costs).toFixed(2),
     p.dealer1, +gpPct(p.dealer1,p.costs).toFixed(2),
@@ -1070,7 +1008,7 @@ async function doExport(){
   const blob=await wb.outputAsync();
   const url=URL.createObjectURL(new Blob([blob],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
   const a=document.createElement('a'); a.href=url; a.download='price_data_export.xlsx'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  log('export_excel', `${products.length} rows`);
+  log('export_excel', `${appData.products.length} rows`);
 }
 
 /* ================= PRINT FLOW ================= */
@@ -1116,11 +1054,11 @@ function updatePrintSummary(){
 }
 function fillTemplateDropdown(){
   const dd=$('#printTemplate'); dd.innerHTML='';
-  templates.forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=t.name; dd.appendChild(o); });
+  appData.templates.forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=t.name; dd.appendChild(o); });
   dd.onchange=()=>{ 
     const firstSelectedSku = $('#printList input[type="checkbox"]:checked')?.getAttribute('data-sel');
-    const firstItem = products.find(p => p.sku === firstSelectedSku) || filteredProducts()[0];
-    renderPreview(firstItem, templates.find(t=>t.id===dd.value)); 
+    const firstItem = appData.products.find(p => p.sku === firstSelectedSku) || filteredProducts()[0];
+    renderPreview(firstItem, appData.templates.find(t=>t.id===dd.value)); 
   };
 }
 function baseSize(kind){
@@ -1185,7 +1123,7 @@ function buildPreviewTag(p,tpl){
   outer.style.backgroundPosition = 'center';
   outer.style.color='#fff'; outer.style.position='relative';
   if(tpl.showLogo){
-    const logo=localStorage.getItem(LS.LOGO);
+    const logo=appData.logo;
     const logoSize = tpl.logoStyles?.size || 64;
     const logoMargin = tpl.logoStyles?.margin || 10;
     outer.innerHTML += logo? `<img src="${logo}" style="position:absolute;right:${logoMargin}px;top:${logoMargin}px;width:${logoSize}px;height:auto;">`
@@ -1223,7 +1161,7 @@ function openPrintTab(list,tpl){
   if(!items.length){ alert('Select at least one SKU.'); return; }
   const w=window.open('', '_blank');
   if(!w){ alert('Pop-up blocked. Please allow pop-ups and click "Open Print Page" again.'); return; }
-  const logo=localStorage.getItem(LS.LOGO)||'';
+  const logo=appData.logo||'';
   let cols=1, rows=1, pad='8mm', pageSize='A4';
 
   // แก้ไข: ปรับการตั้งค่าสำหรับเทมเพลต IMAGE เพื่อให้เต็มหน้ากระดาษ A4
@@ -1284,11 +1222,11 @@ function bindEvents() {
     if (!pass || pass !== confirmPass) { return alert('Passwords do not match or are empty.'); }
     if (pass.length < 4) { return alert('Password must be at least 4 characters long.'); }
     const passwordHash = await hashPassword(pass);
-    const hostUser = {
+    appData.users = [{
         username: 'host', passwordHash, role: 'Host',
         channels: [...Channels], canSeeCosts: true, canPrint: true
-    };
-    setUsers([hostUser]);
+    }];
+    updateLocalDataAndSave();
     $('#setupView').classList.add('hidden');
     $('#loginView').classList.remove('hidden');
     alert('Host account created successfully. Please log in.');
@@ -1305,7 +1243,7 @@ function bindEvents() {
   $('#btnSettings').addEventListener('click',()=>openSettings('data'));
   $('#btnPrintModal').addEventListener('click', () => {
     if(!currentUser.canPrint) return; buildPrintList(); fillTemplateDropdown();
-    renderPreview(filteredProducts()[0], templates.find(t=>t.id===$('#printTemplate').value) || templates[0]); togglePrintModal(true);
+    renderPreview(filteredProducts()[0], appData.templates.find(t=>t.id===$('#printTemplate').value) || appData.templates[0]); togglePrintModal(true);
   });
   ['#searchInput','#dateStart','#dateEnd', '#channelSelect'].forEach(s=>$(s).addEventListener('input', ()=>{ currentPage = 1; renderTable(); }));
   $('#btnCloseSettings').addEventListener('click', ()=>$('#settingsPanel').classList.add('hidden'));
@@ -1315,46 +1253,82 @@ function bindEvents() {
   $('#btnClosePrintModal').addEventListener('click', () => togglePrintModal(false));
   $('#btnOpenPrint').addEventListener('click', () => {
     const picks=$$('#printList input[type="checkbox"]:checked').map(c=>c.getAttribute('data-sel'));
-    const list=picks.map(sku=>products.find(p=>p.sku===sku)).filter(Boolean)
+    const list=picks.map(sku=>appData.products.find(p=>p.sku===sku)).filter(Boolean)
                     .map(p=>({p,qty:parseInt($(`[data-qty="${p.sku}"]`).value)||1}));
-    const tpl=templates.find(t=>t.id===$('#printTemplate').value) || templates[0];
+    const tpl=appData.templates.find(t=>t.id===$('#printTemplate').value) || appData.templates[0];
     openPrintTab(list,tpl);
   });
   window.addEventListener('keydown', e => { if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); $('#searchInput').focus(); }});
+
+  // Cloud setup view events
+  $('#btnCloudCreate').addEventListener('click', async () => {
+    const token = $('#cloudToken').value.trim();
+    if(!token) return alert('GitHub Token is required.');
+    try {
+      const gistId = await cloudCreateGist(token, defaultAppState);
+      alert('Gist created: '+gistId + '. Please log in with the default "host" account.');
+      appData = defaultAppState;
+      $('#cloudSetupView').classList.add('hidden');
+      $('#loginView').classList.remove('hidden');
+    } catch(e) { alert(e.message); }
+  });
+  $('#btnCloudLoad').addEventListener('click', async () => {
+    const token = $('#cloudToken').value.trim();
+    const gistId = $('#cloudGistId').value.trim();
+    if(!token || !gistId) return alert('GitHub Token and Gist ID are required to load.');
+    try {
+      await cloudLoad(gistId, token);
+      alert('Loaded from cloud. Please log in with your credentials.');
+      $('#cloudSetupView').classList.add('hidden');
+      $('#loginView').classList.remove('hidden');
+    } catch(e) { alert(e.message); }
+  });
 }
 
-function autoLoginHost() {
-  const users = allUsers();
-  const hostUser = users.find(u => u.username === 'host');
-  if (hostUser && !currentUser) {
-    currentUser = hostUser;
-    $('#loginView').classList.add('hidden');
-    $('#appView').classList.remove('hidden');
-    $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
-    const isHost = currentUser.role === 'Host';
-    const isAdmin = currentUser.role === 'Admin';
-    $('#btnSettings').classList.toggle('hidden', !(isHost || isAdmin));
-    loadState();
-    initFiltersForUser();
-    applyDealerNamesToUI();
-    renderTable();
-    log('auto_login');
-    if (isHost) startAutoSync();
+function initialCheck() {
+  const gistId = sessionStorage.getItem(LS.GIST_ID);
+  const token = sessionStorage.getItem(LS.TOKEN);
+  if (gistId && token) {
+    $('#cloudSetupView').classList.add('hidden');
+    $('#loginView').classList.remove('hidden');
+    
+    // Auto load data on startup
+    cloudLoad(gistId, token)
+      .then(() => {
+        const hostUser = appData.users.find(u => u.username === 'host');
+        if (hostUser) {
+          currentUser = hostUser;
+          $('#loginView').classList.add('hidden');
+          $('#appView').classList.remove('hidden');
+          $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
+          const isHost = currentUser.role === 'Host';
+          const isAdmin = currentUser.role === 'Admin';
+          $('#btnSettings').classList.toggle('hidden', !(isHost || isAdmin));
+          initFiltersForUser();
+          updateLocalDataAndSave();
+          console.log("Auto-loaded and auto-logged in as Host.");
+        } else {
+          updateLocalDataAndSave();
+          console.log("Auto-loaded data. Please log in.");
+        }
+      })
+      .catch(e => {
+        console.error("Auto-load failed, returning to cloud setup:", e);
+        sessionStorage.removeItem(LS.GIST_ID);
+        sessionStorage.removeItem(LS.TOKEN);
+        $('#cloudSetupView').classList.remove('hidden');
+        $('#loginView').classList.add('hidden');
+        alert("Failed to auto-load from cloud. Please check your Gist ID and Token, or create a new Gist.");
+      });
+  } else {
+    $('#cloudSetupView').classList.remove('hidden');
   }
 }
 
 /* ================= STARTUP ================= */
 function init() {
   bindEvents();
-  const users = allUsers();
-  if (users.length === 0) {
-    $('#setupView').classList.remove('hidden');
-  } else {
-    $('#loginView').classList.remove('hidden');
-    const last = localStorage.getItem(LS.LASTUSER) || '';
-    if (last) $('#loginUser').value = last;
-    autoLoginHost();
-  }
+  initialCheck();
 }
 
 init();
