@@ -497,7 +497,9 @@ function renderTable(){
     const sku=b.getAttribute('data-del');
     if(confirm(`Delete SKU ${sku}? This cannot be undone.`)){
       appData.products = appData.products.filter(x=>x.sku!==sku);
-      log('delete_sku', sku); updateLocalDataAndSave();
+      log('delete_sku', sku);
+      updateLocalDataAndSave();
+      alert('Deleted successfully.');
     }
   }));
   renderPagination(allFiltered.length);
@@ -542,7 +544,6 @@ function openEditor(sku = null) {
   applyDealerNamesToUI();
   $('#editorModal').classList.remove('hidden');
 }
-function closeEditor(){ $('#editorModal').classList.add('hidden'); }
 async function saveEditor() {
   const sku = $('#edSku').value.trim();
   if (!sku) { alert('SKU is required.'); return; }
@@ -554,6 +555,7 @@ async function saveEditor() {
     marketplacePrice:parseFloat($('#edMarket').value)||0, dealer1:parseFloat($('#edT1').value)||0,
     dealer2:parseFloat($('#edT2').value)||0, dealer3:parseFloat($('#edT3').value)||0
   };
+
   if (editingIndex > -1) {
     Object.assign(appData.products[editingIndex], newProductData);
     log('edit_product', sku);
@@ -564,7 +566,10 @@ async function saveEditor() {
     appData.products.unshift(newProductData);
     log('add_product', sku);
   }
-  closeEditor(); updateLocalDataAndSave();
+  
+  closeEditor();
+  updateLocalDataAndSave();
+  alert('Saved successfully.');
 }
 
 /* ================= SETTINGS ================= */
@@ -664,7 +669,7 @@ function renderSettings(tab){
     };
   }
   if(tab==='users'){
-    if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Host/Admin only.</div>'; return; }
+    if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
     box.innerHTML=`
       <div class="flex items-center justify-between">
         <div class="text-2xl font-semibold mb-2">User Management</div>
