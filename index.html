@@ -1372,15 +1372,18 @@ function init() {
 
 init();
 
-  /*
- * Cloud + Login Fix (drop‑in)
+/*
+ * Cloud + Login Fix (drop‑in) — v2
  * Paste this <script> AFTER your existing script (or replace same‑named functions).
- * What it does:
- * 1) Persist GitHub Gist ID + Token to localStorage (so you click “Load from Existing Gist” ONCE).
- * 2) Fix Sign Out: you can log in again right away without refreshing (we no longer wipe appData on logout).
- * 3) Auto‑load from saved cloud config at startup.
+ * Goals achieved:
+ * 1) “Load from Existing Gist” only ONCE per browser. Next visits auto‑load from saved Gist.
+ * 2) After Sign Out, you can log in again immediately (no F5, no Cloud Setup).
+ * 3) On refresh (F5), it will NOT show Cloud Setup if credentials exist — it routes to Login/App.
  *
- * Safe with your current code: it overrides cloudCreateGist, cloudLoad, initialCheck, logout.
+ * What changed in v2:
+ * - Added a robust boot sequence (ensureCloudBoot) that runs on DOMContentLoaded and pageshow.
+ * - Hides Cloud Setup automatically when saved credentials exist, even if the original script didn’t call initialCheck().
+ * - Defensive guards so it works whether or not helper funcs exist in your base file.
  */
 
 // ---- Helpers to persist cloud credentials locally (config only, not your data) ----
@@ -1393,10 +1396,10 @@ function saveCloudConfigToStorage(gistId, token){
   try{
     if(gistId) localStorage.setItem(CLOUD_LOCAL.GIST_ID, gistId);
     if(token)  localStorage.setItem(CLOUD_LOCAL.TOKEN, token);
-    // Keep writing to sessionStorage too for backward compatibility
+    // Backward compatibility with any existing code using sessionStorage keys
     if(typeof LS !== 'undefined'){
-      if(gistId) sessionStorage.setItem(LS.GIST_ID, gistId);
-      if(token)  sessionStorage.setItem(LS.TOKEN, token);
+      if(gistId && LS?.GIST_ID) sessionStorage.setItem(LS.GIST_ID, gistId);
+      if(token  && LS?.TOKEN)   sessionStorage.setItem(LS.TOKEN,   token);
     }
   }catch(e){ console.warn('Cannot access localStorage. Cloud config will not persist across sessions.', e); }
 }
@@ -1404,8 +1407,8 @@ function saveCloudConfigToStorage(gistId, token){
 function readCloudConfigFromStorage(){
   let gistId = null, token = null;
   try{
-    gistId = localStorage.getItem(CLOUD_LOCAL.GIST_ID) || (typeof LS!=='undefined' ? sessionStorage.getItem(LS.GIST_ID) : null);
-    token  = localStorage.getItem(CLOUD_LOCAL.TOKEN)   || (typeof LS!=='undefined' ? sessionStorage.getItem(LS.TOKEN)   : null);
+    gistId = localStorage.getItem(CLOUD_LOCAL.GIST_ID) || (typeof LS!=='undefined' && LS?.GIST_ID ? sessionStorage.getItem(LS.GIST_ID) : null);
+    token  = localStorage.getItem(CLOUD_LOCAL.TOKEN)   || (typeof LS!=='undefined' && LS?.TOKEN   ? sessionStorage.getItem(LS.TOKEN)   : null);
   }catch(e){ /* ignore */ }
   return { gistId, token };
 }
@@ -1415,8 +1418,8 @@ function clearCloudConfigFromStorage(){
     localStorage.removeItem(CLOUD_LOCAL.GIST_ID);
     localStorage.removeItem(CLOUD_LOCAL.TOKEN);
     if(typeof LS !== 'undefined'){
-      sessionStorage.removeItem(LS.GIST_ID);
-      sessionStorage.removeItem(LS.TOKEN);
+      if(LS?.GIST_ID) sessionStorage.removeItem(LS.GIST_ID);
+      if(LS?.TOKEN)   sessionStorage.removeItem(LS.TOKEN);
     }
   }catch(e){ /* ignore */ }
 }
@@ -1439,60 +1442,93 @@ async function cloudLoad(gistId, token){
   const file = resp.files?.['proplugin-data.json'];
   if (!file) throw new Error('proplugin-data.json not found in gist');
   const data = JSON.parse(file.content);
-  appData = data;                 // keep data in memory
+  // keep full app state in memory
+  if(typeof defaultAppState !== 'undefined' && defaultAppState && typeof structuredClone === 'function'){
+    // merge to preserve any missing keys
+    appData = Object.assign(structuredClone(defaultAppState), data);
+  }else{
+    appData = data;
+  }
   saveCloudConfigToStorage(gistId, token); // remember config for next visits
 }
 
 // ---- Override: logout (do NOT wipe appData; just go back to login) ----
 function logout(){
-  currentUser = null;
-  try{ $('#appView').classList.add('hidden'); }catch(e){}
-  try{ $('#loginView').classList.remove('hidden'); }catch(e){}
-  try{ $('#loginPass').value = ''; }catch(e){}
-  // Keep appData in memory so you can log in again immediately without refresh.
+  window.currentUser = null;
+  try{ document.querySelector('#appView')?.classList.add('hidden'); }catch(e){}
+  try{ document.querySelector('#loginView')?.classList.remove('hidden'); }catch(e){}
+  try{ document.querySelector('#loginPass').value = ''; }catch(e){}
+  // appData stays in memory so you can log in again immediately without refresh.
 }
 
-// ---- Override: initial check (auto‑load from saved cloud config once) ----
+// ---- Override: initial check (kept for compatibility; now delegates to ensureCloudBoot) ----
 async function initialCheck(){
+  await ensureCloudBoot();
+}
+
+// ---- New: robust boot that runs regardless of original script flow ----
+let __PP_BOOTED = false;
+async function ensureCloudBoot(){
+  if(__PP_BOOTED) return; // avoid double routing
+  __PP_BOOTED = true;
+
+  const $ = (sel)=>document.querySelector(sel);
+  const has = (id)=> !!document.getElementById(id);
+  const hide = (id)=>{ try{ $(id).classList.add('hidden'); }catch(_){} };
+  const show = (id)=>{ try{ $(id).classList.remove('hidden'); }catch(_){} };
+
   const { gistId, token } = readCloudConfigFromStorage();
 
   if(gistId && token){
+    // Optimistically hide Cloud Setup ASAP to avoid flicker
+    if(has('cloudSetupView')) hide('#cloudSetupView');
     try{
-      if(!appData){
-        // first visit or after hard reload -> pull from cloud
-        await cloudLoad(gistId, token);
-        // refresh UI with loaded data
-        if(typeof updateLocalDataAndSave === 'function') updateLocalDataAndSave();
-      }
-      // Route based on current state
-      if(appData?.users?.length === 1 && appData.users[0].username === 'host'){
-        // optional: auto‑login host on very first run
-        currentUser = appData.users[0];
-        try{ $('#cloudSetupView').classList.add('hidden'); }catch(e){}
-        try{ $('#loginView').classList.add('hidden'); }catch(e){}
-        try{ $('#appView').classList.remove('hidden'); }catch(e){}
-        if(typeof initFiltersForUser === 'function') initFiltersForUser();
-        if(typeof updateLocalDataAndSave === 'function') updateLocalDataAndSave();
+      await cloudLoad(gistId, token);
+      // If your base code has any setup after load, call it defensively
+      if(typeof updateLocalDataAndSave === 'function') updateLocalDataAndSave();
+      if(typeof initFiltersForUser === 'function') initFiltersForUser();
+
+      // Route user: if at least one user exists -> show login (or app if you auto‑login host)
+      const users = (appData && Array.isArray(appData.users)) ? appData.users : [];
+
+      if(users.length === 1 && users[0]?.username === 'host'){
+        // optional: auto‑login host on very first run (you can comment these 3 lines if not desired)
+        window.currentUser = users[0];
+        if(has('appView')) show('#appView');
+        if(has('loginView')) hide('#loginView');
       }else{
-        // Show login so user can sign in again without reloading
-        try{ $('#cloudSetupView').classList.add('hidden'); }catch(e){}
-        try{ $('#loginView').classList.remove('hidden'); }catch(e){}
+        if(has('loginView')) show('#loginView');
+        if(has('appView')) hide('#appView');
       }
+      return; // success path, done
     }catch(e){
-      console.error('Initial cloud load failed:', e);
+      console.error('Auto cloud load failed, falling back to Cloud Setup:', e);
+      // If load fails (e.g., token revoked), forget stale creds and show setup
       clearCloudConfigFromStorage();
-      try{ $('#cloudSetupView').classList.remove('hidden'); }catch(_){}
-      try{ $('#loginView').classList.add('hidden'); }catch(_){}
-      alert('Initial cloud load failed. Please check your Gist ID and Token, or create a new Gist.');
+      if(has('cloudSetupView')) show('#cloudSetupView');
+      if(has('loginView')) hide('#loginView');
+      return;
     }
-  }else{
-    // No saved credentials yet -> show cloud setup just this once
-    try{ $('#cloudSetupView').classList.remove('hidden'); }catch(_){}
-    try{ $('#loginView').classList.add('hidden'); }catch(_){}
   }
+
+  // No saved credentials yet -> show cloud setup just this once
+  if(has('cloudSetupView')) show('#cloudSetupView');
+  if(has('loginView')) hide('#loginView');
 }
 
-// ---- Optional: if you add a “Forget Cloud on this device” button with id=btnCloudForget ----
+// ---- Auto‑run boot on first paint & bfcache restore ----
+(function autoBoot(){
+  const run = ()=>{ try{ ensureCloudBoot(); }catch(e){ console.error(e); } };
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', run, { once:true });
+  }else{
+    run();
+  }
+  // Handle bfcache restores (Safari/Firefox) and hard refresh
+  window.addEventListener('pageshow', ()=> run(), { once:false });
+})();
+
+// ---- Optional: a “Forget Cloud on this device” button with id=btnCloudForget ----
 (function(){
   const btn = document.getElementById('btnCloudForget');
   if(btn){
@@ -1505,6 +1541,7 @@ async function initialCheck(){
     });
   }
 })();
+
 
   
 </script>
