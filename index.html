@@ -249,7 +249,6 @@
 const LS = {
   GIST_ID: 'pp_cloud_gist_id_v2',
   TOKEN: 'pp_cloud_token_v2',
-  // New flag for one-time load
   GIST_LOADED: 'pp_gist_loaded_v1'
 };
 const defaultDealerNames = {t1:'Dealer T1', t2:'Dealer T2', t3:'Dealer T3'};
@@ -392,14 +391,15 @@ async function login(){
 }
 function logout(){
   currentUser=null;
-  $('#loginPass').value='';
+  appData = null;
+  
   $('#appView').classList.add('hidden');
   $('#loginView').classList.remove('hidden');
-  // clear in-memory data
-  appData = null;
-  // Clear temporary credentials, force cloud setup again
-  sessionStorage.removeItem(LS.GIST_ID);
-  sessionStorage.removeItem(LS.TOKEN);
+
+  // Clear password field only
+  $('#loginPass').value = '';
+
+  // The rest of the credentials are kept in sessionStorage
 }
 
 /* ================= FILTERS & COLUMN VISIBILITY ================= */
@@ -1313,53 +1313,56 @@ function bindEvents() {
   });
 }
 
-function initialCheck() {
-  const gistId = sessionStorage.getItem(LS.GIST_ID);
-  const token = sessionStorage.getItem(LS.TOKEN);
+async function initialCheck() {
+    const gistId = sessionStorage.getItem(LS.GIST_ID);
+    const token = sessionStorage.getItem(LS.TOKEN);
 
-  if (gistId && token) {
-    // If credentials exist, hide cloud setup and show login
-    $('#cloudSetupView').classList.add('hidden');
-    $('#loginView').classList.remove('hidden');
+    if (gistId && token) {
+        // If credentials exist, check if appData is already in memory
+        if (appData) {
+            $('#cloudSetupView').classList.add('hidden');
+            $('#loginView').classList.remove('hidden');
+            return;
+        }
 
-    // Attempt to load data if it's the first time this session
-    if (!appData) {
-      cloudLoad(gistId, token)
-        .then(() => {
-          // If load is successful, check for host user and log in
-          const hostUser = appData.users.find(u => u.username === 'host');
-          if (hostUser) {
-            currentUser = hostUser;
+        // If not in memory, load from cloud
+        try {
+            await cloudLoad(gistId, token);
+            // After successful load, move to login screen
+            $('#cloudSetupView').classList.add('hidden');
+            $('#loginView').classList.remove('hidden');
+
+            const hostUser = appData.users.find(u => u.username === 'host');
+            if (hostUser) {
+              currentUser = hostUser;
+              $('#loginView').classList.add('hidden');
+              $('#appView').classList.remove('hidden');
+              $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
+              const isHost = currentUser.role === 'Host';
+              const isAdmin = currentUser.role === 'Admin';
+              $('#btnSettings').classList.toggle('hidden', !(isHost || isAdmin));
+              initFiltersForUser();
+              updateLocalDataAndSave();
+              console.log("Auto-loaded and auto-logged in as Host.");
+            } else {
+              updateLocalDataAndSave();
+              console.log("Auto-loaded data. Please log in.");
+            }
+        } catch(e) {
+            console.error("Initial load failed:", e);
+            sessionStorage.removeItem(LS.GIST_ID);
+            sessionStorage.removeItem(LS.TOKEN);
+            $('#cloudSetupView').classList.remove('hidden');
             $('#loginView').classList.add('hidden');
-            $('#appView').classList.remove('hidden');
-            $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
-            const isHost = currentUser.role === 'Host';
-            const isAdmin = currentUser.role === 'Admin';
-            $('#btnSettings').classList.toggle('hidden', !(isHost || isAdmin));
-            initFiltersForUser();
-            updateLocalDataAndSave();
-            console.log("Auto-loaded and auto-logged in as Host.");
-          } else {
-            updateLocalDataAndSave();
-            console.log("Auto-loaded data. Please log in.");
-          }
-        })
-        .catch(e => {
-          console.error("Auto-load failed, returning to cloud setup:", e);
-          // If auto-load fails, clear credentials and show cloud setup
-          sessionStorage.removeItem(LS.GIST_ID);
-          sessionStorage.removeItem(LS.TOKEN);
-          $('#cloudSetupView').classList.remove('hidden');
-          $('#loginView').classList.add('hidden');
-          alert("Failed to auto-load from cloud. Please check your Gist ID and Token, or create a new Gist.");
-        });
+            alert("Initial cloud load failed. Please check your Gist ID and Token, or create a new Gist.");
+        }
+    } else {
+        // No credentials found, show cloud setup screen
+        $('#cloudSetupView').classList.remove('hidden');
+        $('#loginView').classList.add('hidden');
     }
-  } else {
-    // If no credentials, show the cloud setup screen
-    $('#cloudSetupView').classList.remove('hidden');
-    $('#loginView').classList.add('hidden');
-  }
 }
+
 
 /* ================= STARTUP ================= */
 function init() {
