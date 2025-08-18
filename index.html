@@ -307,6 +307,14 @@ async function hashPassword(password) {
 }
 const ellip = (s,max=40)=> !s ? '' : (s.length<=max? s : s.slice(0,max-3)+'...');
 
+function log(action, meta = '') {
+  if (!appData) return;
+  appData.logs.unshift({ ts: new Date().toISOString(), user: currentUser?.username || '-', action, meta });
+  if (appData.logs.length > 3000) {
+    appData.logs.pop();
+  }
+}
+
 function updateLocalDataAndSave(newData) {
     if (newData) {
         appData = newData;
@@ -413,7 +421,7 @@ function updateColumnVisibility(){
 
 /* ================= APPLY DEALER NAMES ================= */
 function applyDealerNamesToUI(){
-  const dealerNames = appData.dealerNames || defaultDealerNames;
+  const dealerNames = appData?.dealerNames || defaultDealerNames;
   $('#lblT1').textContent = dealerNames.t1 || 'Dealer T1';
   $('#lblT2').textContent = dealerNames.t2 || 'Dealer T2';
   $('#lblT3').textContent = dealerNames.t3 || 'Dealer T3';
@@ -424,6 +432,7 @@ function applyDealerNamesToUI(){
 
 /* ================= TABLE & PAGINATION ================= */
 function filteredProducts(){
+  if (!appData) return [];
   const q=$('#searchInput').value.trim().toLowerCase();
   const ds=$('#dateStart').value, de=$('#dateEnd').value;
   const isFlagship = $('#channelSelect').value==='Flagship';
@@ -454,8 +463,9 @@ function renderPagination(totalItems) {
 }
 function renderTable(){
   const body=$('#productBody'); body.innerHTML='';
-  const showCosts = (currentUser.canSeeCosts || ['Host','Admin'].includes(currentUser.role));
-  const canEdit = ['Host','Admin'].includes(currentUser.role);
+  if(!appData) return;
+  const showCosts = (currentUser?.canSeeCosts || ['Host','Admin'].includes(currentUser?.role));
+  const canEdit = ['Host','Admin'].includes(currentUser?.role);
   const allFiltered = filteredProducts();
   const paginatedItems = allFiltered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   paginatedItems.forEach(p=>{
@@ -544,6 +554,7 @@ function openEditor(sku = null) {
   applyDealerNamesToUI();
   $('#editorModal').classList.remove('hidden');
 }
+function closeEditor(){ $('#editorModal').classList.add('hidden'); }
 async function saveEditor() {
   const sku = $('#edSku').value.trim();
   if (!sku) { alert('SKU is required.'); return; }
@@ -967,7 +978,17 @@ async function doImport(){
   const data=await fi.files[0].arrayBuffer();
   const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-  const headerRowIndex = rows.findIndex(r => (r[0]||'').toString().toLowerCase().trim() === 'sku');
+  
+  // Find the header row by looking for 'SKU'
+  let headerRowIndex = -1;
+  for (let i = 0; i < rows.length; i++) {
+    const headerValue = (rows[i][0] || '').toString().toLowerCase().trim();
+    if (headerValue === 'sku') {
+      headerRowIndex = i;
+      break;
+    }
+  }
+
   if (headerRowIndex === -1) { return alert('Error: Cannot find header row "SKU".'); }
   const start=headerRowIndex + 1;
   const newItems=[], importedSkus = new Set();
