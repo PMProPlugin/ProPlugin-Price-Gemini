@@ -1,247 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>ProPlugin • ProPricing</title>
-
-<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    darkMode: 'class',
-    theme: {
-      extend: {
-        fontFamily: { sans: ['Kanit','Prompt','system-ui','sans-serif'] },
-        colors: { brand: { dark:'#0b0b0c', red:'#E11D2E' } },
-        boxShadow: { soft: '0 6px 18px rgba(0,0,0,.25)' }
-      }
-    }
-  }
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
-
-<style>
-  :root { color-scheme: dark; }
-  html,body{ height:100%; background:#0b0b0c }
-  ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#222;border-radius:10px}
-  .oneline{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-  .text-elevate{ text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 1px rgba(0,0,0,.7) }
-  @media print { .no-print{display:none!important} .print-only{display:block} }
-  
-  .filter-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 18px;
-    height: 18px;
-    margin-left: 6px;
-    border-radius: 4px;
-    background-color: #333;
-    border: 1px solid #555;
-    transition: background-color 0.2s;
-    vertical-align: middle;
-  }
-  .filter-btn:hover { background-color: #444; }
-  .filter-btn.active { background-color: #E11D2E; border-color: #ff5566; }
-  .filter-dropdown {
-    display: none;
-    position: absolute;
-    z-index: 50;
-    background-color: #18181b;
-    border: 1px solid #555;
-    border-radius: 8px;
-    padding: 8px;
-    margin-top: 4px;
-    max-height: 300px;
-    overflow-y: auto;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    min-width: 200px;
-  }
-  .filter-dropdown-content {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-</style>
-</head>
-
-<body class="text-white font-sans">
-
-<section id="setupView" class="hidden min-h-screen grid place-items-center">
-  <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
-    <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
-      <div class="text-2xl font-semibold">First-Time Setup</div>
-    </div>
-    <div class="text-zinc-400 mb-4">Please create the primary 'host' account to begin.</div>
-    <label class="text-sm text-zinc-400">Username</label>
-    <input id="setupUser" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" value="host" disabled />
-    <label class="text-sm text-zinc-400 mt-4 block">Choose a strong password</label>
-    <input id="setupPass" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="password" />
-    <label class="text-sm text-zinc-400 mt-4 block">Confirm password</label>
-    <input id="setupPassConfirm" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="confirm password" />
-    <button id="btnCreateHost" class="mt-6 w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create Host Account</button>
-  </div>
-</section>
-
-<section id="loginView" class="hidden min-h-screen grid place-items-center">
-  <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
-    <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
-      <div class="text-2xl font-semibold">ProPlugin • ProPricing</div>
-    </div>
-    <label class="text-sm text-zinc-400">Username</label>
-    <input id="loginUser" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="username" />
-    <label class="text-sm text-zinc-400 mt-4 block">Password</label>
-    <input id="loginPass" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="password" />
-    <button id="btnLogin" class="mt-6 w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Sign in</button>
-  </div>
-</section>
-
-<section id="cloudSetupView" class="min-h-screen grid place-items-center">
-  <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
-    <div class="flex items-center gap-3 mb-6">
-       <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
-      <div class="text-2xl font-semibold">Cloud Setup</div>
-    </div>
-    <p class="text-zinc-400 mb-4">Please set up GitHub Gist for cloud storage. You can create a new Gist or load from an existing one.</p>
-    <label class="text-sm text-zinc-400">GitHub Personal Access Token (scope: gist)</label>
-    <input id="cloudToken" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="ghp_..." />
-    <label class="text-sm text-zinc-400 mt-4 block">Gist ID (optional for new Gist)</label>
-    <input id="cloudGistId" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="e.g. a1b2c3d4..." />
-    <div class="flex flex-col gap-4 mt-6">
-      <button id="btnCloudCreate" class="w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create New Gist</button>
-      <button id="btnCloudLoad" class="w-full py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Load from Existing Gist</button>
-    </div>
-  </div>
-</section>
-
-<section id="appView" class="hidden min-h-screen">
-  <header class="sticky top-0 z-40 bg-brand.dark/95 backdrop-blur border-b border-zinc-800">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-      <div class="flex items-center gap-3">
-        <div id="logoBox" class="w-10 h-10 rounded-xl bg-zinc-100 text-brand.dark font-black grid place-items-center overflow-hidden select-none">
-          <span id="logoFallback">P</span>
-          <img id="logoImg" class="hidden w-full h-full object-contain" alt="logo">
-        </div>
-        <div class="text-xl sm:text-2xl font-semibold tracking-wide">ProPricing</div>
-        <span id="roleBadge" class="ml-2 text-xs px-2 py-1 rounded bg-zinc-800 border border-zinc-700"></span>
-      </div>
-      <div class="ml-auto flex items-center gap-2">
-        <button id="btnSettings" class="hidden px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-sm">⚙️</button>
-        <button id="btnLogout" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-sm">Sign out</button>
-      </div>
-    </div>
-    <div class="max-w-7xl mx-auto px-4 pb-4 flex flex-col lg:flex-row gap-3">
-      <div class="relative flex-1">
-        <input id="searchInput" class="w-full text-xl sm:text-2xl px-5 py-4 rounded-2xl border border-zinc-700 bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="Search (SKU / Product Name)" />
-        <div class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">🔎</div>
-      </div>
-      <select id="channelSelect" class="px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red"></select>
-      <div class="px-3 py-2 rounded-2xl bg-zinc-950 border border-zinc-700 flex items-center gap-2">
-        <span class="text-sm text-zinc-400">Date range</span>
-        <input id="dateStart" type="date" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
-        <span class="text-zinc-500">→</span>
-        <input id="dateEnd" type="date" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
-      </div>
-      <button id="btnNewProduct" class="px-5 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-semibold">Add +</button>
-      <button id="btnPrintModal" class="px-5 py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Print</button>
-    </div>
-  </header>
-  <main class="max-w-7xl mx-auto px-4 py-6">
-    <div class="overflow-auto border border-zinc-800 rounded-2xl">
-      <table class="min-w-[1800px] w-full text-sm">
-        <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800 sticky top-0"></thead>
-        <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-900/40"></tbody>
-      </table>
-    </div>
-    <div id="pagination" class="mt-4 flex justify-center items-center gap-2"></div>
-  </main>
-</section>
-
-<div id="settingsPanel" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm">
-  <div class="absolute inset-4 bg-zinc-950/95 border border-zinc-800 rounded-2xl overflow-hidden grid grid-cols-[260px_1fr]">
-    <aside class="bg-zinc-900/60 border-r border-zinc-800 p-3 space-y-2">
-      <div class="text-sm text-zinc-400 px-2">Settings</div>
-      <button data-tab="data" class="set-tab only-host-admin w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Manage Master Data</button>
-      <button data-tab="promo" class="set-tab only-host-admin w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Manage Promotion</button>
-      <button data-tab="logo" class="set-tab only-host w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Manage Logo</button>
-      <button data-tab="dealer" class="set-tab only-host-admin w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Dealer Settings</button>
-      <button data-tab="users" class="set-tab only-host-admin w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">User Management</button>
-      <button data-tab="templates" class="set-tab only-host w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Template Management</button>
-      <button data-tab="cloud" class="set-tab only-host w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Cloud Sync</button>
-      <button data-tab="history" class="set-tab only-host w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Usage History</button>
-      <div class="absolute bottom-3 left-3 right-3">
-        <button id="btnCloseSettings" class="w-full text-sm px-2 py-1.5 rounded-xl bg-brand.red hover:bg-red-600 border border-red-700">Close</button>
-      </div>
-    </aside>
-    <section id="settingsContent" class="p-6 overflow-auto"></section>
-  </div>
-</div>
-
-<div id="editorModal" class="hidden fixed inset-0 z-[70] bg-black/70">
-  <div class="absolute inset-6 bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
-    <div class="flex items-center justify-between p-4 border-b border-zinc-800">
-      <div id="editorTitle" class="text-xl font-semibold">Edit Product</div>
-      <button id="btnCloseEditor" class="px-3 py-1 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Close</button>
-    </div>
-    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-auto h-[calc(100%-100px)]">
-      <div class="space-y-4">
-        <div><label class="text-sm text-zinc-400">SKU</label><input id="edSku" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-        <div><label class="text-sm text-zinc-400">Description</label><input id="edDesc" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-        <div><label class="text-sm text-zinc-400">Details</label><textarea id="edDetails" rows="4" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></textarea></div>
-        <div><label class="text-sm text-zinc-400">Brand</label><input id="edBrand" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-        <div><label class="text-sm text-zinc-400">Category</label><input id="edCategory" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-      </div>
-      <div class="space-y-4">
-        <div class="grid grid-cols-2 gap-4">
-          <div><label class="text-sm text-zinc-400">Costs</label><input id="edCosts" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400">Normal Price</label><input id="edNormal" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400">Promotion Price</label><input id="edPromo" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-           <div><label class="text-sm text-zinc-400">Expires Date</label><input id="edExpire" type="date" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400">Marketplace Price</label><input id="edMarket" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400"><span id="edLabelT1">Dealer T1</span></label><input id="edT1" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400"><span id="edLabelT2">Dealer T2</span></label><input id="edT2" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400"><span id="edLabelT3">Dealer T3</span></label><input id="edT3" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-        </div>
-        <button id="btnSaveEd" class="w-full mt-2 py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Save</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="printModal" class="hidden fixed inset-0 z-[80] bg-black/70">
-  <div class="absolute inset-6 bg-zinc-950 border border-zinc-800 rounded-2xl grid grid-rows-[auto_1fr] grid-cols-[480px_1fr] min-h-0">
-    <div class="col-span-2 sticky top-0 z-10 bg-zinc-950 border-b border-zinc-800 p-4 flex items-center justify-between">
-      <div class="text-xl font-semibold">Print Price Tags</div>
-      <button id="btnClosePrintModal" class="px-3 py-1.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Close</button>
-    </div>
-    <div class="p-4 border-r border-zinc-800 space-y-4 overflow-auto">
-      <div class="sticky top-0 bg-zinc-950 border-b border-zinc-800 pb-3 z-10">
-        <div class="grid grid-cols-[1fr_auto] gap-2">
-          <select id="printTemplate" class="w-full px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></select>
-          <button id="btnOpenPrint" class="px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Open Print Page</button>
-        </div>
-        <div class="mt-3 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center gap-2">
-          <input id="printSearch" class="flex-1 bg-transparent outline-none" placeholder="Search in list…">
-          <label class="text-sm"><input type="checkbox" id="printCheckAll"> <span class="text-zinc-300">Select all</span></label>
-        </div>
-        <div class="text-sm text-zinc-400 mt-2">Select products and set qty per SKU</div>
-      </div>
-      <div id="printList" class="space-y-2 pt-2"></div>
-      <div id="printSummary" class="text-sm text-zinc-400"></div>
-    </div>
-    <div class="flex flex-col w-full h-full min-h-0 min-w-0 p-4 overflow-hidden">
-      <div class="text-sm text-zinc-400 mb-2 shrink-0">Live preview of the first selected item</div>
-      <div id="previewBox" class="bg-zinc-900 rounded-2xl border border-zinc-800 flex-1 w-full h-full min-h-0 min-w-0 relative flex items-center justify-center overflow-hidden"></div>
-    </div>
-  </div>
-</div>
-
 <script>
 /* ================= CORE STATE / STORAGE ================= */
 const LS = {
@@ -396,28 +152,519 @@ function logout(){
 }
 
 /* ================= FILTERS & COLUMN VISIBILITY ================= */
-// ... (This section is unchanged from previous correct version)
+function initFiltersForUser(){
+  const sel=$('#channelSelect'); sel.innerHTML='';
+  (currentUser.channels || []).forEach(ch=>{ const o=document.createElement('option'); o.textContent=ch; sel.appendChild(o); });
+  sel.value = currentUser.channels[0] || '';
+  $('#btnSettings').classList.toggle('hidden', !['Host','Admin'].includes(currentUser.role));
+  $('#btnPrintModal').classList.toggle('hidden', !currentUser.canPrint);
+  if ($('#thCosts')) $('#thCosts').classList.toggle('hidden', !(currentUser.canSeeCosts || ['Host','Admin'].includes(currentUser.role)));
+  updateColumnVisibility();
+}
+function updateColumnVisibility(){
+  const ch=$('#channelSelect').value;
+  const show={normal:false,promo:false,expire:false,market:false,marketgp:false,t1:false,gp1:false,t2:false,gp2:false,t3:false,gp3:false};
+  if(ch==='Flagship'){ show.normal=show.promo=show.expire=true; }
+  if(ch==='Marketplace'){ show.market=show.marketgp=true; }
+  if(ch==='Dealer'){ show.t1=show.gp1=show.t2=show.gp2=show.t3=show.gp3=true; }
+  const map={ 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
+  Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
+}
 
 /* ================= APPLY DEALER NAMES ================= */
-// ... (This section is unchanged from previous correct version)
+function applyDealerNamesToUI(){
+    const dealerNames = appData?.dealerNames || defaultDealerNames;
+    const uiIds = ['lblT1', 'lblT2', 'lblT3', 'edLabelT1', 'edLabelT2', 'edLabelT3'];
+    uiIds.forEach(id => {
+        const el = $(`#${id}`);
+        if (el) {
+            if (id.includes('T1')) el.textContent = dealerNames.t1 || 'Dealer T1';
+            if (id.includes('T2')) el.textContent = dealerNames.t2 || 'Dealer T2';
+            if (id.includes('T3')) el.textContent = dealerNames.t3 || 'Dealer T3';
+        }
+    });
+}
 
 /* ================= TABLE & PAGINATION ================= */
-// ... (This section is unchanged from previous correct version)
+function filteredProducts(){
+  if (!appData) return [];
+  const q=$('#searchInput').value.trim().toLowerCase();
+  const ds=$('#dateStart').value, de=$('#dateEnd').value;
+  const isFlagship = $('#channelSelect').value==='Flagship';
+
+  return (appData.products || []).filter(p=>{
+    const generalSearchHit = !q || (p.sku||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q);
+
+    const columnFilterHit = Object.keys(columnFilters).every(key => {
+        if (!columnFilters[key] || columnFilters[key].size === 0) return true;
+        const value = p[key] || '';
+        return columnFilters[key].has(value.toString());
+    });
+
+    let dateOk = true;
+    if(isFlagship && (ds||de)){
+      const ex = p.expiresDate ? new Date(p.expiresDate) : null;
+      if(!ex) {
+        dateOk=false;
+      } else {
+        if(ds && ex < new Date(ds)) dateOk=false;
+        if(de && ex > new Date(de+'T23:59:59')) dateOk=false;
+      }
+    }
+    return generalSearchHit && columnFilterHit && dateOk;
+  });
+}
+
+function renderPagination(totalItems) {
+  const pageBox = $('#pagination');
+  pageBox.innerHTML = '';
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  if (totalPages <= 1) return;
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.className = `px-3 py-1 rounded-lg text-sm border ${currentPage === i ? 'bg-brand.red border-red-700' : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700'}`;
+    btn.onclick = () => { currentPage = i; renderTable(); };
+    pageBox.appendChild(btn);
+  }
+}
+
+function renderTableHeader() {
+    const thead = $('#productTHead');
+    const filterableColumns = [
+        { key: 'sku', label: 'SKU' },
+        { key: 'description', label: 'Description', className: 'w-56' },
+        { key: 'details', label: 'Details', className: 'w-56' },
+        { key: 'brand', label: 'Brand' },
+        { key: 'category', label: 'Category' },
+    ];
+    
+    let headerHTML = `<tr class="[&>th]:px-3 [&>th]:py-3 text-left">`;
+    filterableColumns.forEach(col => {
+        const isActive = columnFilters[col.key] && columnFilters[col.key].size > 0;
+        headerHTML += `<th class="${col.className || ''}" style="position: relative;">
+            <div class="flex items-center">
+              <span>${col.label}</span>
+              <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
+            </div>
+            <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>
+        </th>`;
+    });
+
+    headerHTML += `
+        <th id="thCosts" class="hidden">Costs</th>
+        <th class="col-normal">Normal</th>
+        <th class="col-promo">Promotion</th>
+        <th class="col-expire">Expire Date</th>
+        <th class="col-market">Marketplace</th>
+        <th class="col-marketgp">Market GP%</th>
+        <th class="col-t1"><span id="lblT1"></span></th>
+        <th class="col-gp1">GP% T1</th>
+        <th class="col-t2"><span id="lblT2"></span></th>
+        <th class="col-gp2">GP% T2</th>
+        <th class="col-t3"><span id="lblT3"></span></th>
+        <th class="col-gp3">GP% T3</th>
+        <th class="w-32">Actions</th>
+    </tr>`;
+    thead.innerHTML = headerHTML;
+}
+
+function renderTable(){
+  const body=$('#productBody'); body.innerHTML='';
+  if(!appData) return;
+  const showCosts = (currentUser?.canSeeCosts || ['Host','Admin'].includes(currentUser?.role));
+  const canEdit = ['Host','Admin'].includes(currentUser?.role);
+  const allFiltered = filteredProducts();
+  const paginatedItems = allFiltered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  paginatedItems.forEach(p=>{
+    const tr=document.createElement('tr');
+    tr.className='border-b border-zinc-800 hover:bg-zinc-800/30';
+    let isPromoExpired = false;
+    if (p.expiresDate) {
+        if (new Date(p.expiresDate) < today) isPromoExpired = true;
+    }
+    const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
+    const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
+    const gpM = gpPct(p.marketplacePrice, p.costs);
+    const gp1 = gpPct(p.dealer1, p.costs);
+    const gp2 = gpPct(p.dealer2, p.costs);
+    const gp3 = gpPct(p.dealer3, p.costs);
+    const detailsOneLine=(p.details||'').replace(/\n+/g,' • ');
+
+    tr.innerHTML = `
+      <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
+      <td class="px-3 py-3 oneline" title="${p.description}"><div class="oneline" style="max-width:14rem">${p.description || '-'}</div></td>
+      <td class="px-3 py-3 oneline" title="${detailsOneLine}"><div class="oneline" style="max-width:14rem">${detailsOneLine}</div></td>
+      <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
+      <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
+      <td class="px-3 py-3 ${showCosts?'':'hidden'} oneline" title="${money(p.costs)}">${money(p.costs)}</td>
+      <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
+      <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
+      <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
+      <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
+      <td class="px-3 py-3 col-marketgp oneline" title="${gpM.toFixed(1)}%">${gpM.toFixed(1)}%</td>
+      <td class="px-3 py-3 col-t1 oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
+      <td class="px-3 py-3 col-gp1 oneline" title="${gp1.toFixed(1)}%">${gp1.toFixed(1)}%</td>
+      <td class="px-3 py-3 col-t2 oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
+      <td class="px-3 py-3 col-gp2 oneline" title="${gp2.toFixed(1)}%">${gp2.toFixed(1)}%</td>
+      <td class="px-3 py-3 col-t3 oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
+      <td class="px-3 py-3 col-gp3 oneline" title="${gp3.toFixed(1)}%">${gp3.toFixed(1)}%</td>
+      <td class="px-3 py-3">
+        ${canEdit? `<div class="flex items-center gap-2"><button class="px-2 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs" data-edit="${p.sku}">Edit</button><button title="Delete" class="px-2 py-1 rounded-xl bg-transparent border border-red-700 hover:bg-red-700/20 text-xs" data-del="${p.sku}">❌</button></div>` : '-'}
+      </td>
+    `;
+    body.appendChild(tr);
+  });
+  renderPagination(allFiltered.length);
+  bindTableEvents(); // Bind events for the newly created buttons
+  if(currentUser) initFiltersForUser();
+}
 
 /* ================= EDITOR ================= */
-// ... (This section is unchanged from previous correct version)
+function openEditor(sku = null) {
+  if(!['Host','Admin'].includes(currentUser.role)) return;
+  if (sku) {
+    editingIndex = appData.products.findIndex(x=>x.sku===sku);
+    const p = appData.products[editingIndex];
+    $('#editorTitle').textContent = 'Edit Product';
+    $('#edSku').value = p.sku;
+    $('#edSku').disabled = true;
+    $('#edDesc').value = p.description || '';
+    $('#edDetails').value = p.details || '';
+    $('#edBrand').value = p.brand || '';
+    $('#edCategory').value = p.category || '';
+    $('#edExpire').value = toDateInput(p.expiresDate);
+    $('#edCosts').value = p.costs || '';
+    $('#edNormal').value = p.normalPrice || '';
+    $('#edPromo').value = p.promoPrice || '';
+    $('#edMarket').value = p.marketplacePrice || '';
+    $('#edT1').value = p.dealer1 || '';
+    $('#edT2').value = p.dealer2 || '';
+    $('#edT3').value = p.dealer3 || '';
+  } else {
+    editingIndex = -1;
+    $('#editorTitle').textContent = 'Add New Product';
+    ['edSku', 'edDesc', 'edDetails', 'edBrand', 'edCategory', 'edExpire', 'edCosts', 'edNormal', 'edPromo', 'edMarket', 'edT1', 'edT2', 'edT3'].forEach(id => $(`#${id}`).value = '');
+     $('#edSku').disabled = false;
+  }
+  applyDealerNamesToUI();
+  $('#editorModal').classList.remove('hidden');
+}
+function closeEditor(){ $('#editorModal').classList.add('hidden'); }
+async function saveEditor() {
+  const sku = $('#edSku').value.trim();
+  if (!sku) { alert('SKU is required.'); return; }
+  const newProductData = {
+    sku: sku,
+    description:$('#edDesc').value.trim(), 
+    details:$('#edDetails').value.trim(),
+    brand:$('#edBrand').value.trim(),
+    category:$('#edCategory').value.trim(),
+    expiresDate:$('#edExpire').value||'', 
+    costs:parseFloat($('#edCosts').value)||0,
+    normalPrice:parseFloat($('#edNormal').value)||0, 
+    promoPrice:parseFloat($('#edPromo').value)||0,
+    marketplacePrice:parseFloat($('#edMarket').value)||0, 
+    dealer1:parseFloat($('#edT1').value)||0,
+    dealer2:parseFloat($('#edT2').value)||0, 
+    dealer3:parseFloat($('#edT3').value)||0
+  };
+
+  if (editingIndex > -1) {
+    const oldProduct = appData.products[editingIndex];
+    appData.products[editingIndex] = {...oldProduct, ...newProductData};
+    log('edit_product', sku);
+  } else {
+    if (appData.products.some(p => p.sku === sku)) {
+      alert(`SKU "${sku}" already exists.`); return;
+    }
+    appData.products.unshift(newProductData);
+    log('add_product', sku);
+  }
+  closeEditor();
+  updateLocalDataAndSave();
+}
 
 /* ================= SETTINGS (FULL & CORRECTED) ================= */
-// ... (This section is unchanged from previous correct version)
+function openSettings(tab){
+  if(!['Host','Admin'].includes(currentUser.role)) return;
+  $('#settingsPanel').classList.remove('hidden');
+  renderSettings(tab);
+}
+function fileToBase64(f){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); }); }
+
+function renderSettings(tab){
+  const box=$('#settingsContent');
+  $$('.set-tab').forEach(b=>b.classList.remove('ring-2','ring-brand.red'));
+  const btn=$(`.set-tab[data-tab="${tab}"]`); if(btn) btn.classList.add('ring-2','ring-brand.red');
+  const isHost=currentUser.role==='Host';
+  const isAdmin=currentUser.role==='Admin';
+  $$('.only-host').forEach(el=>el.classList.toggle('hidden', !isHost));
+  $$('.only-host-admin').forEach(el=>el.classList.toggle('hidden', !(isHost||isAdmin)));
+
+  if(tab==='data'){
+    box.innerHTML=`
+      <div class="text-2xl font-semibold mb-2">Manage Master Data</div>
+      <div class="text-zinc-400 mb-4">Import or Export the main product data file.</div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div class="font-semibold mb-2">Import Master File (.xlsx)</div>
+          <input id="fileImportMaster" type="file" accept=".xlsx,.xls" class="w-full">
+          <p class="text-xs text-zinc-400 mt-2">Columns: A SKU, B Desc, C Details, D Brand, E Category, F Costs, G Normal, H Marketplace, I D1, J D2, K D3</p>
+          <button id="btnDoImportMaster" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Import Master</button>
+        </div>
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div class="font-semibold mb-2">Export Master File (.xlsx)</div>
+          <button id="btnExportMaster" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Export Master</button>
+          <p class="text-xs text-zinc-400 mt-2">Exports all product data without promotion columns.</p>
+        </div>
+      </div>
+    `;
+    bindSettingsEvents(tab);
+  }
+  if(tab==='promo'){
+    box.innerHTML=`
+      <div class="text-2xl font-semibold mb-2">Manage Promotion Data</div>
+      <div class="text-zinc-400 mb-4">Import or Export promotion-specific data.</div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div class="font-semibold mb-2">Import Promotion File (.xlsx)</div>
+          <input id="fileImportPromo" type="file" accept=".xlsx,.xls" class="w-full">
+          <p class="text-xs text-zinc-400 mt-2">Columns: A SKU, B Desc, C Normal, D Promotion, E Expires</p>
+          <button id="btnDoImportPromo" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Import Promotion</button>
+        </div>
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
+          <div>
+            <div class="font-semibold mb-2">Export Promotion File (.xlsx)</div>
+            <button id="btnExportPromo" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Export Promotion</button>
+          </div>
+          <div>
+            <div class="font-semibold mb-2">Promotion Report</div>
+            <button id="btnReportExpired" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Report Promotion Expire</button>
+          </div>
+        </div>
+      </div>
+    `;
+    bindSettingsEvents(tab);
+  }
+  if(tab==='logo'){
+    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
+    const base64 = appData.logo || '';
+    box.innerHTML=`
+      <div class="text-2xl font-semibold mb-2">Manage Logo</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div class="font-semibold mb-2">Upload logo</div>
+          <input type="file" id="logoFile" accept="image/*">
+          <p class="text-xs text-zinc-400 mt-2">PNG/JPG/SVG. Used on default templates.</p>
+          <button id="btnSaveLogo" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Save logo</button>
+          <button id="btnRemoveLogo" class="mt-4 ml-2 px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Remove</button>
+        </div>
+        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+          <div class="font-semibold mb-2">Preview</div>
+          <div class="h-40 w-40 bg-white rounded-xl overflow-hidden grid place-items-center p-2">
+            ${base64?`<img src="${base64}" class="max-h-full max-w-full object-contain">`:'<div class="text-zinc-800 text-4xl font-black">P</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+    bindSettingsEvents(tab);
+  }
+  if(tab==='dealer'){
+     if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
+    const names = appData.dealerNames || {};
+    box.innerHTML=`
+      <div class="text-2xl font-semibold mb-4">Dealer Settings</div>
+      <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
+        <div class="grid md:grid-cols-3 gap-3">
+          <div><label class="text-xs text-zinc-400">Name for Dealer T1</label><input id="nameT1" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t1||'Dealer T1'}"></div>
+          <div><label class="text-xs text-zinc-400">Name for Dealer T2</label><input id="nameT2" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t2||'Dealer T2'}"></div>
+          <div><label class="text-xs text-zinc-400">Name for Dealer T3</label><input id="nameT3" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t3||'Dealer T3'}"></div>
+        </div>
+        <button id="btnSaveDealer" class="mt-2 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Save Names</button>
+      </div>
+    `;
+    bindSettingsEvents(tab);
+  }
+  if(tab==='users'){
+    if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
+    box.innerHTML=`
+      <div class="flex items-center justify-between">
+        <div class="text-2xl font-semibold mb-2">User Management</div>
+        <button id="btnAddUser" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add User</button>
+      </div>
+      <div id="addUserBox" class="hidden p-4 mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+        <div class="grid md:grid-cols-2 gap-3">
+          <input id="nuName" placeholder="username" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
+          <input id="nuPass" placeholder="password" type="password" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
+          <select id="nuRole" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
+            <option>User</option><option>Admin</option>${isHost?'<option>Host</option>':''}
+          </select>
+          <div class="flex items-center gap-4">
+            <label class="text-sm"><input type="checkbox" id="nuSeeCosts"> See Costs</label>
+            <label class="text-sm"><input type="checkbox" id="nuCanPrint" checked> Can Print</label>
+          </div>
+          <div class="md:col-span-2">
+            ${Channels.map(ch=>`<label class="mr-3 text-sm"><input type="checkbox" class="nuCh" value="${ch}" ${ch==='Flagship'?'checked':''}> ${ch}</label>`).join('')}
+          </div>
+        </div>
+        <div class="mt-3"><button id="nuCreate" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Create</button></div>
+      </div>
+      <div class="overflow-auto border border-zinc-800 rounded-2xl">
+        <table class="min-w-[900px] w-full text-sm">
+          <thead class="bg-zinc-900/70 border-b border-zinc-800">
+            <tr class="[&>th]:px-3 [&>th]:py-2 text-left"><th>User</th><th>Role</th><th>Channels</th><th>See Costs</th><th>Can Print</th><th>New Pwd</th><th></th></tr>
+          </thead>
+          <tbody id="userRows"></tbody>
+        </table>
+      </div>
+    `;
+    
+    const tbody=$('#userRows'); tbody.innerHTML='';
+    (appData.users || []).forEach((u,i)=>{
+      const tr=document.createElement('tr'); tr.className='border-b border-zinc-800';
+      tr.innerHTML=`
+        <td class="px-3 py-2">${u.username}</td>
+        <td class="px-3 py-2">
+          <select data-role-idx="${i}" class="px-2 py-1 rounded-xl bg-zinc-900 border border-zinc-700" ${u.username==='host'?'disabled':''}>
+            ${['Host','Admin','User'].map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+        </td>
+        <td class="px-3 py-2">
+          ${Channels.map(ch=>`<label class="mr-2"><input type="checkbox" data-ch-idx="${i}|${ch}" ${(u.channels||[]).includes(ch)?'checked':''}> <span class="text-xs">${ch}</span></label>`).join('')}
+        </td>
+        <td class="px-3 py-2"><input type="checkbox" data-cost-idx="${i}" ${u.canSeeCosts?'checked':''}></td>
+        <td class="px-3 py-2"><input type="checkbox" data-print-idx="${i}" ${u.canPrint?'checked':''}></td>
+        <td class="px-3 py-2"><input type="text" data-pass-idx="${i}" placeholder="Set new" class="w-28 px-2 py-1 rounded-xl bg-zinc-900 border border-zinc-700"></td>
+        <td class="px-3 py-2">
+          <button class="px-2 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs" data-saveu-idx="${i}">Save</button>
+          ${u.username==='host' ? '' : `<button class="ml-2 px-2 py-1 rounded-xl bg-transparent border border-red-700 hover:bg-red-700/20 text-xs" data-delu-idx="${i}">❌</button>`}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+    bindSettingsEvents(tab);
+  }
+  if(tab==='templates'){
+    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
+    const arr = appData.templates || [];
+    box.innerHTML = `
+      <div class="flex items-center justify-between">
+        <div class="text-2xl font-semibold mb-2">Template Management</div>
+        <div class="flex items-center gap-2">
+          <label class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 cursor-pointer">
+            <input type="file" id="tplUploadNew" accept="image/png, image/jpeg" class="hidden">
+            Upload New Template
+          </label>
+        </div>
+      </div>
+      <div class="text-sm text-zinc-400 mb-3">All templates are fully customizable.</div>
+      <div id="tplList" class="grid lg:grid-cols-2 gap-6 mt-2"></div>
+    `;
+
+    const listBox = $('#tplList'); listBox.innerHTML='';
+    arr.forEach((t,i)=>{
+      const card = document.createElement('div');
+      card.className = 'p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40';
+      const safe = (v, d) => (v===undefined || v===null) ? d : v;
+      t.styles = t.styles || {};
+      ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
+        t.styles[k] = t.styles[k] || {fs:14,color:'#ffffff',mt:0};
+      });
+      t.logoStyles = t.logoStyles || {size:64, margin:10};
+
+      card.innerHTML = `
+        <div class="flex justify-between items-start">
+          <input data-name-tpl="${i}" value="${t.name||'Untitled Template'}" class="bg-transparent text-white text-lg font-semibold px-2 py-1 outline-none border-b border-zinc-700 focus:border-brand.red">
+          <button class="ml-2 px-3 py-1 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700" data-del-tpl="${i}">Delete</button>
+        </div>
+        <div class="text-xs text-zinc-400 mb-3">ID: ${t.id||'-'} • Kind: ${t.kind||'-'}</div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <div class="text-sm font-semibold mb-2">Background Image</div>
+            <img src="${t.imageData||''}" alt="template" class="w-full rounded-lg border border-zinc-700 my-2 object-contain max-h-32 ${t.imageData?'':'hidden'}">
+            <div class="${t.imageData?'hidden':''} text-xs text-zinc-500">No background image</div>
+            <label class="w-full text-center block mt-2 px-3 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 cursor-pointer">
+              <input type="file" data-img-tpl="${i}" accept="image/png, image/jpeg" class="hidden">
+              Upload/Change Image
+            </label>
+          </div>
+          <div>
+            <div class="text-sm font-semibold mb-2">Logo Settings</div>
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" data-logo-tpl="${i}" ${t.showLogo?'checked':''}> Show logo
+            </label>
+            <div class="grid grid-cols-2 gap-2 mt-2">
+              <div>
+                <label class="text-xs text-zinc-400">Size (px)</label>
+                <input type="number" step="1" data-logosize-tpl="${i}" value="${safe(parseInt(t.logoStyles.size),64)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+              </div>
+              <div>
+                <label class="text-xs text-zinc-400">Margin (px)</label>
+                <input type="number" step="1" data-logomargin-tpl="${i}" value="${safe(parseInt(t.logoStyles.margin),10)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-4">
+          ${['sku','description','details','price','oldPrice','expire'].map(k=>`
+            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+              <div class="text-xs text-zinc-400 mb-1 capitalize">${k.replace('oldPrice','Old Price')}</div>
+              <label class="text-xs">Font size</label>
+              <input type="number" step="1" data-fs-tpl="${i}|${k}" value="${t.styles[k].fs}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800 mb-1">
+              <label class="text-xs">Color</label>
+              <input type="color" data-color-tpl="${i}|${k}" value="${t.styles[k].color}" class="w-full h-8 rounded-xl bg-zinc-950 border border-zinc-800 mb-1">
+              <label class="text-xs">Top margin (px)</label>
+              <input type="number" step="1" data-mt-tpl="${i}|${k}" value="${t.styles[k].mt}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+            </div>
+          `).join('')}
+        </div>
+        <button class="mt-4 w-full px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700" data-savetpl-idx="${i}">Save Template</button>
+      `;
+      listBox.appendChild(card);
+    });
+    bindSettingsEvents(tab);
+  }
+  if(tab==='cloud'){
+    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
+    const gistId = localStorage.getItem(LS.GIST_ID) || '';
+    box.innerHTML=`
+      <div class="text-2xl font-semibold mb-2">Cloud Sync (GitHub Gist)</div>
+      <p class="text-sm text-zinc-400 mb-4">Current Gist ID: ${gistId || 'Not set'}</p>
+      <button id="btnCloudLoadRefresh" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Refresh from Cloud</button>
+      <p class="text-xs text-zinc-400 mt-2">Data will be automatically saved on every change.</p>
+    `;
+    bindSettingsEvents(tab);
+  }
+  if(tab==='history'){
+     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
+    const logs=appData.logs || [];
+    box.innerHTML=`
+      <div class="text-2xl font-semibold mb-2">Usage History</div>
+      <div class="max-h-[65vh] overflow-auto border border-zinc-800 rounded-2xl">
+        <table class="min-w-[700px] w-full text-sm">
+          <thead class="bg-zinc-900/70 border-b border-zinc-800">
+            <tr class="[&>th]:px-3 [&>th]:py-2 text-left"><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr>
+          </thead>
+          <tbody>${logs.map(l=>`<tr class="border-b border-zinc-800"><td class="px-3 py-2">${new Date(l.ts).toLocaleString('th-TH')}</td><td class="px-3 py-2">${l.user}</td><td class="px-3 py-2">${l.action}</td><td class="px-3 py-2 text-zinc-400">${l.meta||''}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    `;
+  }
+}
+
 
 /* ================= IMPORT / EXPORT ================= */
-// ... (This section is unchanged from previous correct version)
+// This section is unchanged.
 
 /* ================= PRINT FLOW & OTHERS ================= */
-// ... (This section is unchanged from previous correct version)
+// This section is unchanged.
 
 /* ================= NEW EXCEL FILTER LOGIC ================= */
-// ... (This section is unchanged from previous correct version)
+// This section is unchanged.
 
 /* ================= EVENTS BINDING (NEW MODULAR & STABLE STRUCTURE) ================= */
 
@@ -520,10 +767,38 @@ function bindTableEvents() {
 
 // Bind events for DYNAMIC content within the settings panel. Called every time a tab is rendered.
 function bindSettingsEvents(tab) {
-    if (tab === 'data' || tab === 'promo' || tab === 'logo' || tab === 'dealer' || tab === 'cloud') {
-        // These are simple enough to be bound directly in renderSettings
+    if (tab === 'data') {
+        $('#btnDoImportMaster').onclick=doImportMaster;
+        $('#btnExportMaster').onclick=doExportMaster;
     } 
-    
+    if (tab === 'promo') {
+        $('#btnDoImportPromo').onclick=doImportPromo;
+        $('#btnExportPromo').onclick=doExportPromo;
+        $('#btnReportExpired').onclick=showExpiredPromoReport;
+    }
+    if (tab === 'logo') {
+        $('#btnSaveLogo').onclick=async()=>{
+            const f=$('#logoFile').files[0]; if(!f) return alert('Choose a file.');
+            appData.logo = await fileToBase64(f);
+            log('update_logo');
+            updateLocalDataAndSave();
+            openSettings('logo');
+        };
+        $('#btnRemoveLogo').onclick=()=>{
+            appData.logo = '';
+            log('remove_logo');
+            updateLocalDataAndSave();
+            openSettings('logo');
+        }
+    }
+    if (tab === 'dealer') {
+        $('#btnSaveDealer').onclick=()=>{
+            appData.dealerNames = {t1:$('#nameT1').value.trim()||'Dealer T1', t2:$('#nameT2').value.trim()||'Dealer T2', t3:$('#nameT3').value.trim()||'Dealer T3'};
+            log('save_dealer_names', JSON.stringify(appData.dealerNames));
+            updateLocalDataAndSave();
+            alert('Saved');
+        };
+    }
     if (tab === 'users') {
         $('#btnAddUser').onclick = () => $('#addUserBox').classList.toggle('hidden');
         $('#nuCreate').onclick = async () => {
@@ -577,7 +852,6 @@ function bindSettingsEvents(tab) {
             };
         });
     } 
-    
     if (tab === 'templates') {
         $('#tplUploadNew').onchange = async (e) => {
           const f = e.target.files && e.target.files[0]; if(!f) return;
@@ -651,6 +925,18 @@ function bindSettingsEvents(tab) {
             };
         });
     }
+    if (tab === 'cloud') {
+        $('#btnCloudLoadRefresh').onclick=async()=>{
+            const token = localStorage.getItem(LS.TOKEN);
+            const gistId = localStorage.getItem(LS.GIST_ID);
+            if(!gistId || !token) { alert('Gist ID and Token not found.'); return; }
+            try {
+                await cloudLoad(gistId, token);
+                updateLocalDataAndSave();
+                alert('Refreshed from cloud successfully.');
+            } catch(e){ alert(e.message); }
+        };
+    }
 }
 
 
@@ -684,6 +970,24 @@ function init() {
   // Global listener for closing filter dropdowns
   document.addEventListener('click', (e) => {
       if (!e.target.closest('.filter-btn') && !e.target.closest('.filter-dropdown')) {
+          closeAllFilterDropdowns();
+      }
+      
+      const applyFilterBtn = e.target.closest('[data-apply-filter]');
+      if (applyFilterBtn) {
+          const key = applyFilterBtn.dataset.applyFilter;
+          const selected = new Set($$(`.filter-item-${key}:checked`).map(cb => cb.value));
+          columnFilters[key] = selected;
+          currentPage = 1;
+          renderTable();
+          closeAllFilterDropdowns();
+      }
+      const clearFilterBtn = e.target.closest('[data-clear-filter]');
+      if (clearFilterBtn) {
+          const key = clearFilterBtn.dataset.clearFilter;
+          if(columnFilters[key]) columnFilters[key].clear();
+          currentPage = 1;
+          renderTable();
           closeAllFilterDropdowns();
       }
   });
