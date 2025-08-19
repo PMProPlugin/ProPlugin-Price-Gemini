@@ -566,357 +566,9 @@ function renderTable(){
 
 /* ================= EDITOR ================= */
 // This section is unchanged.
-function openEditor(sku = null) {
-  if(!['Host','Admin'].includes(currentUser.role)) return;
-  if (sku) {
-    editingIndex = appData.products.findIndex(x=>x.sku===sku);
-    const p = appData.products[editingIndex];
-    $('#editorTitle').textContent = 'Edit Product';
-    $('#edSku').value = p.sku;
-    $('#edSku').disabled = true;
-    $('#edDesc').value = p.description || '';
-    $('#edDetails').value = p.details || '';
-    $('#edBrand').value = p.brand || '';
-    $('#edCategory').value = p.category || '';
-    $('#edExpire').value = toDateInput(p.expiresDate);
-    $('#edCosts').value = p.costs || '';
-    $('#edNormal').value = p.normalPrice || '';
-    $('#edPromo').value = p.promoPrice || '';
-    $('#edMarket').value = p.marketplacePrice || '';
-    $('#edT1').value = p.dealer1 || '';
-    $('#edT2').value = p.dealer2 || '';
-    $('#edT3').value = p.dealer3 || '';
-  } else {
-    editingIndex = -1;
-    $('#editorTitle').textContent = 'Add New Product';
-    ['edSku', 'edDesc', 'edDetails', 'edBrand', 'edCategory', 'edExpire', 'edCosts', 'edNormal', 'edPromo', 'edMarket', 'edT1', 'edT2', 'edT3'].forEach(id => $(`#${id}`).value = '');
-     $('#edSku').disabled = false;
-  }
-  applyDealerNamesToUI();
-  $('#editorModal').classList.remove('hidden');
-}
-function closeEditor(){ $('#editorModal').classList.add('hidden'); }
-async function saveEditor() {
-  const sku = $('#edSku').value.trim();
-  if (!sku) { alert('SKU is required.'); return; }
-  const newProductData = {
-    sku: sku,
-    description:$('#edDesc').value.trim(), 
-    details:$('#edDetails').value.trim(),
-    brand:$('#edBrand').value.trim(),
-    category:$('#edCategory').value.trim(),
-    expiresDate:$('#edExpire').value||'', 
-    costs:parseFloat($('#edCosts').value)||0,
-    normalPrice:parseFloat($('#edNormal').value)||0, 
-    promoPrice:parseFloat($('#edPromo').value)||0,
-    marketplacePrice:parseFloat($('#edMarket').value)||0, 
-    dealer1:parseFloat($('#edT1').value)||0,
-    dealer2:parseFloat($('#edT2').value)||0, 
-    dealer3:parseFloat($('#edT3').value)||0
-  };
-
-  if (editingIndex > -1) {
-    const oldProduct = appData.products[editingIndex];
-    appData.products[editingIndex] = {...oldProduct, ...newProductData};
-    log('edit_product', sku);
-  } else {
-    if (appData.products.some(p => p.sku === sku)) {
-      alert(`SKU "${sku}" already exists.`); return;
-    }
-    appData.products.unshift(newProductData);
-    log('add_product', sku);
-  }
-  closeEditor();
-  updateLocalDataAndSave();
-}
 
 /* ================= SETTINGS (FULL & CORRECTED) ================= */
 // This section is unchanged.
-function openSettings(tab){
-  if(!['Host','Admin'].includes(currentUser.role)) return;
-  $('#settingsPanel').classList.remove('hidden');
-  renderSettings(tab);
-}
-function fileToBase64(f){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); }); }
-function renderSettings(tab){
-  const box=$('#settingsContent');
-  $$('.set-tab').forEach(b=>b.classList.remove('ring-2','ring-brand.red'));
-  const btn=$(`.set-tab[data-tab="${tab}"]`); if(btn) btn.classList.add('ring-2','ring-brand.red');
-  const isHost=currentUser.role==='Host';
-  const isAdmin=currentUser.role==='Admin';
-  $$('.only-host').forEach(el=>el.classList.toggle('hidden', !isHost));
-  $$('.only-host-admin').forEach(el=>el.classList.toggle('hidden', !(isHost||isAdmin)));
-
-  if(tab==='data'){
-    box.innerHTML=`
-      <div class="text-2xl font-semibold mb-2">Manage Master Data</div>
-      <div class="text-zinc-400 mb-4">Import or Export the main product data file.</div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div class="font-semibold mb-2">Import Master File (.xlsx)</div>
-          <input id="fileImportMaster" type="file" accept=".xlsx,.xls" class="w-full">
-          <p class="text-xs text-zinc-400 mt-2">Columns: A SKU, B Desc, C Details, D Brand, E Category, F Costs, G Normal, H Marketplace, I D1, J D2, K D3</p>
-          <button id="btnDoImportMaster" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Import Master</button>
-        </div>
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div class="font-semibold mb-2">Export Master File (.xlsx)</div>
-          <button id="btnExportMaster" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Export Master</button>
-          <p class="text-xs text-zinc-400 mt-2">Exports all product data without promotion columns.</p>
-        </div>
-      </div>
-    `;
-    $('#btnDoImportMaster').onclick=doImportMaster;
-    $('#btnExportMaster').onclick=doExportMaster;
-  }
-  if(tab==='promo'){
-    box.innerHTML=`
-      <div class="text-2xl font-semibold mb-2">Manage Promotion Data</div>
-      <div class="text-zinc-400 mb-4">Import or Export promotion-specific data.</div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div class="font-semibold mb-2">Import Promotion File (.xlsx)</div>
-          <input id="fileImportPromo" type="file" accept=".xlsx,.xls" class="w-full">
-          <p class="text-xs text-zinc-400 mt-2">Columns: A SKU, B Desc, C Normal, D Promotion, E Expires</p>
-          <button id="btnDoImportPromo" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Import Promotion</button>
-        </div>
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
-          <div>
-            <div class="font-semibold mb-2">Export Promotion File (.xlsx)</div>
-            <button id="btnExportPromo" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Export Promotion</button>
-          </div>
-          <div>
-            <div class="font-semibold mb-2">Promotion Report</div>
-            <button id="btnReportExpired" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Report Promotion Expire</button>
-          </div>
-        </div>
-      </div>
-    `;
-    $('#btnDoImportPromo').onclick=doImportPromo;
-    $('#btnExportPromo').onclick=doExportPromo;
-    $('#btnReportExpired').onclick=showExpiredPromoReport;
-  }
-  if(tab==='logo'){
-    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const base64 = appData.logo || '';
-    box.innerHTML=`
-      <div class="text-2xl font-semibold mb-2">Manage Logo</div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div class="font-semibold mb-2">Upload logo</div>
-          <input type="file" id="logoFile" accept="image/*">
-          <p class="text-xs text-zinc-400 mt-2">PNG/JPG/SVG. Used on default templates.</p>
-          <button id="btnSaveLogo" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Save logo</button>
-          <button id="btnRemoveLogo" class="mt-4 ml-2 px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Remove</button>
-        </div>
-        <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-          <div class="font-semibold mb-2">Preview</div>
-          <div class="h-40 w-40 bg-white rounded-xl overflow-hidden grid place-items-center p-2">
-            ${base64?`<img src="${base64}" class="max-h-full max-w-full object-contain">`:'<div class="text-zinc-800 text-4xl font-black">P</div>'}
-          </div>
-        </div>
-      </div>
-    `;
-    $('#btnSaveLogo').onclick=async()=>{
-      const f=$('#logoFile').files[0]; if(!f) return alert('Choose a file.');
-      appData.logo = await fileToBase64(f);
-      log('update_logo');
-      updateLocalDataAndSave();
-      openSettings('logo');
-    };
-    $('#btnRemoveLogo').onclick=()=>{
-      appData.logo = '';
-      log('remove_logo');
-      updateLocalDataAndSave();
-      openSettings('logo');
-    }
-  }
-  if(tab==='dealer'){
-     if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
-    const names = appData.dealerNames || {};
-    box.innerHTML=`
-      <div class="text-2xl font-semibold mb-4">Dealer Settings</div>
-      <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
-        <div class="grid md:grid-cols-3 gap-3">
-          <div><label class="text-xs text-zinc-400">Name for Dealer T1</label><input id="nameT1" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t1||'Dealer T1'}"></div>
-          <div><label class="text-xs text-zinc-400">Name for Dealer T2</label><input id="nameT2" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t2||'Dealer T2'}"></div>
-          <div><label class="text-xs text-zinc-400">Name for Dealer T3</label><input id="nameT3" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t3||'Dealer T3'}"></div>
-        </div>
-        <button id="btnSaveDealer" class="mt-2 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Save Names</button>
-      </div>
-    `;
-    $('#btnSaveDealer').onclick=()=>{
-      appData.dealerNames = {t1:$('#nameT1').value.trim()||'Dealer T1', t2:$('#nameT2').value.trim()||'Dealer T2', t3:$('#nameT3').value.trim()||'Dealer T3'};
-      log('save_dealer_names', JSON.stringify(appData.dealerNames));
-      updateLocalDataAndSave();
-      alert('Saved');
-    };
-  }
-  if(tab==='users'){
-    if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
-    box.innerHTML=`
-      <div class="flex items-center justify-between">
-        <div class="text-2xl font-semibold mb-2">User Management</div>
-        <button id="btnAddUser" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add User</button>
-      </div>
-      <div id="addUserBox" class="hidden p-4 mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
-        <div class="grid md:grid-cols-2 gap-3">
-          <input id="nuName" placeholder="username" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
-          <input id="nuPass" placeholder="password" type="password" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
-          <select id="nuRole" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
-            <option>User</option><option>Admin</option>${isHost?'<option>Host</option>':''}
-          </select>
-          <div class="flex items-center gap-4">
-            <label class="text-sm"><input type="checkbox" id="nuSeeCosts"> See Costs</label>
-            <label class="text-sm"><input type="checkbox" id="nuCanPrint" checked> Can Print</label>
-          </div>
-          <div class="md:col-span-2">
-            ${Channels.map(ch=>`<label class="mr-3 text-sm"><input type="checkbox" class="nuCh" value="${ch}" ${ch==='Flagship'?'checked':''}> ${ch}</label>`).join('')}
-          </div>
-        </div>
-        <div class="mt-3"><button id="nuCreate" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Create</button></div>
-      </div>
-      <div class="overflow-auto border border-zinc-800 rounded-2xl">
-        <table class="min-w-[900px] w-full text-sm">
-          <thead class="bg-zinc-900/70 border-b border-zinc-800">
-            <tr class="[&>th]:px-3 [&>th]:py-2 text-left"><th>User</th><th>Role</th><th>Channels</th><th>See Costs</th><th>Can Print</th><th>New Pwd</th><th></th></tr>
-          </thead>
-          <tbody id="userRows"></tbody>
-        </table>
-      </div>
-    `;
-    
-    const tbody=$('#userRows'); tbody.innerHTML='';
-    (appData.users || []).forEach((u,i)=>{
-      const tr=document.createElement('tr'); tr.className='border-b border-zinc-800';
-      tr.innerHTML=`
-        <td class="px-3 py-2">${u.username}</td>
-        <td class="px-3 py-2">
-          <select data-role-idx="${i}" class="px-2 py-1 rounded-xl bg-zinc-900 border border-zinc-700" ${u.username==='host'?'disabled':''}>
-            ${['Host','Admin','User'].map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}
-          </select>
-        </td>
-        <td class="px-3 py-2">
-          ${Channels.map(ch=>`<label class="mr-2"><input type="checkbox" data-ch-idx="${i}|${ch}" ${(u.channels||[]).includes(ch)?'checked':''}> <span class="text-xs">${ch}</span></label>`).join('')}
-        </td>
-        <td class="px-3 py-2"><input type="checkbox" data-cost-idx="${i}" ${u.canSeeCosts?'checked':''}></td>
-        <td class="px-3 py-2"><input type="checkbox" data-print-idx="${i}" ${u.canPrint?'checked':''}></td>
-        <td class="px-3 py-2"><input type="text" data-pass-idx="${i}" placeholder="Set new" class="w-28 px-2 py-1 rounded-xl bg-zinc-900 border border-zinc-700"></td>
-        <td class="px-3 py-2">
-          <button class="px-2 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs" data-saveu-idx="${i}">Save</button>
-          ${u.username==='host' ? '' : `<button class="ml-2 px-2 py-1 rounded-xl bg-transparent border border-red-700 hover:bg-red-700/20 text-xs" data-delu-idx="${i}">❌</button>`}
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-    bindSettingsEvents(tab); // Re-bind events for this dynamic content
-  }
-  if(tab==='templates'){
-    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const arr = appData.templates || [];
-    box.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="text-2xl font-semibold mb-2">Template Management</div>
-        <div class="flex items-center gap-2">
-          <label class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 cursor-pointer">
-            <input type="file" id="tplUploadNew" accept="image/png, image/jpeg" class="hidden">
-            Upload New Template
-          </label>
-        </div>
-      </div>
-      <div class="text-sm text-zinc-400 mb-3">All templates are fully customizable.</div>
-      <div id="tplList" class="grid lg:grid-cols-2 gap-6 mt-2"></div>
-    `;
-
-    const listBox = $('#tplList'); listBox.innerHTML='';
-    arr.forEach((t,i)=>{
-      const card = document.createElement('div');
-      card.className = 'p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40';
-      const safe = (v, d) => (v===undefined || v===null) ? d : v;
-      t.styles = t.styles || {};
-      ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
-        t.styles[k] = t.styles[k] || {fs:14,color:'#ffffff',mt:0};
-      });
-      t.logoStyles = t.logoStyles || {size:64, margin:10};
-
-      card.innerHTML = `
-        <div class="flex justify-between items-start">
-          <input data-name-tpl="${i}" value="${t.name||'Untitled Template'}" class="bg-transparent text-white text-lg font-semibold px-2 py-1 outline-none border-b border-zinc-700 focus:border-brand.red">
-          <button class="ml-2 px-3 py-1 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700" data-del-tpl="${i}">Delete</button>
-        </div>
-        <div class="text-xs text-zinc-400 mb-3">ID: ${t.id||'-'} • Kind: ${t.kind||'-'}</div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <div class="text-sm font-semibold mb-2">Background Image</div>
-            <img src="${t.imageData||''}" alt="template" class="w-full rounded-lg border border-zinc-700 my-2 object-contain max-h-32 ${t.imageData?'':'hidden'}">
-            <div class="${t.imageData?'hidden':''} text-xs text-zinc-500">No background image</div>
-            <label class="w-full text-center block mt-2 px-3 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 cursor-pointer">
-              <input type="file" data-img-tpl="${i}" accept="image/png, image/jpeg" class="hidden">
-              Upload/Change Image
-            </label>
-          </div>
-          <div>
-            <div class="text-sm font-semibold mb-2">Logo Settings</div>
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" data-logo-tpl="${i}" ${t.showLogo?'checked':''}> Show logo
-            </label>
-            <div class="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <label class="text-xs text-zinc-400">Size (px)</label>
-                <input type="number" step="1" data-logosize-tpl="${i}" value="${safe(parseInt(t.logoStyles.size),64)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400">Margin (px)</label>
-                <input type="number" step="1" data-logomargin-tpl="${i}" value="${safe(parseInt(t.logoStyles.margin),10)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3 mt-4">
-          ${['sku','description','details','price','oldPrice','expire'].map(k=>`
-            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-              <div class="text-xs text-zinc-400 mb-1 capitalize">${k.replace('oldPrice','Old Price')}</div>
-              <label class="text-xs">Font size</label>
-              <input type="number" step="1" data-fs-tpl="${i}|${k}" value="${t.styles[k].fs}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800 mb-1">
-              <label class="text-xs">Color</label>
-              <input type="color" data-color-tpl="${i}|${k}" value="${t.styles[k].color}" class="w-full h-8 rounded-xl bg-zinc-950 border border-zinc-800 mb-1">
-              <label class="text-xs">Top margin (px)</label>
-              <input type="number" step="1" data-mt-tpl="${i}|${k}" value="${t.styles[k].mt}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
-            </div>
-          `).join('')}
-        </div>
-        <button class="mt-4 w-full px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700" data-savetpl-idx="${i}">Save Template</button>
-      `;
-      listBox.appendChild(card);
-    });
-    bindSettingsEvents(tab);
-  }
-  if(tab==='cloud'){
-    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const gistId = localStorage.getItem(LS.GIST_ID) || '';
-    box.innerHTML=`
-      <div class="text-2xl font-semibold mb-2">Cloud Sync (GitHub Gist)</div>
-      <p class="text-sm text-zinc-400 mb-4">Current Gist ID: ${gistId || 'Not set'}</p>
-      <button id="btnCloudLoadRefresh" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Refresh from Cloud</button>
-      <p class="text-xs text-zinc-400 mt-2">Data will be automatically saved on every change.</p>
-    `;
-    bindSettingsEvents(tab);
-  }
-  if(tab==='history'){
-     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
-    const logs=appData.logs || [];
-    box.innerHTML=`
-      <div class="text-2xl font-semibold mb-2">Usage History</div>
-      <div class="max-h-[65vh] overflow-auto border border-zinc-800 rounded-2xl">
-        <table class="min-w-[700px] w-full text-sm">
-          <thead class="bg-zinc-900/70 border-b border-zinc-800">
-            <tr class="[&>th]:px-3 [&>th]:py-2 text-left"><th>Time</th><th>User</th><th>Action</th><th>Details</th></tr>
-          </thead>
-          <tbody>${logs.map(l=>`<tr class="border-b border-zinc-800"><td class="px-3 py-2">${new Date(l.ts).toLocaleString('th-TH')}</td><td class="px-3 py-2">${l.user}</td><td class="px-3 py-2">${l.action}</td><td class="px-3 py-2 text-zinc-400">${l.meta||''}</td></tr>`).join('')}</tbody>
-        </table>
-      </div>
-    `;
-  }
-}
 
 /* ================= IMPORT / EXPORT ================= */
 // This section is unchanged.
@@ -924,15 +576,127 @@ function renderSettings(tab){
 /* ================= PRINT FLOW & OTHERS ================= */
 // This section is unchanged.
 
-
 /* ================= NEW EXCEL FILTER LOGIC ================= */
 // This section is unchanged.
 
-/* ================= EVENTS BINDING (REBUILT) ================= */
-// This section is unchanged.
+
+/* ================= EVENTS BINDING (REBUILT & STABLE) ================= */
+function bindStaticEvents() {
+    // --- Static elements that exist on page load ---
+    $('#btnCreateHost').addEventListener('click', async () => {
+        const pass = $('#setupPass').value;
+        if (pass !== $('#setupPassConfirm').value || !pass) return alert('Passwords do not match or are empty.');
+        if (pass.length < 4) return alert('Password must be at least 4 characters long.');
+        if (!appData) appData = JSON.parse(JSON.stringify(defaultAppState));
+        appData.users = [{ username: 'host', passwordHash: await hashPassword(pass), role: 'Host', channels: [...Channels], canSeeCosts: true, canPrint: true }];
+        const gistId = localStorage.getItem(LS.GIST_ID);
+        const token = localStorage.getItem(LS.TOKEN);
+        if(gistId && token) {
+            try {
+                await cloudSave(gistId, token);
+                alert('Host account created and saved. Please log in.');
+                $('#setupView').classList.add('hidden');
+                $('#loginView').classList.remove('hidden');
+            } catch (err) { alert('Failed to save host account: ' + err.message); }
+        } else { alert('Error: Gist credentials not found.'); }
+    });
+
+    $('#btnLogin').addEventListener('click', login);
+
+    $('#btnCloudCreate').addEventListener('click', async () => {
+        const token = $('#cloudToken').value.trim();
+        if (!token) return alert('GitHub Token is required.');
+        try {
+            const gistId = await cloudCreateGist(token, defaultAppState);
+            alert('Gist created: ' + gistId + '\nPlease create the host account.');
+            appData = JSON.parse(JSON.stringify(defaultAppState));
+            $('#cloudSetupView').classList.add('hidden');
+            $('#setupView').classList.remove('hidden');
+        } catch (err) { alert('Error creating Gist: ' + err.message); }
+    });
+
+    $('#btnCloudLoad').addEventListener('click', async () => {
+        const token = $('#cloudToken').value.trim();
+        const gistId = $('#cloudGistId').value.trim();
+        if (!token || !gistId) return alert('Token and Gist ID are required.');
+        try {
+            await cloudLoad(gistId, token);
+            alert('Loaded from Gist. Please log in.');
+            $('#cloudSetupView').classList.add('hidden');
+            $('#loginView').classList.remove('hidden');
+        } catch (err) { alert('Error loading from Gist: ' + err.message); }
+    });
+    
+    $('#btnLogout').addEventListener('click', logout);
+    $('#btnNewProduct').addEventListener('click', () => openEditor());
+    $('#btnSettings').addEventListener('click', () => openSettings('data'));
+    $('#btnPrintModal').addEventListener('click', () => {
+        if (!currentUser || !currentUser.canPrint) return;
+        buildPrintList();
+        fillTemplateDropdown();
+        renderPreview(filteredProducts()[0], (appData.templates||[])[0]);
+        togglePrintModal(true);
+    });
+
+    // --- Input and Change Events ---
+    $('#loginPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+    $('#searchInput').addEventListener('input', () => { currentPage = 1; renderTable(); });
+    $('#dateStart').addEventListener('change', () => { currentPage = 1; renderTable(); });
+    $('#dateEnd').addEventListener('change', () => { currentPage = 1; renderTable(); });
+    $('#channelSelect').addEventListener('change', () => { updateColumnVisibility(); currentPage = 1; renderTable(); });
+
+    // --- Modals and Panels ---
+    $('#btnCloseSettings').addEventListener('click', () => $('#settingsPanel').classList.add('hidden'));
+    $$('.set-tab').forEach(b => b.addEventListener('click', () => openSettings(b.dataset.tab)));
+    $('#btnCloseEditor').addEventListener('click', closeEditor);
+    $('#btnSaveEd').addEventListener('click', saveEditor);
+    $('#btnClosePrintModal').addEventListener('click', () => togglePrintModal(false));
+    $('#btnOpenPrint').addEventListener('click', () => {
+        const picks = $$('#printList input[type="checkbox"]:checked').map(c => c.dataset.sel);
+        const list = picks.map(sku => ({ p: appData.products.find(p => p.sku === sku), qty: parseInt($(`[data-qty="${sku}"]`).value) || 1 })).filter(item => item.p);
+        const tpl = appData.templates.find(t => t.id === $('#printTemplate').value) || appData.templates[0];
+        openPrintTab(list, tpl);
+    });
+
+    // --- Global Listeners ---
+    window.addEventListener('keydown', e => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('#searchInput').focus(); } });
+
+    // Listener for filter dropdowns (using delegation on body)
+    document.body.addEventListener('click', e => {
+        const filterBtn = e.target.closest('.filter-btn');
+        if (filterBtn) {
+            openFilterDropdown(filterBtn.dataset.filterKey);
+        } else if (!e.target.closest('.filter-dropdown')) {
+            closeAllFilterDropdowns();
+        }
+    });
+}
+
+function bindDynamicEvents() {
+    // This function handles events for content that is re-rendered frequently.
+    
+    // Table Edit/Delete buttons
+    $$('button[data-edit]').forEach(b => b.addEventListener('click', () => openEditor(b.dataset.edit)));
+    $$('button[data-del]').forEach(b => b.addEventListener('click', () => {
+        const sku = b.dataset.del;
+        if (confirm(`Delete SKU ${sku}? This cannot be undone.`)) {
+            appData.products = appData.products.filter(x => x.sku !== sku);
+            log('delete_sku', sku);
+            updateLocalDataAndSave();
+        }
+    }));
+}
+
 
 /* ================= STARTUP LOGIC ================= */
-// This section is unchanged.
+// The init function now calls the stable, modular event binding.
+function init() {
+  bindStaticEvents();
+  initialCheck();
+}
+
+init();
+
 </script>
 
 </body>
