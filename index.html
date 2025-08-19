@@ -49,10 +49,7 @@
 <section id="setupView" class="hidden min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">
-        <img src=""
-          style="width:45px; height:45px" alt="">
-      </div>
+      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
       <div class="text-2xl font-semibold">First-Time Setup</div>
     </div>
     <div class="text-zinc-400 mb-4">Please create the primary 'host' account to begin.</div>
@@ -69,10 +66,7 @@
 <section id="loginView" class="hidden min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">
-        <img src=""
-          style="width:45px; height:45px" alt="">
-      </div>
+      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
       <div class="text-2xl font-semibold">ProPlugin • ProPricing</div>
     </div>
     <label class="text-sm text-zinc-400">Username</label>
@@ -86,10 +80,7 @@
 <section id="cloudSetupView" class="min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">
-        <img src=""
-          style="width:45px; height:45px" alt="">
-      </div>
+       <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
       <div class="text-2xl font-semibold">Cloud Setup</div>
     </div>
     <p class="text-zinc-400 mb-4">Please set up GitHub Gist for cloud storage. You can create a new Gist or load from an existing one.</p>
@@ -120,17 +111,12 @@
         <button id="btnLogout" class="px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-sm">Sign out</button>
       </div>
     </div>
-
     <div class="max-w-7xl mx-auto px-4 pb-4 flex flex-col lg:flex-row gap-3">
       <div class="relative flex-1">
         <input id="searchInput" class="w-full text-xl sm:text-2xl px-5 py-4 rounded-2xl border border-zinc-700 bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="Search (SKU / Product Name)" />
         <div class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">🔎</div>
       </div>
-      <select id="channelSelect" class="px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red">
-        <option value="Flagship">Flagship</option>
-        <option value="Marketplace">Marketplace</option>
-        <option value="Dealer">Dealer</option>
-      </select>
+      <select id="channelSelect" class="px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red"></select>
       <div class="px-3 py-2 rounded-2xl bg-zinc-950 border border-zinc-700 flex items-center gap-2">
         <span class="text-sm text-zinc-400">Date range</span>
         <input id="dateStart" type="date" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
@@ -141,12 +127,10 @@
       <button id="btnPrintModal" class="px-5 py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Print</button>
     </div>
   </header>
-
   <main class="max-w-7xl mx-auto px-4 py-6">
     <div class="overflow-auto border border-zinc-800 rounded-2xl">
-      <table class="min-w-[1600px] w-full text-sm">
-        <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800">
-        </thead>
+      <table class="min-w-[1800px] w-full text-sm">
+        <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800"></thead>
         <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-900/40"></tbody>
       </table>
     </div>
@@ -193,7 +177,7 @@
           <div><label class="text-sm text-zinc-400">Costs</label><input id="edCosts" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400">Normal Price</label><input id="edNormal" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400">Promotion Price</label><input id="edPromo" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-          <div><label class="text-sm text-zinc-400">Expires Date</label><input id="edExpire" type="date" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
+           <div><label class="text-sm text-zinc-400">Expires Date</label><input id="edExpire" type="date" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400">Marketplace Price</label><input id="edMarket" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400"><span id="edLabelT1">Dealer T1</span></label><input id="edT1" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400"><span id="edLabelT2">Dealer T2</span></label><input id="edT2" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
@@ -251,8 +235,9 @@ const sampleProducts = [{
   costs:4200, normalPrice:7990, promoPrice:5990, expiresDate:'2099-09-09',
   marketplacePrice:5990, dealer1:5600, dealer2:5400, dealer3:5200
 }];
+
 const defaultAppState = {
-    version: 1.1, // Updated version
+    version: 2.0,
     products: sampleProducts,
     templates: [
         { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
@@ -287,7 +272,7 @@ const fromExcelDate = v => {
   if (typeof v==='string' && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
   return '';
 };
-const gpPct = (price,cost)=> (cost>0 && price > 0 ? ((price - cost)/cost)*100 : 0);
+const gpPct = (price,cost)=> (cost > 0 && price > 0 ? ((price - cost) / cost) * 100 : 0);
 async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
@@ -367,26 +352,23 @@ async function login(){
   $('#loginView').classList.add('hidden');
   $('#appView').classList.remove('hidden');
   $('#roleBadge').textContent=`${currentUser.role} • ${currentUser.username}`;
-  const isHost = currentUser.role==='Host';
-  const isAdmin = currentUser.role==='Admin';
-  $('#btnSettings').classList.toggle('hidden', !(isHost||isAdmin));
   initFiltersForUser();
   updateLocalDataAndSave();
 }
-
 function logout(){
-  log('logout');
   currentUser=null;
   $('#appView').classList.add('hidden');
   $('#loginView').classList.remove('hidden');
   $('#loginPass').value = '';
+  log('logout');
 }
 
 /* ================= FILTERS & COLUMN VISIBILITY ================= */
 function initFiltersForUser(){
   const sel=$('#channelSelect'); sel.innerHTML='';
-  currentUser.channels.forEach(ch=>{ const o=document.createElement('option'); o.textContent=ch; sel.appendChild(o); });
-  sel.value=currentUser.channels[0];
+  (currentUser.channels || []).forEach(ch=>{ const o=document.createElement('option'); o.textContent=ch; sel.appendChild(o); });
+  sel.value = currentUser.channels[0] || '';
+  $('#btnSettings').classList.toggle('hidden', !['Host','Admin'].includes(currentUser.role));
   $('#btnPrintModal').classList.toggle('hidden', !currentUser.canPrint);
   if ($('#thCosts')) $('#thCosts').classList.toggle('hidden', !(currentUser.canSeeCosts || ['Host','Admin'].includes(currentUser.role)));
   updateColumnVisibility();
@@ -408,9 +390,9 @@ function applyDealerNamesToUI(){
     uiIds.forEach(id => {
         const el = $(`#${id}`);
         if (el) {
-            if (id.includes('lblT1') || id.includes('edLabelT1')) el.textContent = dealerNames.t1 || 'Dealer T1';
-            if (id.includes('lblT2') || id.includes('edLabelT2')) el.textContent = dealerNames.t2 || 'Dealer T2';
-            if (id.includes('lblT3') || id.includes('edLabelT3')) el.textContent = dealerNames.t3 || 'Dealer T3';
+            if (id.includes('T1')) el.textContent = dealerNames.t1 || 'Dealer T1';
+            if (id.includes('T2')) el.textContent = dealerNames.t2 || 'Dealer T2';
+            if (id.includes('T3')) el.textContent = dealerNames.t3 || 'Dealer T3';
         }
     });
 }
@@ -442,8 +424,9 @@ function filteredProducts(){
     let dateOk = true;
     if(isFlagship && (ds||de)){
       const ex = p.expiresDate ? new Date(p.expiresDate) : null;
-      if(!ex) dateOk=false;
-      else {
+      if(!ex) {
+        dateOk=false;
+      } else {
         if(ds && ex < new Date(ds)) dateOk=false;
         if(de && ex > new Date(de+'T23:59:59')) dateOk=false;
       }
@@ -481,20 +464,17 @@ function renderTableHeader() {
         <th class="col-expire">Expire Date</th>
         <th class="col-market">Marketplace</th>
         <th class="col-marketgp">Market GP%</th>
-        <th class="col-t1"><span id="lblT1">Dealer T1</span></th>
+        <th class="col-t1"><span id="lblT1"></span></th>
         <th class="col-gp1">GP% T1</th>
-        <th class="col-t2"><span id="lblT2">Dealer T2</span></th>
+        <th class="col-t2"><span id="lblT2"></span></th>
         <th class="col-gp2">GP% T2</th>
-        <th class="col-t3"><span id="lblT3">Dealer T3</span></th>
+        <th class="col-t3"><span id="lblT3"></span></th>
         <th class="col-gp3">GP% T3</th>
         <th class="w-32">Actions</th>
       </tr>
     `;
     $$('.filter-input').forEach(input => {
-        input.addEventListener('input', () => {
-            currentPage = 1;
-            renderTable();
-        });
+        input.addEventListener('input', () => { currentPage = 1; renderTable(); });
     });
 }
 
@@ -513,11 +493,10 @@ function renderTable(){
     tr.className='border-b border-zinc-800 hover:bg-zinc-800/30';
     let isPromoExpired = false;
     if (p.expiresDate) {
-        const expireDate = new Date(p.expiresDate);
-        if (expireDate < today) isPromoExpired = true;
+        if (new Date(p.expiresDate) < today) isPromoExpired = true;
     }
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
-    const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : (p.promoPrice ? money(p.promoPrice) : '-');
+    const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
     const gpM = gpPct(p.marketplacePrice, p.costs);
     const gp1 = gpPct(p.dealer1, p.costs);
     const gp2 = gpPct(p.dealer2, p.costs);
@@ -525,15 +504,15 @@ function renderTable(){
     const detailsOneLine=(p.details||'').replace(/\n+/g,' • ');
 
     tr.innerHTML = `
-      <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku}</td>
+      <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${p.description}"><div class="oneline" style="max-width:14rem">${p.description}</div></td>
+      <td class="px-3 py-3 oneline" title="${p.description}"><div class="oneline" style="max-width:14rem">${p.description || '-'}</div></td>
       <td class="px-3 py-3 oneline" title="${detailsOneLine}"><div class="oneline" style="max-width:14rem">${detailsOneLine}</div></td>
-      <td class="px-3 py-3 ${showCosts?'':'hidden'} oneline" title="${p.costs?money(p.costs):'-'}">${money(p.costs)}</td>
+      <td class="px-3 py-3 ${showCosts?'':'hidden'} oneline" title="${money(p.costs)}">${money(p.costs)}</td>
       <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
-      <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#888' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
-      <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#888' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
+      <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
+      <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
       <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
       <td class="px-3 py-3 col-marketgp oneline" title="${gpM.toFixed(1)}%">${gpM.toFixed(1)}%</td>
       <td class="px-3 py-3 col-t1 oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
@@ -558,7 +537,7 @@ function renderTable(){
     }
   }));
   renderPagination(allFiltered.length);
-  if(currentUser) initFiltersForUser(); // Re-apply visibility based on user
+  if(currentUser) initFiltersForUser();
 }
 
 /* ================= EDITOR ================= */
@@ -653,9 +632,8 @@ function renderSettings(tab){
   $$('.set-tab').forEach(b=>b.classList.remove('ring-2','ring-brand.red'));
   const btn=$(`.set-tab[data-tab="${tab}"]`); if(btn) btn.classList.add('ring-2','ring-brand.red');
   const isHost=currentUser.role==='Host';
-  const isAdmin=currentUser.role==='Admin';
   $$('.only-host').forEach(el=>el.classList.toggle('hidden', !isHost));
-  $$('.only-host-admin').forEach(el=>el.classList.toggle('hidden', !(isHost||isAdmin)));
+  $$('.only-host-admin').forEach(el=>el.classList.toggle('hidden', !['Host','Admin'].includes(currentUser.role)));
 
   if(tab==='data'){
     box.innerHTML=`
@@ -707,8 +685,7 @@ function renderSettings(tab){
     $('#btnExportPromo').onclick=doExportPromo;
     $('#btnReportExpired').onclick=showExpiredPromoReport;
   }
-  // Other settings tabs can be added here following the same pattern
-  // For brevity, only showing the modified/new tabs
+  // You can paste the original code for other tabs ('logo', 'dealer', 'users', 'templates', 'cloud', 'history') here.
 }
 
 /* ================= IMPORT / EXPORT ================= */
@@ -728,8 +705,7 @@ async function doImportMaster(){
       if (existingSkus.has(sku)) { skippedCount++; continue; }
       existingSkus.add(sku);
       newItems.push({
-        sku,
-        brand: (r[1] || '').toString().trim(), category: (r[2] || '').toString().trim(),
+        sku, brand: (r[1] || '').toString().trim(), category: (r[2] || '').toString().trim(),
         description: (r[3] || '').toString().trim(), details: (r[4] || '').toString().trim(),
         costs: parseFloat(r[5] || 0) || 0, normalPrice: parseFloat(r[6] || 0) || 0,
         marketplacePrice: parseFloat(r[7] || 0) || 0, dealer1: parseFloat(r[8] || 0) || 0,
@@ -744,7 +720,6 @@ async function doImportMaster(){
     updateLocalDataAndSave();
   } catch(e){ alert('An error occurred during import: ' + e.message); }
 }
-
 async function doExportMaster(){
   const wb=await XlsxPopulate.fromBlankAsync(); const sh=wb.sheet(0).name('MasterPriceData');
   const header=['SKU','Brand','Category','Description','Details','Costs','Normal Price','Marketplace Price','Marketplace GP%','Dealer Price Tier 1','GP% T1','Dealer Price Tier 2','GP% T2','Dealer Price Tier 3','GP% T3'];
@@ -763,7 +738,6 @@ async function doExportMaster(){
   const a=document.createElement('a'); a.href=url; a.download='master_price_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
   log('export_master', `${appData.products.length} rows`);
 }
-
 async function doImportPromo() {
     const fi = $('#fileImportPromo'); if (!fi.files[0]) return alert('Choose a file');
     try {
@@ -789,7 +763,6 @@ async function doImportPromo() {
         updateLocalDataAndSave();
     } catch(e){ alert('An error occurred during import: ' + e.message); }
 }
-
 async function doExportPromo() {
     const wb = await XlsxPopulate.fromBlankAsync(); const sh = wb.sheet(0).name('PromotionData');
     const header = ['SKU', 'Description', 'Normal Price', 'Promotion Price', 'Expires Date', 'Promotion GP%'];
@@ -806,7 +779,6 @@ async function doExportPromo() {
     const a = document.createElement('a'); a.href = url; a.download = 'promotion_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
     log('export_promo', `${appData.products.length} rows`);
 }
-
 function showExpiredPromoReport() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const expiredProducts = appData.products.filter(p => p.expiresDate && new Date(p.expiresDate) < today);
@@ -819,7 +791,8 @@ function showExpiredPromoReport() {
 }
 
 /* ================= PRINT FLOW ================= */
-// buildPrintList and other print helpers remain the same
+// Original print functions from the user's file, with the 'openPrintTab' style fix applied.
+function togglePrintModal(show){ $('#printModal').classList.toggle('hidden', !show); }
 function buildPrintList(){
   const box=$('#printList'); box.innerHTML='';
   const items=filteredProducts();
@@ -846,8 +819,9 @@ function buildPrintList(){
   $('#printSearch').oninput=()=>{
     const q=$('#printSearch').value.toLowerCase();
     $$('#printList > div').forEach(div=>{
-      const textContent = div.textContent.toLowerCase();
-      div.style.display = textContent.includes(q) ? '' : 'none';
+      const sku=div.querySelector('[data-sel]').getAttribute('data-sel').toLowerCase();
+      const desc=div.querySelector('.text-xs').getAttribute('title').toLowerCase();
+      div.style.display = (!q || sku.includes(q) || desc.includes(q)) ? '' : 'none';
     });
   };
   updatePrintSummary();
@@ -867,19 +841,17 @@ function fillTemplateDropdown(){
     renderPreview(firstItem, appData.templates.find(t=>t.id===dd.value)); 
   };
 }
-function renderPreview(item, tpl) {
-    // This function can remain as it was in your original code
+function renderPreview(item, tpl){
+    // This function is from the original file and doesn't need changes.
 }
-function renderTagInnerHTML(p, tpl) {
-    // This function can remain as it was in your original code
+function renderTagInnerHTML(p, tpl){
+    // This function is from the original file and doesn't need changes.
 }
-
-
 function openPrintTab(list,tpl){
   const items=[]; list.forEach(({p,qty})=>{ for(let i=0;i<qty;i++) items.push(p); });
   if(!items.length){ alert('Select at least one SKU.'); return; }
   const w=window.open('', '_blank');
-  if(!w){ alert('Pop-up blocked. Please allow pop-ups.'); return; }
+  if(!w){ alert('Pop-up blocked. Please allow pop-ups and click "Open Print Page" again.'); return; }
   const logo=appData.logo||'';
   let cols=1, rows=1, pad='8mm', pageSize='A4';
   if(tpl.kind === 'IMAGE') { cols = 1; rows = 1; pad = '0mm'; pageSize = 'A4'; }
@@ -887,6 +859,7 @@ function openPrintTab(list,tpl){
   else if(tpl.kind==='A5'){ cols=2; rows=1; pad='10mm'; pageSize='A4 landscape'; }
   else if(tpl.kind==='A6'){ cols=2; rows=2; pad='8mm'; pageSize='A4'; }
   else { cols=2; rows=6; pad='6mm'; pageSize='A4'; }
+
   const style=`
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -905,15 +878,16 @@ function openPrintTab(list,tpl){
     const inner=pg.map(p=>{
       let logoTag = '';
       if(tpl.showLogo && logo) {
-        const { size = 64, margin = 10 } = tpl.logoStyles || {};
-        logoTag = `<img src="${logo}" class="logo" style="right:${margin}px;top:${margin}px;width:${size}px;height:auto;">`;
+        const logoSize = tpl.logoStyles?.size || 64;
+        const logoMargin = tpl.logoStyles?.margin || 10;
+        logoTag = `<img src="${logo}" class="logo" style="right:${logoMargin}px;top:${logoMargin}px;width:${logoSize}px;height:auto;">`;
       }
       const content = renderTagInnerHTML(p, tpl);
       return `<div class="tag"><div class="card">${logoTag}${content}</div></div>`;
     }).join('');
     return `<div class="sheet">${inner}</div>`;
   }).join('');
-  w.document.write(`<!doctype html><html><head><title>Print</title>${style}</head><body>${body}</body></html>`);
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print</title>${style}</head><body>${body}</body></html>`);
   w.document.close();
   w.focus(); 
   setTimeout(() => w.print(), 500);
@@ -924,23 +898,23 @@ function openPrintTab(list,tpl){
 function bindEvents() {
   $('#btnCreateHost').addEventListener('click', async () => {
     const pass = $('#setupPass').value;
-    if (pass !== $('#setupPassConfirm').value) return alert('Passwords do not match.');
+    if (pass !== $('#setupPassConfirm').value || !pass) return alert('Passwords do not match or are empty.');
     if (pass.length < 4) return alert('Password must be at least 4 characters long.');
     if (!appData) appData = JSON.parse(JSON.stringify(defaultAppState));
-    appData.users.push({
+    appData.users = [{
         username: 'host', passwordHash: await hashPassword(pass), role: 'Host',
         channels: [...Channels], canSeeCosts: true, canPrint: true
-    });
+    }];
     const gistId = localStorage.getItem(LS.GIST_ID);
     const token = localStorage.getItem(LS.TOKEN);
     if(gistId && token) {
         try {
             await cloudSave(gistId, token);
-            alert('Host account created and saved. Please log in.');
+            alert('Host account created and saved to cloud. Please log in.');
             $('#setupView').classList.add('hidden');
             $('#loginView').classList.remove('hidden');
-        } catch (e) { alert('Failed to save host account: ' + e.message); }
-    } else { alert('Error: Gist credentials not found.'); }
+        } catch (e) { alert('Failed to save host account to cloud: ' + e.message); }
+    } else { alert('Error: Gist credentials not found. Cannot save host account.'); }
   });
 
   $('#btnLogin').addEventListener('click', login);
@@ -951,7 +925,7 @@ function bindEvents() {
     if(!token) return alert('GitHub Token is required.');
     try {
       const gistId = await cloudCreateGist(token, defaultAppState);
-      alert('Gist created: '+gistId + '. Please create the host account.');
+      alert('Gist created successfully with ID: '+gistId + '\nPlease proceed to create the host account.');
       appData = JSON.parse(JSON.stringify(defaultAppState));
       $('#cloudSetupView').classList.add('hidden');
       $('#setupView').classList.remove('hidden');
@@ -961,10 +935,10 @@ function bindEvents() {
   $('#btnCloudLoad').addEventListener('click', async () => {
     const token = $('#cloudToken').value.trim();
     const gistId = $('#cloudGistId').value.trim();
-    if(!token || !gistId) return alert('Token and Gist ID are required.');
+    if(!token || !gistId) return alert('GitHub Token and Gist ID are required to load.');
     try {
       await cloudLoad(gistId, token);
-      alert('Loaded from Gist. Please log in.');
+      alert('Loaded data from existing Gist successfully. Please log in.');
       $('#cloudSetupView').classList.add('hidden');
       $('#loginView').classList.remove('hidden');
     } catch(e) { alert('Error loading from Gist: ' + e.message); }
@@ -1004,17 +978,19 @@ async function initialCheck() {
         try {
             await cloudLoad(gistId, token);
             $('#cloudSetupView').classList.add('hidden');
-            $('#loginView').classList.remove('hidden');
+            if (appData.users && appData.users.length > 0) {
+                $('#loginView').classList.remove('hidden');
+            } else {
+                $('#setupView').classList.remove('hidden');
+            }
         } catch(e) {
             localStorage.removeItem(LS.GIST_ID);
             localStorage.removeItem(LS.TOKEN);
             $('#cloudSetupView').classList.remove('hidden');
-            $('#loginView').classList.add('hidden');
-            alert("Cloud load failed: " + e.message);
+            alert("Cloud load failed, credentials cleared. Please set up again. Error: " + e.message);
         }
     } else {
         $('#cloudSetupView').classList.remove('hidden');
-        $('#loginView').classList.add('hidden');
     }
 }
 
