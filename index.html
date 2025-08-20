@@ -1563,7 +1563,11 @@ function init() {
   bindAuthEvents();
   
   document.addEventListener('click', (e) => {
-      if (!e.target.closest('.filter-btn') && !e.target.closest('.filter-dropdown')) {
+      const filterBtn = e.target.closest('.filter-btn');
+      if (filterBtn) {
+          e.stopPropagation();
+          openFilterDropdown(filterBtn.dataset.filterKey);
+      } else if (!e.target.closest('.filter-dropdown')) {
           closeAllFilterDropdowns();
       }
       
