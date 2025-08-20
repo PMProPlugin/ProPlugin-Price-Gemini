@@ -376,18 +376,18 @@ async function login(){
   if(!found) return alert('Invalid credentials');
 
   currentUser=found;
-  columnFilters = {};
+  columnFilters = {}; // Reset filters on new login
   $('#loginView').classList.add('hidden');
   $('#appView').classList.remove('hidden');
   $('#roleBadge').textContent=`${currentUser.role} • ${currentUser.username}`;
   
-  bindAppEvents();
   initFiltersForUser();
+  bindAppEvents();
   updateLocalDataAndSave();
 }
 function logout(){
   currentUser=null;
-  columnFilters = {};
+  columnFilters = {}; // Reset filters on logout
   $('#appView').classList.add('hidden');
   $('#loginView').classList.remove('hidden');
   $('#loginPass').value = '';
@@ -902,17 +902,369 @@ function renderSettings(tab){
 
 
 /* ================= IMPORT / EXPORT ================= */
-// This section is unchanged.
+async function doImportMaster(){
+  const fi=$('#fileImportMaster'); if(!fi.files[0]) return alert('Choose a file');
+  try {
+    const data=await fi.files[0].arrayBuffer();
+    const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    let headerRowIndex = rows.findIndex(row => (row[0] || '').toString().toLowerCase().trim() === 'sku');
+    if (headerRowIndex === -1) { return alert('Error: Cannot find header row "SKU".'); }
+    const start=headerRowIndex + 1;
+    const newItems=[], existingSkus = new Set(appData.products.map(p => p.sku));
+    let skippedCount = 0;
+    for(let i=start;i<rows.length;i++){
+      const r=rows[i]; const sku = (r[0]||'').toString().trim(); if(!sku) continue;
+      if (existingSkus.has(sku)) { skippedCount++; continue; }
+      existingSkus.add(sku);
+      newItems.push({
+        sku,
+        description: (r[1] || '').toString().trim(), details: (r[2] || '').toString().trim(),
+        brand: (r[3] || '').toString().trim(), category: (r[4] || '').toString().trim(),
+        costs: parseFloat(r[5] || 0) || 0, normalPrice: parseFloat(r[6] || 0) || 0,
+        marketplacePrice: parseFloat(r[7] || 0) || 0, dealer1: parseFloat(r[8] || 0) || 0,
+        dealer2: parseFloat(r[9] || 0) || 0, dealer3: parseFloat(r[10] || 0) || 0,
+        promoPrice: 0, expiresDate: ''
+      });
+    }
+    if(!newItems.length && skippedCount === 0) return alert('No new valid products found to import.');
+    appData.products=[...newItems, ...appData.products];
+    log('import_master', `${newItems.length} rows`);
+    alert(`Import complete.\n- New products added: ${newItems.length}\n- Existing SKUs skipped: ${skippedCount}`);
+    updateLocalDataAndSave();
+  } catch(e){ alert('An error occurred during import: ' + e.message); }
+}
+async function doExportMaster(){
+  const wb=await XlsxPopulate.fromBlankAsync(); const sh=wb.sheet(0).name('MasterPriceData');
+  const header=['SKU','Description','Details','Brand','Category','Costs','Normal Price','Marketplace Price','Market GP%','Dealer T1','GP% T1','Dealer T2','GP% T2','Dealer T3','GP% T3'];
+  const dataRows = (appData.products || []).map(p=>[
+    p.sku,p.description,p.details,p.brand,p.category,p.costs,p.normalPrice,
+    p.marketplacePrice, +gpPct(p.marketplacePrice,p.costs).toFixed(2),
+    p.dealer1, +gpPct(p.dealer1,p.costs).toFixed(2), p.dealer2, +gpPct(p.dealer2,p.costs).toFixed(2),
+    p.dealer3, +gpPct(p.dealer3,p.costs).toFixed(2)
+  ]);
+  sh.cell('A1').value([header,...dataRows]);
+  sh.row(1).style({bold:true});
+  if(dataRows.length > 0) sh.range(`F2:F${dataRows.length+1}`).style({fill:'FFCCFFCC'});
+  [15,30,40,20,20,12,14,16,14,14,12,14,12,14,12].forEach((w,i)=>sh.column(i+1).width(w));
+  const blob=await wb.outputAsync();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='master_price_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
+  log('export_master', `${appData.products.length} rows`);
+}
+async function doImportPromo() {
+    const fi = $('#fileImportPromo'); if (!fi.files[0]) return alert('Choose a file');
+    try {
+        const data = await fi.files[0].arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array' }); const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+        let headerRowIndex = rows.findIndex(row => (row[0] || '').toString().toLowerCase().trim() === 'sku');
+        if (headerRowIndex === -1) { return alert('Error: Cannot find header row "SKU".'); }
+        const start = headerRowIndex + 1;
+        let updatedCount = 0; let notFoundCount = 0;
+        const productMap = new Map(appData.products.map(p => [p.sku, p]));
+        for (let i = start; i < rows.length; i++) {
+            const r = rows[i]; const sku = (r[0] || '').toString().trim(); if (!sku) continue;
+            const product = productMap.get(sku);
+            if (product) {
+                product.promoPrice = parseFloat(r[3] || 0) || 0;
+                product.expiresDate = fromExcelDate(r[4] || '');
+                updatedCount++;
+            } else { notFoundCount++; }
+        }
+        log('import_promo', `${updatedCount} rows updated`);
+        alert(`Promotion import complete.\n- Products updated: ${updatedCount}\n- SKUs not found: ${notFoundCount}`);
+        updateLocalDataAndSave();
+    } catch(e){ alert('An error occurred during import: ' + e.message); }
+}
+async function doExportPromo() {
+    const wb = await XlsxPopulate.fromBlankAsync(); const sh = wb.sheet(0).name('PromotionData');
+    const header = ['SKU', 'Description', 'Normal Price', 'Promotion Price', 'Expires Date', 'Promotion GP%'];
+    const dataRows = (appData.products || []).map(p => [
+        p.sku, p.description, p.normalPrice, p.promoPrice,
+        p.expiresDate ? toDateInput(p.expiresDate) : '', +gpPct(p.promoPrice, p.costs).toFixed(2)
+    ]);
+    sh.cell('A1').value([header, ...dataRows]);
+    sh.row(1).style({ bold: true });
+    if(dataRows.length > 0) sh.range(`D2:E${dataRows.length+1}`).style({fill:'FFFFFF99'});
+    [15, 30, 14, 16, 16, 14].forEach((w, i) => sh.column(i + 1).width(w));
+    const blob = await wb.outputAsync();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'promotion_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
+    log('export_promo', `${appData.products.length} rows`);
+}
+function showExpiredPromoReport() {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const expiredProducts = (appData.products || []).filter(p => p.expiresDate && new Date(p.expiresDate) < today);
+    if (expiredProducts.length === 0) return alert('No expired promotions found.');
+    const reportText = expiredProducts
+        .map(p => `SKU: ${p.sku}\nDesc: ${ellip(p.description, 40)}\nExpired: ${toDateInput(p.expiresDate)}\n--------------------`)
+        .join('\n');
+    alert(`--- Expired Promotions Report ---\n\n${reportText}`);
+    log('report_expired_promo', `${expiredProducts.length} items`);
+}
 
 /* ================= PRINT FLOW & OTHERS ================= */
-// This section is unchanged.
+function togglePrintModal(show){ $('#printModal').classList.toggle('hidden', !show); }
+function buildPrintList(){
+  const box=$('#printList'); box.innerHTML='';
+  const items=filteredProducts();
+  const frag=document.createDocumentFragment();
+  items.forEach(p=>{
+    const row=document.createElement('div');
+    row.className='flex items-center gap-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-2';
+    row.innerHTML=`
+      <label class="flex items-center gap-2 w-6"><input type="checkbox" data-sel="${p.sku}"></label>
+      <div class="flex-1">
+        <div class="font-medium oneline" title="${p.sku}">${p.sku}</div>
+        <div class="text-xs text-zinc-400 oneline" title="${p.description}">${ellip(p.description, 46)}</div>
+      </div>
+      <div class="flex items-center gap-1">
+        <span class="text-xs text-zinc-400">Qty</span>
+        <input type="number" min="1" value="1" data-qty="${p.sku}" class="w-20 px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+      </div>
+    `;
+    frag.appendChild(row);
+  });
+  box.appendChild(frag);
+  $('#printCheckAll').checked=false;
+  $('#printCheckAll').onchange=()=> $$('#printList input[type="checkbox"]').forEach(c=>c.checked=$('#printCheckAll').checked);
+  $('#printSearch').oninput=()=>{
+    const q=$('#printSearch').value.toLowerCase();
+    $$('#printList > div').forEach(div=>{
+      const textContent = div.textContent.toLowerCase();
+      div.style.display = textContent.includes(q) ? '' : 'none';
+    });
+  };
+  updatePrintSummary();
+  $$('#printList input').forEach(i=>i.oninput=updatePrintSummary);
+}
+function updatePrintSummary(){
+  const selected=$$('#printList input[type="checkbox"]:checked');
+  let count=0; selected.forEach(c=>{ const sku=c.dataset.sel; const qty=parseInt($(`[data-qty="${sku}"]`).value)||0; count+=qty; });
+  $('#printSummary').textContent = `${selected.length} SKUs selected • ${count} tags total`;
+}
+function fillTemplateDropdown(){
+  const dd=$('#printTemplate'); dd.innerHTML='';
+  (appData.templates || []).forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=t.name; dd.appendChild(o); });
+  dd.onchange=()=>{ 
+    const firstSelectedSku = $('#printList input[type="checkbox"]:checked')?.dataset.sel;
+    const firstItem = appData.products.find(p => p.sku === firstSelectedSku) || filteredProducts()[0];
+    renderPreview(firstItem, appData.templates.find(t=>t.id===dd.value)); 
+  };
+}
+function renderPreview(item, tpl) {
+    const box = $('#previewBox');
+    box.innerHTML = '';
+    if (!item || !tpl) {
+        box.innerHTML = '<div class="text-zinc-500">No items or template selected</div>';
+        return;
+    }
+    const { node, w, h } = buildPreviewTag(item, tpl);
+    node.style.transformOrigin = 'top left';
+    const holder = document.createElement('div');
+    holder.style.position = 'relative';
+    holder.appendChild(node);
+    box.appendChild(holder);
+
+    function fit() {
+        if (!box || !node || !holder) return;
+        const availW = box.clientWidth;
+        const availH = box.clientHeight;
+        const scale = Math.max(0.1, Math.min(availW / w, availH / h));
+        node.style.transform = `scale(${scale})`;
+        holder.style.width = (w * scale) + 'px';
+        holder.style.height = (h * scale) + 'px';
+        holder.style.margin = 'auto';
+    }
+    fit();
+    const ro = new ResizeObserver(() => fit());
+    ro.observe(box);
+}
+
+function buildPreviewTag(p, tpl) {
+    let w, h;
+    const size = baseSize(tpl.kind);
+    w = size.w;
+    h = size.h;
+    if (tpl.imageData) {
+        const img = new Image();
+        img.src = tpl.imageData;
+        if(img.width > 0 && img.height > 0){
+            w = img.width;
+            h = img.height;
+        }
+    }
+    const outer = document.createElement('div');
+    outer.style.width = w + 'px';
+    outer.style.height = h + 'px';
+    outer.style.borderRadius = '12px';
+    outer.style.overflow = 'hidden';
+    outer.style.border = '2px solid #1f1f22';
+    outer.style.background = tpl.imageData ? `url(${tpl.imageData})` : (tpl.kind === 'ACC' ? '#000' : '#0b0b0c');
+    outer.style.backgroundSize = 'cover';
+    outer.style.backgroundPosition = 'center';
+    outer.style.color = '#fff';
+    outer.style.position = 'relative';
+
+    if (tpl.showLogo) {
+        const logo = appData.logo;
+        const logoSize = tpl.logoStyles?.size || 64;
+        const logoMargin = tpl.logoStyles?.margin || 10;
+        outer.innerHTML += logo ? `<img src="${logo}" style="position:absolute;right:${logoMargin}px;top:${logoMargin}px;width:${logoSize}px;height:auto;">` :
+            `<div style="position:absolute;right:${logoMargin}px;top:${logoMargin}px;width:${logoSize}px;color:#fff;font-weight:800;text-align:right">P</div>`;
+    }
+    const inner = document.createElement('div');
+    inner.innerHTML = renderTagInnerHTML(p, tpl);
+    inner.style.width = '100%';
+    inner.style.height = '100%';
+    outer.appendChild(inner);
+    return { node: outer, w, h };
+}
+
+function renderTagInnerHTML(p, tpl){
+  const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
+  const styleInline = (o) => `font-size:${o.fs||14}px;color:${o.color||'#fff'};margin-top:${o.mt||0}px;`;
+  const content = `
+    <div style="position:absolute; top:0; left:0; right:0; bottom:0; padding:${innerPadding}; display:flex; flex-direction:column;">
+        <div style="${styleInline(tpl.styles.sku)};opacity:.9" class="text-right text-elevate">${p.sku}</div>
+        <div style="font-weight:800;line-height:1.2;${styleInline(tpl.styles.description)}" class="mt-2 text-elevate">${p.description}</div>
+        <div class="mt-3 space-y-1">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
+            <div class="flex gap-2 items-start text-elevate" style="${styleInline(tpl.styles.details)}"><span>•</span><span>${t}</span></div>`).join('')}</div>
+        <div class="mt-auto flex items-end justify-between">
+            <div style="${styleInline(tpl.styles.expire)}" class="text-elevate">Expire : ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
+            <div class="text-right">
+            <div style="${styleInline(tpl.styles.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
+            <div style="font-weight:900;${styleInline(tpl.styles.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
+            </div>
+        </div>
+    </div>
+  `;
+  if(tpl.kind==='ACC'){
+      const s=tpl.styles;
+      return `
+      <div style="position:absolute;left:6mm;top:4mm;${styleInline(s.sku)}" class="text-elevate">${p.sku}</div>
+      <div style="display:flex;align-items:center;justify-content:center;text-align:center;height:100%;padding:10mm 8mm;" class="text-elevate">
+          <div style="${styleInline(s.description)};max-width:100%;word-break:break-word">${ellip(p.description, 44)}</div>
+      </div>
+      <div style="position:absolute;left:6mm;bottom:4mm;${styleInline(s.expire)}" class="text-elevate">Expire ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
+      <div style="position:absolute;right:6mm;bottom:4mm;text-align:right">
+          <div style="${styleInline(s.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
+          <div style="font-weight:900;${styleInline(s.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
+      </div>
+      `;
+  }
+  return content;
+}
+
+
+function baseSize(kind){
+  if(kind==='A4') return {w:744,h:1052};
+  if(kind==='A5') return {w:526,h:744};
+  if(kind==='A6') return {w:372,h:526};
+  return {w:640,h:320}; // ACC or default for IMAGE
+}
+
+function openPrintTab(list,tpl){
+  const items=[]; list.forEach(({p,qty})=>{ for(let i=0;i<qty;i++) items.push(p); });
+  if(!items.length){ alert('Select at least one SKU.'); return; }
+  const w=window.open('', '_blank');
+  if(!w){ alert('Pop-up blocked. Please allow pop-ups and click "Open Print Page" again.'); return; }
+  const logo=appData.logo||'';
+  let cols=1, rows=1, pad='8mm', pageSize='A4';
+  if(tpl.kind === 'IMAGE') { cols = 1; rows = 1; pad = '0mm'; pageSize = 'A4'; }
+  else if(tpl.kind==='A4'){ cols=1; rows=1; pad='10mm'; pageSize='A4'; }
+  else if(tpl.kind==='A5'){ cols=2; rows=1; pad='10mm'; pageSize='A4 landscape'; }
+  else if(tpl.kind==='A6'){ cols=2; rows=2; pad='8mm'; pageSize='A4'; }
+  else { cols=2; rows=6; pad='6mm'; pageSize='A4'; }
+
+  const style=`
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+      @page { size: ${pageSize}; margin: 0; }
+      html,body{ background:#fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family:'Kanit','Prompt',sans-serif; margin: 0; padding: 0; }
+      .sheet{ width: ${pageSize.includes('landscape') ? '297mm' : '210mm'}; height: ${pageSize.includes('landscape') ? '210mm' : '297mm'}; margin: 0; display: grid; grid-template-columns: repeat(${cols}, 1fr); grid-template-rows: repeat(${rows}, 1fr); gap: 0; page-break-after: always; box-sizing: border-box; }
+      .tag{ width:100%; height:100%; padding:${pad}; box-sizing:border-box; position:relative; display: flex; align-items: center; justify-content: center;}
+      .card{ position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid #1f1f22; background-color:${tpl.imageData ? 'transparent' : (tpl.kind==='ACC'?'#000':'#0b0b0c')}; color:#fff; background-image: ${tpl.imageData ? `url(${tpl.imageData})` : 'none'}; background-size: cover; background-position: center; }
+      .logo{ position:absolute; }
+      .text-elevate{ text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
+    </style>
+  `;
+  const perSheet = cols*rows;
+  const pages=[]; for(let i=0;i<items.length;i+=perSheet) pages.push(items.slice(i,i+perSheet));
+  const body = pages.map(pg=>{
+    const inner=pg.map(p=>{
+      let logoTag = '';
+      if(tpl.showLogo && logo) {
+        const { size = 64, margin = 10 } = tpl.logoStyles || {};
+        logoTag = `<img src="${logo}" class="logo" style="right:${margin}px;top:${margin}px;width:${size}px;height:auto;">`;
+      }
+      const content = renderTagInnerHTML(p, tpl);
+      return `<div class="tag"><div class="card">${logoTag}${content}</div></div>`;
+    }).join('');
+    return `<div class="sheet">${inner}</div>`;
+  }).join('');
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Print</title>${style}</head><body>${body}</body></html>`);
+  w.document.close();
+  w.focus(); 
+  setTimeout(() => w.print(), 500);
+  log('open_print', `${items.length} tags, tpl=${tpl.name}`);
+}
 
 /* ================= NEW EXCEL FILTER LOGIC ================= */
-// This section is unchanged.
+function closeAllFilterDropdowns(exceptKey = null) {
+    $$('.filter-dropdown').forEach(dropdown => {
+        if (!exceptKey || dropdown.id !== `filter-dropdown-${exceptKey}`) {
+            dropdown.style.display = 'none';
+        }
+    });
+}
+function openFilterDropdown(key) {
+    const dropdown = $(`#filter-dropdown-${key}`);
+    if(!dropdown) return;
+    const isVisible = dropdown.style.display === 'block';
+    closeAllFilterDropdowns(key);
+    if (isVisible) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    const uniqueValues = [...new Set((appData.products || []).map(p => (p[key] || '').toString()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
+    
+    let contentHTML = `<div class="filter-dropdown-content">
+        <label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded">
+            <input type="checkbox" id="filter-select-all-${key}"> (Select All)
+        </label>`;
+
+    const currentFilter = columnFilters[key] || new Set();
+    uniqueValues.forEach(value => {
+        const isChecked = currentFilter.size === 0 || currentFilter.has(value);
+        contentHTML += `<label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded" title="${value}">
+            <input type="checkbox" class="filter-item-${key}" value="${value}" ${isChecked ? 'checked' : ''}> ${ellip(value, 25)}
+        </label>`;
+    });
+
+    contentHTML += `</div>
+        <div class="flex gap-2 mt-2">
+            <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600">Apply</button>
+            <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
+        </div>`;
+    
+    dropdown.innerHTML = contentHTML;
+    dropdown.style.display = 'block';
+    
+    const selectAllCheckbox = $(`#filter-select-all-${key}`);
+    const allItemsCheckboxes = $$(`.filter-item-${key}`);
+    selectAllCheckbox.checked = allItemsCheckboxes.every(cb => cb.checked);
+    
+    selectAllCheckbox.onchange = (e) => {
+        allItemsCheckboxes.forEach(cb => cb.checked = e.target.checked);
+    };
+}
+
 
 /* ================= EVENTS BINDING (NEW MODULAR & STABLE STRUCTURE) ================= */
 
-// Bind events for views that are visible BEFORE login. Called once on startup.
 function bindAuthEvents() {
     $('#btnCreateHost').onclick = async () => {
         const pass = $('#setupPass').value;
@@ -960,7 +1312,6 @@ function bindAuthEvents() {
     };
 }
 
-// Bind events for the main application view. Called ONCE after successful login.
 function bindAppEvents() {
     $('#btnLogout').onclick = logout;
     $('#btnNewProduct').onclick = () => openEditor();
@@ -978,7 +1329,6 @@ function bindAppEvents() {
     $('#dateEnd').onchange = () => { currentPage = 1; renderTable(); };
     $('#channelSelect').onchange = () => { updateColumnVisibility(); currentPage = 1; renderTable(); };
 
-    // Modals and Panels that are part of the main app view
     $('#btnCloseSettings').onclick = () => $('#settingsPanel').classList.add('hidden');
     $$('.set-tab').forEach(b => b.onclick = () => openSettings(b.dataset.tab));
     $('#btnCloseEditor').onclick = closeEditor;
@@ -992,7 +1342,6 @@ function bindAppEvents() {
     };
 }
 
-// Bind events for DYNAMIC content within the table. Called every time the table is re-rendered.
 function bindTableEvents() {
     $$('button[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
     $$('button[data-del]').forEach(b => b.onclick = () => {
@@ -1012,7 +1361,6 @@ function bindTableEvents() {
     });
 }
 
-// Bind events for DYNAMIC content within the settings panel. Called every time a tab is rendered.
 function bindSettingsEvents(tab) {
     if (tab === 'data') {
         $('#btnDoImportMaster').onclick=doImportMaster;
@@ -1215,11 +1563,7 @@ function init() {
   bindAuthEvents();
   
   document.addEventListener('click', (e) => {
-      const filterBtn = e.target.closest('.filter-btn');
-      if (filterBtn) {
-          e.stopPropagation();
-          openFilterDropdown(filterBtn.dataset.filterKey);
-      } else if (!e.target.closest('.filter-dropdown')) {
+      if (!e.target.closest('.filter-btn') && !e.target.closest('.filter-dropdown')) {
           closeAllFilterDropdowns();
       }
       
