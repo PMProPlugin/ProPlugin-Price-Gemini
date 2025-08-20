@@ -50,7 +50,8 @@
   .filter-dropdown {
     display: none;
     position: absolute;
-    z-index: 50;
+    /* FIX: Increased z-index to ensure it's on top */
+    z-index: 100;
     background-color: #18181b;
     border: 1px solid #555;
     border-radius: 8px;
@@ -65,6 +66,19 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+  /* NEW: Styles for resizable columns */
+  .resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    cursor: col-resize;
+    user-select: none;
+    height: 100%;
+  }
+  .resizer:hover {
+    background-color: #E11D2E;
   }
 </style>
 </head>
@@ -154,7 +168,7 @@
   </header>
   <main class="max-w-7xl mx-auto px-4 py-6">
     <div class="overflow-auto border border-zinc-800 rounded-2xl">
-      <table class="min-w-[1800px] w-full text-sm">
+      <table class="w-full text-sm">
         <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800 sticky top-0"></thead>
         <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-900/40"></tbody>
       </table>
@@ -246,7 +260,7 @@
 const LS = {
   GIST_ID: 'pp_cloud_gist_id_v2',
   TOKEN: 'pp_cloud_token_v2',
-  LAST_USER: 'pp_last_user_v2' // Added for auto-login
+  LAST_USER: 'pp_last_user_v2'
 };
 const defaultDealerNames = {t1:'Dealer T1', t2:'Dealer T2', t3:'Dealer T3'};
 const Channels = ['Flagship','Marketplace','Dealer'];
@@ -262,7 +276,7 @@ const sampleProducts = [{
 }];
 
 const defaultAppState = {
-    version: 2.7, // Version updated
+    version: 2.8,
     products: sampleProducts,
     templates: [
         { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
@@ -353,7 +367,6 @@ async function cloudCreateGist(token, appState){
 }
 async function cloudSave(gistId, token){
   if(!gistId) throw new Error('Gist ID is required');
-  // FIX: Save JSON without pretty print to reduce risk of corruption
   const body = { files:{ 'proplugin-data.json':{ content: JSON.stringify(appData) } } };
   await gistRequest('PATCH','/gists/'+gistId, body, token);
 }
@@ -372,7 +385,7 @@ async function cloudLoad(gistId, token){
 function performLogin(user) {
     currentUser = user;
     localStorage.setItem(LS.LAST_USER, user.username);
-    columnFilters = {}; // Reset filters on new login
+    columnFilters = {};
 
     $('#setupView').classList.add('hidden');
     $('#loginView').classList.add('hidden');
@@ -409,10 +422,29 @@ function logout(){
   $('#loginPass').value = '';
 }
 
-/* ================= FILTERS & COLUMN VISIBILITY ================= */
+/* ================= UI VISIBILITY ================= */
+function updateRoleBasedVisibility() {
+    if (!currentUser) return;
+    const canEdit = ['Host', 'Admin'].includes(currentUser.role);
+    $$('.col-actions').forEach(el => el.classList.toggle('hidden', !canEdit));
+}
+
+function updateColumnVisibility(){
+  const ch = $('#channelSelect').value;
+  const show = {
+      normal: ch === 'Flagship', promo: ch === 'Flagship', expire: ch === 'Flagship',
+      market: ch === 'Marketplace', marketgp: ch === 'Marketplace',
+      t1: ch === 'Dealer', gp1: ch === 'Dealer', t2: ch === 'Dealer',
+      gp2: ch === 'Dealer', t3: ch === 'Dealer', gp3: ch === 'Dealer',
+  };
+  const map={ 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
+  Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
+  updateRoleBasedVisibility();
+}
+
 function initFiltersForUser(){
   const sel=$('#channelSelect');
-  const currentChannel = sel.value; // Preserve current selection if possible
+  const currentChannel = sel.value;
   sel.innerHTML='';
   (currentUser.channels || []).forEach(ch=>{ const o=document.createElement('option'); o.textContent=ch; o.value = ch; sel.appendChild(o); });
   sel.value = currentChannel && currentUser.channels.includes(currentChannel) ? currentChannel : (currentUser.channels[0] || '');
@@ -420,26 +452,6 @@ function initFiltersForUser(){
   $('#btnPrintModal').classList.toggle('hidden', !currentUser.canPrint);
   updateColumnVisibility();
 }
-
-function updateColumnVisibility(){
-  const ch = $('#channelSelect').value;
-  const show = {
-      normal: ch === 'Flagship',
-      promo: ch === 'Flagship',
-      expire: ch === 'Flagship',
-      market: ch === 'Marketplace',
-      marketgp: ch === 'Marketplace',
-      t1: ch === 'Dealer',
-      gp1: ch === 'Dealer',
-      t2: ch === 'Dealer',
-      gp2: ch === 'Dealer',
-      t3: ch === 'Dealer',
-      gp3: ch === 'Dealer',
-  };
-  const map={ 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
-  Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
-}
-
 
 /* ================= APPLY DEALER NAMES ================= */
 function applyDealerNamesToUI(){
@@ -464,19 +476,16 @@ function filteredProducts(){
 
   return (appData.products || []).filter(p=>{
     const generalSearchHit = !q || (p.sku||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q);
-
     const columnFilterHit = Object.keys(columnFilters).every(key => {
         if (!columnFilters[key] || columnFilters[key].size === 0) return true;
         const value = p[key] || '';
         return columnFilters[key].has(value.toString());
     });
-
     let dateOk = true;
     if(isFlagship && (ds||de)){
       const ex = p.expiresDate ? new Date(p.expiresDate) : null;
-      if(!ex) {
-        dateOk=false;
-      } else {
+      if(!ex) { dateOk=false; }
+      else {
         if(ds && ex < new Date(ds)) dateOk=false;
         if(de && ex > new Date(de+'T23:59:59')) dateOk=false;
       }
@@ -501,50 +510,52 @@ function renderPagination(totalItems) {
 
 function renderTableHeader() {
     const thead = $('#productTHead');
-    const filterableColumns = [
-        { key: 'sku', label: 'SKU' },
-        { key: 'description', label: 'Description', className: 'w-56' },
-        { key: 'details', label: 'Details', className: 'w-56' },
-        { key: 'brand', label: 'Brand' },
-        { key: 'category', label: 'Category' },
+    const columns = [
+        { key: 'sku', label: 'SKU', width: '120px' },
+        { key: 'description', label: 'Description', width: '250px' },
+        { key: 'details', label: 'Details', width: '250px' },
+        { key: 'brand', label: 'Brand', width: '120px' },
+        { key: 'category', label: 'Category', width: '120px' },
+        { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts' },
+        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal' },
+        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo' },
+        { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire' },
+        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market' },
+        { key: 'marketgp', label: 'Market GP%', width: '100px', class: 'col-marketgp' },
+        { key: 't1', label: `<span id="lblT1"></span>`, width: '100px', class: 'col-t1' },
+        { key: 'gp1', label: 'GP% T1', width: '80px', class: 'col-gp1' },
+        { key: 't2', label: `<span id="lblT2"></span>`, width: '100px', class: 'col-t2' },
+        { key: 'gp2', label: 'GP% T2', width: '80px', class: 'col-gp2' },
+        { key: 't3', label: `<span id="lblT3"></span>`, width: '100px', class: 'col-t3' },
+        { key: 'gp3', label: 'GP% T3', width: '80px', class: 'col-gp3' },
+        { key: 'actions', label: 'Actions', width: '100px', class: 'col-actions' }
     ];
     
     let headerHTML = `<tr class="[&>th]:px-3 [&>th]:py-3 text-left">`;
-    filterableColumns.forEach(col => {
-        const isActive = columnFilters[col.key] && columnFilters[col.key].size > 0;
-        headerHTML += `<th class="${col.className || ''}" style="position: relative;">
-            <div class="flex items-center">
+    columns.forEach(col => {
+        let content = col.label;
+        if (['sku', 'description', 'details', 'brand', 'category'].includes(col.key)) {
+            const isActive = columnFilters[col.key] && columnFilters[col.key].size > 0;
+            content = `<div class="flex items-center">
               <span>${col.label}</span>
               <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
             </div>
-            <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>
+            <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>`;
+        }
+        headerHTML += `<th id="${col.id || ''}" class="${col.class || ''}" style="width:${col.width}; position: relative;">
+            ${content}
+            <div class="resizer"></div>
         </th>`;
     });
-
-    // FIX: Added necessary col-* classes for visibility toggling
-    headerHTML += `
-        <th id="thCosts" class="hidden">Costs</th>
-        <th class="col-normal">Normal</th>
-        <th class="col-promo">Promotion</th>
-        <th class="col-expire">Expire Date</th>
-        <th class="col-market">Marketplace</th>
-        <th class="col-marketgp">Market GP%</th>
-        <th class="col-t1"><span id="lblT1"></span></th>
-        <th class="col-gp1">GP% T1</th>
-        <th class="col-t2"><span id="lblT2"></span></th>
-        <th class="col-gp2">GP% T2</th>
-        <th class="col-t3"><span id="lblT3"></span></th>
-        <th class="col-gp3">GP% T3</th>
-        <th class="w-32">Actions</th>
-    </tr>`;
+    headerHTML += `</tr>`;
     thead.innerHTML = headerHTML;
+    makeTableResizable();
 }
 
 function renderTable(){
   const body=$('#productBody'); body.innerHTML='';
   if(!appData) return;
-  const showCosts = (currentUser?.canSeeCosts || ['Host','Admin'].includes(currentUser?.role));
-  const canEdit = ['Host','Admin'].includes(currentUser?.role);
+  
   const allFiltered = filteredProducts();
   const paginatedItems = allFiltered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const today = new Date();
@@ -553,10 +564,7 @@ function renderTable(){
   paginatedItems.forEach(p=>{
     const tr=document.createElement('tr');
     tr.className='border-b border-zinc-800 hover:bg-zinc-800/30';
-    let isPromoExpired = false;
-    if (p.expiresDate) {
-        if (new Date(p.expiresDate) < today) isPromoExpired = true;
-    }
+    let isPromoExpired = p.expiresDate && new Date(p.expiresDate) < today;
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
     const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
     const gpM = gpPct(p.marketplacePrice, p.costs);
@@ -567,11 +575,11 @@ function renderTable(){
 
     tr.innerHTML = `
       <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${p.description}"><div class="oneline" style="max-width:14rem">${p.description || '-'}</div></td>
-      <td class="px-3 py-3 oneline" title="${detailsOneLine}"><div class="oneline" style="max-width:14rem">${detailsOneLine}</div></td>
+      <td class="px-3 py-3 oneline" title="${p.description}"><div class="oneline">${p.description || '-'}</div></td>
+      <td class="px-3 py-3 oneline" title="${detailsOneLine}"><div class="oneline">${detailsOneLine}</div></td>
       <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
-      <td class="px-3 py-3 ${showCosts?'':'hidden'} oneline" title="${money(p.costs)}">${money(p.costs)}</td>
+      <td class="px-3 py-3 hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
       <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
       <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
       <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
@@ -583,15 +591,17 @@ function renderTable(){
       <td class="px-3 py-3 col-gp2 oneline" title="${gp2.toFixed(1)}%">${gp2.toFixed(1)}%</td>
       <td class="px-3 py-3 col-t3 oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
       <td class="px-3 py-3 col-gp3 oneline" title="${gp3.toFixed(1)}%">${gp3.toFixed(1)}%</td>
-      <td class="px-3 py-3">
-        ${canEdit? `<div class="flex items-center gap-2"><button class="px-2 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs" data-edit="${p.sku}">Edit</button><button title="Delete" class="px-2 py-1 rounded-xl bg-transparent border border-red-700 hover:bg-red-700/20 text-xs" data-del="${p.sku}">❌</button></div>` : '-'}
+      <td class="px-3 py-3 col-actions">
+          <div class="flex items-center gap-2">
+            <button class="px-2 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs" data-edit="${p.sku}">Edit</button>
+            <button title="Delete" class="px-2 py-1 rounded-xl bg-transparent border border-red-700 hover:bg-red-700/20 text-xs" data-del="${p.sku}">❌</button>
+          </div>
       </td>
     `;
     body.appendChild(tr);
   });
   renderPagination(allFiltered.length);
   bindTableEvents();
-  // FIX: Removed initFiltersForUser() call from here to prevent dropdown reset
   updateColumnVisibility();
 }
 
@@ -661,7 +671,7 @@ async function saveEditor() {
   updateLocalDataAndSave();
 }
 
-/* ================= SETTINGS (FULL & CORRECTED) ================= */
+/* ================= SETTINGS ================= */
 function openSettings(tab){
   if(!['Host','Admin'].includes(currentUser.role)) return;
   $('#settingsPanel').classList.remove('hidden');
@@ -1140,7 +1150,7 @@ function renderPreview(item, tpl) {
     if(!box || !iframe) return;
     const availW = box.clientWidth;
     const availH = box.clientHeight;
-    const scale = Math.min(availW / aspectW, availH / aspectH) * 0.95; // 95% scale to ensure it fits comfortably
+    const scale = Math.min(availW / aspectW, availH / aspectH) * 0.95;
     iframe.style.transform = `scale(${scale})`;
     const left = (availW - (aspectW * scale)) / 2;
     const top = (availH - (aspectH * scale)) / 2;
@@ -1155,7 +1165,6 @@ function renderPreview(item, tpl) {
       ro.observe(box);
   };
 }
-
 
 function renderTagInnerHTML(p, tpl){
   const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
@@ -1246,7 +1255,7 @@ function openPrintTab(list,tpl){
   log('open_print', `${items.length} tags, tpl=${tpl.name}`);
 }
 
-/* ================= NEW EXCEL FILTER LOGIC ================= */
+/* ================= FILTER & RESIZE LOGIC ================= */
 function closeAllFilterDropdowns(exceptKey = null) {
     $$('.filter-dropdown').forEach(dropdown => {
         if (!exceptKey || dropdown.id !== `filter-dropdown-${exceptKey}`) {
@@ -1288,6 +1297,16 @@ function openFilterDropdown(key) {
     dropdown.innerHTML = contentHTML;
     dropdown.style.display = 'block';
     
+    // FIX: Add Enter key listener
+    dropdown.setAttribute('tabindex', -1); // Make it focusable
+    dropdown.focus();
+    dropdown.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            $(`button[data-apply-filter="${key}"]`).click();
+        }
+    };
+
     const selectAllCheckbox = $(`#filter-select-all-${key}`);
     const allItemsCheckboxes = $$(`.filter-item-${key}`);
     selectAllCheckbox.checked = allItemsCheckboxes.every(cb => cb.checked);
@@ -1297,9 +1316,39 @@ function openFilterDropdown(key) {
     };
 }
 
+function makeTableResizable() {
+    const table = $('#productTHead').closest('table');
+    const resizers = $$('#productTHead .resizer');
+    let th, startX, startWidth;
 
-/* ================= EVENTS BINDING (NEW MODULAR & STABLE STRUCTURE) ================= */
+    function onMouseMove(e) {
+        const newWidth = startWidth + (e.pageX - startX);
+        if (newWidth > 50) { // Minimum width
+            th.style.width = `${newWidth}px`;
+        }
+    }
 
+    function onMouseUp() {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        table.style.cursor = 'default';
+    }
+
+    resizers.forEach(resizer => {
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            th = e.target.parentElement;
+            startX = e.pageX;
+            startWidth = th.offsetWidth;
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+            table.style.cursor = 'col-resize';
+        });
+    });
+}
+
+
+/* ================= EVENTS BINDING ================= */
 function bindAuthEvents() {
     $('#btnCreateHost').onclick = async () => {
         const pass = $('#setupPass').value;
