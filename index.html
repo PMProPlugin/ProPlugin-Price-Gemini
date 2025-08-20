@@ -246,6 +246,7 @@
 const LS = {
   GIST_ID: 'pp_cloud_gist_id_v2',
   TOKEN: 'pp_cloud_token_v2',
+  LAST_USER: 'pp_last_user_v2' // Added for auto-login
 };
 const defaultDealerNames = {t1:'Dealer T1', t2:'Dealer T2', t3:'Dealer T3'};
 const Channels = ['Flagship','Marketplace','Dealer'];
@@ -261,7 +262,7 @@ const sampleProducts = [{
 }];
 
 const defaultAppState = {
-    version: 2.6,
+    version: 2.7, // Version updated
     products: sampleProducts,
     templates: [
         { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
@@ -345,14 +346,15 @@ async function gistRequest(method, path, body, token){
   return res.json();
 }
 async function cloudCreateGist(token, appState){
-  const resp = await gistRequest('POST','/gists',{ public:false, files:{ 'proplugin-data.json':{ content: JSON.stringify(appState,null,2) } } }, token);
+  const resp = await gistRequest('POST','/gists',{ public:false, files:{ 'proplugin-data.json':{ content: JSON.stringify(appState) } } }, token);
   localStorage.setItem(LS.GIST_ID, resp.id);
   localStorage.setItem(LS.TOKEN, token);
   return resp.id;
 }
 async function cloudSave(gistId, token){
   if(!gistId) throw new Error('Gist ID is required');
-  const body = { files:{ 'proplugin-data.json':{ content: JSON.stringify(appData,null,2) } } };
+  // FIX: Save JSON without pretty print to reduce risk of corruption
+  const body = { files:{ 'proplugin-data.json':{ content: JSON.stringify(appData) } } };
   await gistRequest('PATCH','/gists/'+gistId, body, token);
 }
 async function cloudLoad(gistId, token){
@@ -367,53 +369,77 @@ async function cloudLoad(gistId, token){
 }
 
 /* ================= AUTH ================= */
+function performLogin(user) {
+    currentUser = user;
+    localStorage.setItem(LS.LAST_USER, user.username);
+    columnFilters = {}; // Reset filters on new login
+
+    $('#setupView').classList.add('hidden');
+    $('#loginView').classList.add('hidden');
+    $('#cloudSetupView').classList.add('hidden');
+    $('#appView').classList.remove('hidden');
+
+    $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
+    
+    initFiltersForUser();
+    bindAppEvents();
+    updateLocalDataAndSave();
+}
+
 async function login(){
-  const u=$('#loginUser').value.trim();
-  const p=$('#loginPass').value;
+  const u = $('#loginUser').value.trim();
+  const p = $('#loginPass').value;
   if (!appData || !appData.users) return alert('Application data is not loaded. Please set up cloud storage or refresh.');
   const pHash = await hashPassword(p);
-  const found = appData.users.find(x=>x.username===u && x.passwordHash===pHash);
+  const found = appData.users.find(x => x.username === u && x.passwordHash === pHash);
   if(!found) return alert('Invalid credentials');
 
-  currentUser=found;
-  columnFilters = {}; // Reset filters on new login
-  $('#loginView').classList.add('hidden');
-  $('#appView').classList.remove('hidden');
-  $('#roleBadge').textContent=`${currentUser.role} • ${currentUser.username}`;
-  
-  initFiltersForUser();
-  bindAppEvents();
-  updateLocalDataAndSave();
+  performLogin(found);
 }
+
 function logout(){
-  currentUser=null;
-  columnFilters = {}; // Reset filters on logout
+  log('logout');
+  currentUser = null;
+  columnFilters = {};
+  localStorage.removeItem(LS.LAST_USER);
+  
   $('#appView').classList.add('hidden');
   $('#loginView').classList.remove('hidden');
+  $('#loginUser').value = '';
   $('#loginPass').value = '';
-  log('logout');
 }
 
 /* ================= FILTERS & COLUMN VISIBILITY ================= */
 function initFiltersForUser(){
   const sel=$('#channelSelect');
+  const currentChannel = sel.value; // Preserve current selection if possible
   sel.innerHTML='';
   (currentUser.channels || []).forEach(ch=>{ const o=document.createElement('option'); o.textContent=ch; o.value = ch; sel.appendChild(o); });
-  sel.value = currentUser.channels[0] || '';
+  sel.value = currentChannel && currentUser.channels.includes(currentChannel) ? currentChannel : (currentUser.channels[0] || '');
   $('#btnSettings').classList.toggle('hidden', !['Host','Admin'].includes(currentUser.role));
   $('#btnPrintModal').classList.toggle('hidden', !currentUser.canPrint);
-  if ($('#thCosts')) $('#thCosts').classList.toggle('hidden', !(currentUser.canSeeCosts || ['Host','Admin'].includes(currentUser.role)));
   updateColumnVisibility();
 }
+
 function updateColumnVisibility(){
-  const ch=$('#channelSelect').value;
-  const show={normal:false,promo:false,expire:false,market:false,marketgp:false,t1:false,gp1:false,t2:false,gp2:false,t3:false,gp3:false};
-  if(ch==='Flagship'){ show.normal=show.promo=show.expire=true; }
-  if(ch==='Marketplace'){ show.market=show.marketgp=true; }
-  if(ch==='Dealer'){ show.t1=show.gp1=show.t2=show.gp2=show.t3=show.gp3=true; }
+  const ch = $('#channelSelect').value;
+  const show = {
+      normal: ch === 'Flagship',
+      promo: ch === 'Flagship',
+      expire: ch === 'Flagship',
+      market: ch === 'Marketplace',
+      marketgp: ch === 'Marketplace',
+      t1: ch === 'Dealer',
+      gp1: ch === 'Dealer',
+      t2: ch === 'Dealer',
+      gp2: ch === 'Dealer',
+      t3: ch === 'Dealer',
+      gp3: ch === 'Dealer',
+  };
   const map={ 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
   Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
 }
+
 
 /* ================= APPLY DEALER NAMES ================= */
 function applyDealerNamesToUI(){
@@ -495,6 +521,7 @@ function renderTableHeader() {
         </th>`;
     });
 
+    // FIX: Added necessary col-* classes for visibility toggling
     headerHTML += `
         <th id="thCosts" class="hidden">Costs</th>
         <th class="col-normal">Normal</th>
@@ -563,9 +590,11 @@ function renderTable(){
     body.appendChild(tr);
   });
   renderPagination(allFiltered.length);
-  bindTableEvents(); 
-  if(currentUser) initFiltersForUser();
+  bindTableEvents();
+  // FIX: Removed initFiltersForUser() call from here to prevent dropdown reset
+  updateColumnVisibility();
 }
+
 
 /* ================= EDITOR ================= */
 function openEditor(sku = null) {
@@ -1545,35 +1574,44 @@ function bindSettingsEvents(tab) {
 async function initialCheck() {
     const gistId = localStorage.getItem(LS.GIST_ID);
     const token = localStorage.getItem(LS.TOKEN);
+
     if (gistId && token) {
         try {
+            console.log("Found credentials, attempting to load from cloud...");
             await cloudLoad(gistId, token);
-            $('#cloudSetupView').classList.add('hidden');
-            if (appData.users && appData.users.length > 0) {
-                $('#loginView').classList.remove('hidden');
+            console.log("Cloud data loaded successfully.");
+
+            const lastUser = localStorage.getItem(LS.LAST_USER);
+            const userToLogin = lastUser ? (appData.users || []).find(u => u.username === lastUser) : null;
+            
+            if (userToLogin) {
+                console.log(`Found last user: ${lastUser}. Attempting auto-login.`);
+                performLogin(userToLogin);
             } else {
-                $('#setupView').classList.remove('hidden');
+                console.log("No last user found or user not in data. Showing login screen.");
+                $('#cloudSetupView').classList.add('hidden');
+                $('#loginView').classList.remove('hidden');
             }
         } catch(e) {
+            console.error("Critical error during initial load:", e);
             localStorage.removeItem(LS.GIST_ID);
             localStorage.removeItem(LS.TOKEN);
+            localStorage.removeItem(LS.LAST_USER);
             $('#cloudSetupView').classList.remove('hidden');
-            alert("Cloud load failed, credentials cleared. Please set up again. Error: " + e.message);
+            alert("Cloud load failed, credentials have been cleared. Please set up again. Error: " + e.message);
         }
     } else {
+        console.log("No credentials found. Showing cloud setup screen.");
         $('#cloudSetupView').classList.remove('hidden');
     }
 }
+
 
 function init() {
   bindAuthEvents();
   
   document.addEventListener('click', (e) => {
-      const filterBtn = e.target.closest('.filter-btn');
-      if (filterBtn) {
-          e.stopPropagation();
-          openFilterDropdown(filterBtn.dataset.filterKey);
-      } else if (!e.target.closest('.filter-dropdown')) {
+      if (!e.target.closest('.filter-dropdown')) {
           closeAllFilterDropdowns();
       }
       
@@ -1608,290 +1646,5 @@ function init() {
 
 init();
 </script>
-  <script>
-/* =========================================================
-   ProPricing – FIX PACK (Channel dropdown + Robust Cloud)
-   Drop-in override for index (3).html
-   ========================================================= */
-
-/* ---------- Small helpers ---------- */
-const $  = sel => document.querySelector(sel);
-const $$ = sel => Array.from(document.querySelectorAll(sel));
-
-/* ---------- LocalStorage keys (add snapshot) ---------- */
-const LS = {
-  GIST_ID: 'pp_cloud_gist_id_v2',
-  TOKEN:   'pp_cloud_token_v2',
-  SNAPSHOT: 'pp_snapshot_v1', // new: last-good backup
-};
-
-/* ---------- Channels constant (fallback, used if user.channels missing) ---------- */
-const Channels = ['Flagship','Marketplace','Dealer'];
-
-/* ---------- GP% helper ---------- */
-function gpPct(price, cost){
-  const p = Number(price), c = Number(cost);
-  if (!isFinite(p) || p <= 0 || !isFinite(c)) return 0;
-  return ((p - c) / p) * 100;
-}
-
-/* =========================================================
-   PART 1 — CHANNEL DROPDOWN: keep selection + proper toggling
-   ========================================================= */
-
-/* keep global states provided by the page */
-window.appData    = window.appData || {};
-window.currentUser = window.currentUser || null;
-window.columnFilters = window.columnFilters || {};
-window.currentPage = window.currentPage || 1;
-window.itemsPerPage = window.itemsPerPage || 20;
-
-/* Preserve user selection; populate once per user, but safe to call anytime */
-async function initFiltersForUser(){
-  const sel = $('#channelSelect');
-  if (!sel) return;
-
-  // preserve current value (if user already chose one)
-  const prev = sel.value || (appData?.ui?.channel || '');
-
-  // build options from user channels; if none, use full Channels
-  const list = (window.currentUser?.channels && window.currentUser.channels.length>0)
-    ? window.currentUser.channels
-    : Channels.slice();
-
-  // rebuild options
-  sel.innerHTML = '';
-  list.forEach(ch=>{
-    const o = document.createElement('option');
-    o.value = ch; o.textContent = ch;
-    sel.appendChild(o);
-  });
-
-  // keep previous selection if still valid, else use first (Flagship default)
-  const nextVal = list.includes(prev) ? prev : (list[0] || 'Flagship');
-  sel.value = nextVal;
-
-  // remember UI state to avoid future resets
-  appData.ui = appData.ui || {};
-  appData.ui.channel = nextVal;
-
-  // toggle visibility for Costs/Buttons based on role
-  $('#btnSettings')?.classList.toggle('hidden', !['Host','Admin'].includes(currentUser?.role));
-  $('#btnPrintModal')?.classList.toggle('hidden', !currentUser?.canPrint);
-  if ($('#thCosts')) $('#thCosts').classList.toggle('hidden', !(currentUser?.canSeeCosts || ['Host','Admin'].includes(currentUser?.role)));
-
-  updateColumnVisibility();
-}
-
-/* show/hide column groups by adding/removing .hidden on classed cells */
-function updateColumnVisibility(){
-  const ch = $('#channelSelect')?.value || 'Flagship';
-  const show = {
-    normal: false, promo: false, expire: false,
-    market: false, marketgp: false,
-    t1: false, gp1: false, t2: false, gp2: false, t3: false, gp3: false,
-  };
-  if (ch === 'Flagship')   { show.normal = show.promo = show.expire = true; }
-  if (ch === 'Marketplace'){ show.market = show.marketgp = true; }
-  if (ch === 'Dealer')     { show.t1 = show.gp1 = show.t2 = show.gp2 = show.t3 = show.gp3 = true; }
-
-  const map = {
-    'col-normal': show.normal,  'col-promo': show.promo,    'col-expire': show.expire,
-    'col-market': show.market,  'col-marketgp': show.marketgp,
-    'col-t1': show.t1, 'col-gp1': show.gp1, 'col-t2': show.t2, 'col-gp2': show.gp2, 'col-t3': show.t3, 'col-gp3': show.gp3,
-  };
-  Object.entries(map).forEach(([cls, v]) => $$('.'+cls).forEach(el => el.classList.toggle('hidden', !v)));
-}
-
-/* IMPORTANT: Avoid resetting the channel selection on every render.
-   If your original code calls initFiltersForUser() at the end of renderTable(),
-   keep it — this new version PRESERVES selection and will not snap to Flagship. */
-
-/* Hook channelSelect change */
-(function ensureChannelChangeHook(){
-  const sel = $('#channelSelect');
-  if (!sel) return;
-  sel.onchange = () => {
-    // remember
-    appData.ui = appData.ui || {};
-    appData.ui.channel = sel.value;
-    // re-toggle + re-render if your page exposes renderTable()
-    updateColumnVisibility();
-    if (typeof window.renderTable === 'function') {
-      window.currentPage = 1;
-      window.renderTable();
-    }
-  };
-})();
-
-/* =========================================================
-   PART 2 — GIST CLOUD: robust load/save (raw_url, snapshot, queue)
-   ========================================================= */
-
-/* GitHub API wrapper */
-async function gistRequest(method, path, body, token){
-  if(!token) throw new Error('GitHub Token is required for this operation.');
-  const headers = { 'Accept':'application/vnd.github+json', 'Authorization': 'Bearer '+token };
-  if(body) headers['Content-Type']='application/json';
-  const res = await fetch('https://api.github.com'+path, { method, headers, body: body?JSON.stringify(body):undefined });
-  if(!res.ok){ const t=await res.text(); throw new Error(`GitHub ${res.status}: ${t}`); }
-  return res.json();
-}
-
-/* If gist file is truncated, read raw_url */
-async function fetchGistFileContent(fileObj){
-  if (fileObj && fileObj.content && fileObj.truncated !== true) {
-    return fileObj.content;
-  }
-  if (fileObj && fileObj.raw_url) {
-    const rawRes = await fetch(fileObj.raw_url);
-    if (!rawRes.ok) throw new Error('Fetch raw_url failed: '+rawRes.status);
-    return await rawRes.text();
-  }
-  throw new Error('Gist file missing content/raw_url.');
-}
-
-/* Load from gist (safe parse + snapshot fallback) */
-async function cloudLoad(gistId, token){
-  if (!gistId) throw new Error('Gist ID is required');
-  const resp = await gistRequest('GET', '/gists/' + gistId, null, token);
-  const file = resp.files?.['proplugin-data.json'] || Object.values(resp.files||{})[0];
-  if (!file) throw new Error('proplugin-data.json not found in gist');
-
-  const text = await fetchGistFileContent(file);
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch (e) {
-    const snap = localStorage.getItem(LS.SNAPSHOT);
-    if (snap) {
-      console.warn('JSON parse failed, fallback to snapshot.');
-      data = JSON.parse(snap);
-    } else {
-      throw new Error('Error loading from Gist: ' + e.message);
-    }
-  }
-  window.appData = data;
-  try { localStorage.setItem(LS.SNAPSHOT, JSON.stringify(appData)); } catch(_){}
-  localStorage.setItem(LS.GIST_ID, gistId);
-  localStorage.setItem(LS.TOKEN, token);
-}
-
-/* Create gist if missing */
-async function cloudCreateGist(token, appState){
-  const resp = await gistRequest('POST','/gists',{
-    public:false,
-    files: { 'proplugin-data.json': { content: JSON.stringify(appState ?? {}, null, 2) } }
-  }, token);
-  localStorage.setItem(LS.GIST_ID, resp.id);
-  localStorage.setItem(LS.TOKEN, token);
-  try { localStorage.setItem(LS.SNAPSHOT, JSON.stringify(appState ?? {})); } catch(_){}
-  return resp.id;
-}
-
-/* Queued/atomic-ish save to avoid clobbering */
-let _savingPromise = null;
-let _saveQueued = false;
-async function cloudSave(gistId, token){
-  if(!gistId) throw new Error('Gist ID is required');
-  const body = { files:{ 'proplugin-data.json':{ content: JSON.stringify(appData,null,2) } } };
-
-  const doSave = async () => {
-    await gistRequest('PATCH','/gists/'+gistId, body, token);
-    try { localStorage.setItem(LS.SNAPSHOT, JSON.stringify(appData)); } catch(_){}
-  };
-
-  if (_savingPromise) {
-    _saveQueued = true;
-    await _savingPromise;
-    _saveQueued = false;
-  }
-  _savingPromise = doSave();
-  try { await _savingPromise; }
-  finally {
-    _savingPromise = null;
-    if (_saveQueued) { _saveQueued = false; await cloudSave(gistId, token); }
-  }
-}
-
-/* Single entry to update & (debounced) save */
-window.updateLocalDataAndSave = function(newDataOrMutator){
-  if (typeof newDataOrMutator === 'function') {
-    newDataOrMutator(appData);
-  } else if (newDataOrMutator) {
-    appData = newDataOrMutator;
-  }
-
-  // re-render via your app's renderer if present
-  if (typeof window.renderTableHeader === 'function') window.renderTableHeader();
-  if (typeof window.renderTable === 'function')       window.renderTable();
-
-  // autosave only for Host (same as original behavior)
-  const gistId = localStorage.getItem(LS.GIST_ID);
-  const token  = localStorage.getItem(LS.TOKEN);
-  clearTimeout(window.__saveT);
-  window.__saveT = setTimeout(()=>{
-    if (window.currentUser?.role === 'Host' && gistId && token) {
-      cloudSave(gistId, token).catch(e => console.error("Auto-save failed:", e));
-    }
-  }, 400);
-};
-
-/* Boot: auto-load if credentials exist */
-async function initialCheck() {
-  const gistId = localStorage.getItem(LS.GIST_ID);
-  const token  = localStorage.getItem(LS.TOKEN);
-  if (gistId && token) {
-    try {
-      await cloudLoad(gistId, token);
-      // show proper first screen
-      $('#cloudSetupView')?.classList.add('hidden');
-      if (appData.users && appData.users.length > 0) {
-        $('#loginView')?.classList.remove('hidden');
-      } else {
-        $('#setupView')?.classList.remove('hidden');
-      }
-    } catch(e) {
-      localStorage.removeItem(LS.GIST_ID);
-      localStorage.removeItem(LS.TOKEN);
-      $('#cloudSetupView')?.classList.remove('hidden');
-      alert("Cloud load failed, credentials cleared. Please set up again. Error: " + e.message);
-    }
-  } else {
-    $('#cloudSetupView')?.classList.remove('hidden');
-  }
-}
-
-/* Bind top-level events (safe rebind) */
-function bindAppEvents(){
-  // Search & dates re-render
-  const sI = $('#searchInput');
-  const dS = $('#dateStart');
-  const dE = $('#dateEnd');
-  if (sI) sI.oninput = () => { window.currentPage = 1; if (typeof renderTable==='function') renderTable(); };
-  if (dS) dS.onchange = () => { window.currentPage = 1; if (typeof renderTable==='function') renderTable(); };
-  if (dE) dE.onchange = () => { window.currentPage = 1; if (typeof renderTable==='function') renderTable(); };
-}
-
-/* Initialize */
-document.addEventListener('DOMContentLoaded', async () => {
-  bindAppEvents();
-  await initialCheck();        // auto-load if possible
-  initFiltersForUser();        // build dropdown (keeps selection)
-  updateColumnVisibility();    // apply first-time toggle
-  if (typeof window.renderTableHeader === 'function') window.renderTableHeader();
-  if (typeof window.renderTable === 'function')       window.renderTable();
-
-  // quick role guards for settings/print button visibility if already logged in
-  $('#btnSettings')?.classList.toggle('hidden', !['Host','Admin'].includes(currentUser?.role));
-  $('#btnPrintModal')?.classList.toggle('hidden', !currentUser?.canPrint);
-
-  // shortcut: Cmd/Ctrl+K focus search
-  document.addEventListener('keydown', e=>{
-    if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); $('#searchInput')?.focus(); }
-  });
-});
-</script>
-
 </body>
 </html>
