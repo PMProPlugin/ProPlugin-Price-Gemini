@@ -1053,74 +1053,80 @@ function fillTemplateDropdown(){
     renderPreview(firstItem, appData.templates.find(t=>t.id===dd.value)); 
   };
 }
+
+function generateSingleTagHTML(p, tpl) {
+    const logo = appData.logo || '';
+    let pad = '10mm';
+    if(tpl.kind === 'IMAGE') { pad = '0mm'; }
+    else if(tpl.kind === 'A6') { pad = '8mm'; }
+    else if(tpl.kind === 'ACC') { pad = '6mm'; }
+
+    const style = `
+        <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+        <style>
+            html,body { margin: 0; padding: 0; font-family:'Kanit','Prompt',sans-serif; width: 100%; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .tag { width: 100%; height: 100%; padding:${pad}; box-sizing:border-box; position:relative; display: flex; align-items: center; justify-content: center; }
+            .card { position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid #1f1f22; background-color:${tpl.imageData ? 'transparent' : (tpl.kind==='ACC'?'#000':'#0b0b0c')}; color:#fff; background-image: ${tpl.imageData ? `url(${tpl.imageData})` : 'none'}; background-size: cover; background-position: center; }
+            .logo { position:absolute; }
+            .text-elevate { text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
+        </style>
+    `;
+
+    let logoTag = '';
+    if (tpl.showLogo && logo) {
+        const { size = 64, margin = 10 } = tpl.logoStyles || {};
+        logoTag = `<img src="${logo}" class="logo" style="right:${margin}px;top:${margin}px;width:${size}px;height:auto;">`;
+    }
+    const content = renderTagInnerHTML(p, tpl);
+    const cardHTML = `<div class="card">${logoTag}${content}</div>`;
+    const tagHTML = `<div class="tag">${cardHTML}</div>`;
+    
+    return `<!doctype html><html><head><title>Preview</title>${style}</head><body style="margin:0;padding:0;">${tagHTML}</body></html>`;
+}
+
 function renderPreview(item, tpl) {
-    const box = $('#previewBox');
-    box.innerHTML = '';
-    if (!item || !tpl) {
-        box.innerHTML = '<div class="text-zinc-500">No items or template selected</div>';
-        return;
-    }
-    const { node, w, h } = buildPreviewTag(item, tpl);
-    node.style.transformOrigin = 'top left';
-    const holder = document.createElement('div');
-    holder.style.position = 'relative';
-    holder.appendChild(node);
-    box.appendChild(holder);
+  const box = $('#previewBox');
+  box.innerHTML = '';
+  if (!item || !tpl) {
+    box.innerHTML = '<div class="text-zinc-500">No items or template selected</div>';
+    return;
+  }
 
-    function fit() {
-        if (!box || !node || !holder) return;
-        const availW = box.clientWidth;
-        const availH = box.clientHeight;
-        const scale = Math.max(0.1, Math.min(availW / w, availH / h));
-        node.style.transform = `scale(${scale})`;
-        holder.style.width = (w * scale) + 'px';
-        holder.style.height = (h * scale) + 'px';
-        holder.style.margin = 'auto';
-    }
-    fit();
-    const ro = new ResizeObserver(() => fit());
-    ro.observe(box);
+  const size = baseSize(tpl.kind);
+  const aspectW = size.w;
+  const aspectH = size.h;
+
+  const iframe = document.createElement('iframe');
+  iframe.style.width = `${aspectW}px`;
+  iframe.style.height = `${aspectH}px`;
+  iframe.style.border = 'none';
+  iframe.style.transformOrigin = 'top left';
+  iframe.scrolling = 'no';
+  
+  iframe.srcdoc = generateSingleTagHTML(item, tpl);
+
+  box.appendChild(iframe);
+  
+  function fit() {
+    if(!box || !iframe) return;
+    const availW = box.clientWidth;
+    const availH = box.clientHeight;
+    const scale = Math.min(availW / aspectW, availH / aspectH) * 0.95; // 95% scale to ensure it fits comfortably
+    iframe.style.transform = `scale(${scale})`;
+    const left = (availW - (aspectW * scale)) / 2;
+    const top = (availH - (aspectH * scale)) / 2;
+    iframe.style.position = 'absolute';
+    iframe.style.left = `${left}px`;
+    iframe.style.top = `${top}px`;
+  }
+  
+  iframe.onload = () => {
+      fit();
+      const ro = new ResizeObserver(() => fit());
+      ro.observe(box);
+  };
 }
 
-function buildPreviewTag(p, tpl) {
-    let w, h;
-    const size = baseSize(tpl.kind);
-    w = size.w;
-    h = size.h;
-    if (tpl.imageData) {
-        const img = new Image();
-        img.src = tpl.imageData;
-        if(img.width > 0 && img.height > 0){
-            w = img.width;
-            h = img.height;
-        }
-    }
-    const outer = document.createElement('div');
-    outer.style.width = w + 'px';
-    outer.style.height = h + 'px';
-    outer.style.borderRadius = '12px';
-    outer.style.overflow = 'hidden';
-    outer.style.border = '2px solid #1f1f22';
-    outer.style.background = tpl.imageData ? `url(${tpl.imageData})` : (tpl.kind === 'ACC' ? '#000' : '#0b0b0c');
-    outer.style.backgroundSize = 'cover';
-    outer.style.backgroundPosition = 'center';
-    outer.style.color = '#fff';
-    outer.style.position = 'relative';
-
-    if (tpl.showLogo) {
-        const logo = appData.logo;
-        const logoSize = tpl.logoStyles?.size || 64;
-        const logoMargin = tpl.logoStyles?.margin || 10;
-        outer.innerHTML += logo ? `<img src="${logo}" style="position:absolute;right:${logoMargin}px;top:${logoMargin}px;width:${logoSize}px;height:auto;">` :
-            `<div style="position:absolute;right:${logoMargin}px;top:${logoMargin}px;width:${logoSize}px;color:#fff;font-weight:800;text-align:right">P</div>`;
-    }
-    const inner = document.createElement('div');
-    inner.innerHTML = renderTagInnerHTML(p, tpl);
-    inner.style.width = '100%';
-    inner.style.height = '100%';
-    outer.appendChild(inner);
-    return { node: outer, w, h };
-}
 
 function renderTagInnerHTML(p, tpl){
   const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
@@ -1578,7 +1584,7 @@ function init() {
           columnFilters[key] = selected;
           currentPage = 1;
           closeAllFilterDropdowns();
-          renderTable();
+          updateLocalDataAndSave();
       }
       const clearFilterBtn = e.target.closest('[data-clear-filter]');
       if (clearFilterBtn) {
@@ -1586,7 +1592,7 @@ function init() {
           if(columnFilters[key]) columnFilters[key].clear();
           currentPage = 1;
           closeAllFilterDropdowns();
-          renderTable();
+          updateLocalDataAndSave();
       }
   });
   
