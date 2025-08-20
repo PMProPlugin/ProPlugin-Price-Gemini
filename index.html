@@ -376,17 +376,10 @@ async function login(){
   if(!found) return alert('Invalid credentials');
 
   currentUser=found;
-  columnFilters = {}; // Reset filters on new login
+  columnFilters = {};
   $('#loginView').classList.add('hidden');
   $('#appView').classList.remove('hidden');
   $('#roleBadge').textContent=`${currentUser.role} • ${currentUser.username}`;
-  
-  // --- MODIFICATION START: Swapped order for correct event binding ---
-  initFiltersForUser();   // 1. Populate the dropdown first
-  bindAppEvents();      // 2. Bind events to the now-populated dropdown
-  updateLocalDataAndSave(); // 3. Render the table with correct data
-  // --- MODIFICATION END ---
-}
   
   bindAppEvents();
   initFiltersForUser();
