@@ -30,7 +30,7 @@
   ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#222;border-radius:10px}
   .oneline{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
   .text-elevate{ text-shadow:0 1px 2px rgba(0,0,0,.9),0 0 1px rgba(0,0,0,.7) }
-  @media print { .no-print{display:none!important} .print-only{display:block} }
+  @media print { .no-print{display:none!important} .print-only{block} }
   
   .filter-btn {
     display: inline-flex;
@@ -50,7 +50,7 @@
   .filter-dropdown {
     display: none;
     position: absolute;
-    /* FIX: Increased z-index to ensure it's on top */
+    /* FIX: Increased z-index */
     z-index: 100;
     background-color: #18181b;
     border: 1px solid #555;
@@ -67,7 +67,6 @@
     flex-direction: column;
     gap: 4px;
   }
-  /* NEW: Styles for resizable columns */
   .resizer {
     position: absolute;
     top: 0;
@@ -77,8 +76,15 @@
     user-select: none;
     height: 100%;
   }
-  .resizer:hover {
+  .resizer:hover, .resizing {
     background-color: #E11D2E;
+  }
+  /* FIX: Added table-layout fixed and z-index for thead */
+  table {
+    table-layout: fixed;
+  }
+  #productTHead {
+    z-index: 20; /* Ensure header is above body */
   }
 </style>
 </head>
@@ -276,7 +282,7 @@ const sampleProducts = [{
 }];
 
 const defaultAppState = {
-    version: 2.8,
+    version: 2.9,
     products: sampleProducts,
     templates: [
         { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
@@ -512,8 +518,8 @@ function renderTableHeader() {
     const thead = $('#productTHead');
     const columns = [
         { key: 'sku', label: 'SKU', width: '120px' },
-        { key: 'description', label: 'Description', width: '250px' },
-        { key: 'details', label: 'Details', width: '250px' },
+        { key: 'description', label: 'Description', width: '200px' },
+        { key: 'details', label: 'Details', width: '200px' },
         { key: 'brand', label: 'Brand', width: '120px' },
         { key: 'category', label: 'Category', width: '120px' },
         { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts' },
@@ -575,8 +581,8 @@ function renderTable(){
 
     tr.innerHTML = `
       <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${p.description}"><div class="oneline">${p.description || '-'}</div></td>
-      <td class="px-3 py-3 oneline" title="${detailsOneLine}"><div class="oneline">${detailsOneLine}</div></td>
+      <td class="px-3 py-3 oneline" title="${p.description}">${p.description || '-'}</td>
+      <td class="px-3 py-3 oneline" title="${detailsOneLine}">${detailsOneLine}</td>
       <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
       <td class="px-3 py-3 hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
@@ -1297,8 +1303,7 @@ function openFilterDropdown(key) {
     dropdown.innerHTML = contentHTML;
     dropdown.style.display = 'block';
     
-    // FIX: Add Enter key listener
-    dropdown.setAttribute('tabindex', -1); // Make it focusable
+    dropdown.setAttribute('tabindex', -1);
     dropdown.focus();
     dropdown.onkeydown = (e) => {
         if (e.key === 'Enter') {
@@ -1317,33 +1322,40 @@ function openFilterDropdown(key) {
 }
 
 function makeTableResizable() {
-    const table = $('#productTHead').closest('table');
-    const resizers = $$('#productTHead .resizer');
+    const header = $('#productTHead');
+    if (!header) return;
+
     let th, startX, startWidth;
 
     function onMouseMove(e) {
-        const newWidth = startWidth + (e.pageX - startX);
-        if (newWidth > 50) { // Minimum width
+        const newWidth = startWidth + (e.clientX - startX);
+        if (newWidth > 50) {
             th.style.width = `${newWidth}px`;
         }
     }
 
-    function onMouseUp() {
+    function onMouseUp(e) {
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
-        table.style.cursor = 'default';
+        const resizer = th.querySelector('.resizer');
+        if(resizer) resizer.classList.remove('resizing');
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
     }
-
-    resizers.forEach(resizer => {
-        resizer.addEventListener('mousedown', (e) => {
-            e.preventDefault();
+    
+    header.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('resizer')) {
             th = e.target.parentElement;
-            startX = e.pageX;
+            startX = e.clientX;
             startWidth = th.offsetWidth;
+            
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
-            table.style.cursor = 'col-resize';
-        });
+
+            e.target.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        }
     });
 }
 
