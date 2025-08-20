@@ -564,7 +564,8 @@ function renderTable(){
   });
   renderPagination(allFiltered.length);
   bindTableEvents(); 
-  if(currentUser) initFiltersForUser();
+  updateColumnVisibility();
+
 }
 
 /* ================= EDITOR ================= */
