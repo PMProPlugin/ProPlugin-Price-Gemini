@@ -360,7 +360,19 @@ async function cloudLoad(gistId, token){
   const resp = await gistRequest('GET', '/gists/' + gistId, null, token);
   const file = resp.files?.['proplugin-data.json'];
   if (!file) throw new Error('proplugin-data.json not found in gist');
-  const data = JSON.parse(file.content);
+
+  // Handle large files returned as truncated by GitHub API
+  let content = file.content;
+  if (file.truncated && file.raw_url) {
+    const rawRes = await fetch(file.raw_url + '?_=' + Date.now(), {
+      headers: token ? { 'Authorization': 'Bearer ' + token } : undefined
+    });
+    if (!rawRes.ok) throw new Error('Failed to fetch raw gist file: ' + rawRes.status);
+    content = await rawRes.text();
+  }
+
+  const data = JSON.parse(content);
+
   appData = data;
   localStorage.setItem(LS.GIST_ID, gistId);
   localStorage.setItem(LS.TOKEN, token);
