@@ -1535,7 +1535,6 @@ function bindAuthEvents() {
         if (pass.length < 4) return alert('Password must be at least 4 characters long.');
         if (!appData) appData = JSON.parse(JSON.stringify(defaultAppState));
         appData.users = [{ username: 'host', passwordHash: await hashPassword(pass), role: 'Host', channels: [...Channels], canSeeCosts: true, canPrint: true }];
-        const gistId = localStorage.getItem(LS.GIST_ID);
         const token = localStorage.getItem(LS.TOKEN);
         if(gistId && token) {
             try {
@@ -1597,7 +1596,7 @@ function bindAppEvents() {
     $('#btnCloseEditor').onclick = closeEditor;
     $('#btnSaveEd').onclick = saveEditor;
     $('#btnClosePrintModal').onclick = () => togglePrintModal(false);
-    $('#btnOpenPrint').onclick = () => {
+$('#btnOpenPrint').onclick = () => {
   const picks = $$('#printList input[type="checkbox"]:checked').map(c => c.dataset.sel);
   const list = picks.map(sku => ({
     p: appData.products.find(x => x.sku === sku),
