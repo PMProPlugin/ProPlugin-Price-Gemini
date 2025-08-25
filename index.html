@@ -1525,7 +1525,8 @@ function makeTableResizable() {
 
 /* ================= EVENTS BINDING ================= */
 function bindAuthEvents() {
-    $('#btnCreateHost').onclick = async () => {
+    // ใช้ ?.addEventListener ซึ่งเป็นวิธีที่ปลอดภัยกว่า ถ้าหา Element ไม่เจอจะไม่ Error
+    $('#btnCreateHost')?.addEventListener('click', async () => {
         const pass = $('#setupPass').value;
         if (pass !== $('#setupPassConfirm').value || !pass) return alert('Passwords do not match or are empty.');
         if (pass.length < 4) return alert('Password must be at least 4 characters long.');
@@ -1541,7 +1542,35 @@ function bindAuthEvents() {
                 $('#loginView').classList.remove('hidden');
             } catch (err) { alert('Failed to save host account: ' + err.message); }
         } else { alert('Error: Gist credentials not found.'); }
-    };
+    });
+
+    $('#btnLogin')?.addEventListener('click', login);
+    $('#loginPass')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
+
+    $('#btnCloudCreate')?.addEventListener('click', async () => {
+        const token = $('#cloudToken').value.trim();
+        if (!token) return alert('GitHub Token is required.');
+        try {
+            const gistId = await cloudCreateGist(token, defaultAppState);
+            alert('Gist created: ' + gistId + '\nPlease create the host account.');
+            appData = JSON.parse(JSON.stringify(defaultAppState));
+            $('#cloudSetupView').classList.add('hidden');
+            $('#setupView').classList.remove('hidden');
+        } catch (err) { alert('Error creating Gist: ' + err.message); }
+    });
+
+    $('#btnCloudLoad')?.addEventListener('click', async () => {
+        const token = $('#cloudToken').value.trim();
+        const gistId = $('#cloudGistId').value.trim();
+        if (!token || !gistId) return alert('Token and Gist ID are required.');
+        try {
+            await cloudLoad(gistId, token);
+            alert('Loaded from Gist. Please log in.');
+            $('#cloudSetupView').classList.add('hidden');
+            $('#loginView').classList.remove('hidden');
+        } catch (err) { alert('Error loading from Gist: ' + err.message); }
+    });
+}
 
     $('#btnLogin').onclick = login;
     $('#loginPass').onkeydown = (e) => { if (e.key === 'Enter') login(); };
