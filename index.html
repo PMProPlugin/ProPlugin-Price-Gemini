@@ -1296,64 +1296,135 @@ function closeAllFilterDropdowns(exceptKey = null) {
   $$('.filter-dropdown').forEach(d => { d.style.display = 'none'; });
 }
 
+
+// --- REPLACE: openFilterDropdown(key)
 function openFilterDropdown(key) {
-  // สร้าง global dropdown (ครั้งแรก)
-  let g = $('#global-filter-dropdown');
+  // 1) Ensure global portal dropdown (fixed + super high z-index)
+  let g = document.querySelector('#global-filter-dropdown');
   if (!g) {
     g = document.createElement('div');
     g.id = 'global-filter-dropdown';
     g.className = 'filter-dropdown';
     document.body.appendChild(g);
   }
+  g.style.position = 'fixed';
+  g.style.zIndex = '9999'; // อยู่หน้าสุดจริงๆ
 
-  const btn = $(`.filter-btn[data-filter-key="${key}"]`);
+  const btn = document.querySelector(`.filter-btn[data-filter-key="${key}"]`);
   if (!btn) return;
 
-  const isVisible = g.style.display === 'block' && g.dataset.key === key;
+  const isVisible = g.style.display === 'block' && g.dataset.key === String(key);
   closeAllFilterDropdowns(key);
   if (isVisible) { g.style.display = 'none'; return; }
 
-  // สร้างเนื้อหา (Select All / Apply / Clear)
-  const uniqueValues = [...new Set((appData.products || [])
-    .map(p => (p[key] || '').toString()).filter(Boolean))]
-    .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+  // 2) เตรียมค่าทั้งหมด + สถานะเดิม
+  const allValues = [...new Set((appData.products || [])
+    .map(p => (p[key] ?? '').toString())
+    .filter(Boolean))];
 
-  let html = `<div class="filter-dropdown-content">
-      <label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded">
-        <input type="checkbox" id="filter-select-all-${key}"> (Select All)
-      </label>`;
-  const currentFilter = columnFilters[key] || new Set();
-  uniqueValues.forEach(value => {
-    const isChecked = currentFilter.size === 0 || currentFilter.has(value);
-    html += `<label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded" title="${value}">
-      <input type="checkbox" class="filter-item-${key}" value="${value}" ${isChecked ? 'checked' : ''}> ${ellip(value, 25)}
-    </label>`;
-  });
-  html += `</div>
-    <div class="flex gap-2 mt-2">
-      <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600">Apply</button>
-      <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
-    </div>`;
+  let sortDir = 'asc';
+  let viewValues = [...allValues].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  const currentFilter = columnFilters[key] || new Set(); // ถ้าว่าง = ถือว่าเลือกทุกค่า
 
-  g.innerHTML = html;
+  // 3) สร้าง UI: Search + Sort + Select All + รายการค่า + ปุ่ม Apply/Clear
   g.dataset.key = key;
+  g.innerHTML = `
+    <div class="filter-dropdown-content">
+      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none"
+             placeholder="Search values… (like Excel)" />
 
-  // จัดวางตำแหน่งแบบ fixed เทียบปุ่ม
+      <div class="flex gap-2 my-1">
+        <button id="filter-sort-asc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort A–Z</button>
+        <button id="filter-sort-desc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort Z–A</button>
+      </div>
+
+      <label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded">
+        <input type="checkbox" id="filter-select-all-${key}"> Select All (visible)
+      </label>
+
+      <div id="filter-values-${key}" class="max-h-60 overflow-auto rounded border border-zinc-800"></div>
+
+      <div class="flex gap-2 mt-2">
+        <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600" data-total-values="${allValues.length}">Apply</button>
+        <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
+      </div>
+    </div>
+  `;
+
+  // 4) ฟังก์ชัน render รายการค่า (คง state เดิม + ค้นหา + เรียง)
+  const $valsBox = g.querySelector(`#filter-values-${key}`);
+  const $selectAll = g.querySelector(`#filter-select-all-${key}`);
+  const $search = g.querySelector(`#filter-search-${key}`);
+
+  function renderList() {
+    // เคลียร์ + วาดตาม viewValues (หลังค้นหา + เรียง)
+    $valsBox.innerHTML = '';
+    const q = ($search.value || '').toString().trim().toLowerCase();
+    let display = viewValues.filter(v => v.toLowerCase().includes(q));
+
+    // เรียงทิศทาง
+    display.sort((a,b)=> sortDir==='asc'
+      ? a.localeCompare(b,undefined,{numeric:true})
+      : b.localeCompare(a,undefined,{numeric:true})
+    );
+
+    // วาด checkbox แต่ละค่า
+    for (const v of display) {
+      const checked = (currentFilter.size===0) ? true : currentFilter.has(v);
+      const row = document.createElement('label');
+      row.className = 'flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded';
+      row.title = v;
+      row.innerHTML = `
+        <input type="checkbox" class="filter-item-${key}" value="${v}" ${checked ? 'checked' : ''}>
+        <span class="oneline">${ellip(v, 40)}</span>
+      `;
+      $valsBox.appendChild(row);
+    }
+
+    // อัปเดตสถานะ Select All (เฉพาะที่ "มองเห็น" ตาม search)
+    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
+    $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(cb => cb.checked);
+
+    // เมื่อติ๊กแต่ละตัว ให้ sync สถานะ Select All
+    visibleChecks.forEach(cb => {
+      cb.onchange = () => {
+        const allOn = visibleChecks.length > 0 && visibleChecks.every(x => x.checked);
+        $selectAll.checked = allOn;
+      };
+    });
+  }
+
+  // 5) Bind controls
+  g.querySelector(`#filter-sort-asc-${key}`).onclick = () => { sortDir = 'asc'; renderList(); };
+  g.querySelector(`#filter-sort-desc-${key}`).onclick = () => { sortDir = 'desc'; renderList(); };
+
+  $search.oninput = () => renderList();
+  // Enter = Apply
+  g.setAttribute('tabindex', -1);
+  g.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      g.querySelector(`[data-apply-filter="${key}"]`).click();
+    }
+  };
+
+  // Select All = เลือก/ปลดเฉพาะรายการที่ "มองเห็น"
+  $selectAll.onchange = (e) => {
+    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
+    visibleChecks.forEach(cb => cb.checked = e.target.checked);
+  };
+
+  // 6) จัดวาง dropdown (fixed) ให้อยู่ใต้ปุ่มฟิลเตอร์
   const r = btn.getBoundingClientRect();
   g.style.left = `${r.left}px`;
   g.style.top  = `${r.bottom + 4}px`;
   g.style.display = 'block';
 
-  // โฟกัส + Enter = Apply
-  g.setAttribute('tabindex', -1);
-  g.focus();
-  g.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      $(`button[data-apply-filter="${key}"]`).click();
-    }
-  };
+  // ครั้งแรกต้อง render รายการ
+  renderList();
 }
+
+
 
 
 function makeTableResizable() {
@@ -1765,14 +1836,22 @@ function init() {
       }
       
       const applyFilterBtn = e.target.closest('[data-apply-filter]');
-      if (applyFilterBtn) {
-          const key = applyFilterBtn.dataset.applyFilter;
-          const selected = new Set($$(`.filter-item-${key}:checked`).map(cb => cb.value));
-          columnFilters[key] = selected;
-          currentPage = 1;
-          closeAllFilterDropdowns();
-          updateLocalDataAndSave();
-      }
+if (applyFilterBtn) {
+  const key = applyFilterBtn.dataset.applyFilter;
+  const total = +applyFilterBtn.dataset.totalValues || Infinity;
+
+  // อ่านค่าที่ถูกติ๊ก
+  const checkedValues = new Set(
+    Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value)
+  );
+
+  // ถ้าเลือกครบทุกค่า = ถือว่า "ไม่กรอง" -> เก็บเป็น Set ว่าง
+  columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
+
+  currentPage = 1;
+  closeAllFilterDropdowns();
+  updateLocalDataAndSave();
+}
       const clearFilterBtn = e.target.closest('[data-clear-filter]');
       if (clearFilterBtn) {
           const key = clearFilterBtn.dataset.clearFilter;
