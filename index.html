@@ -81,7 +81,6 @@
   table {
     table-layout: fixed;
   }
-  /* FIX: Definitive z-index fix for filter modal */
   #productTHead {
     z-index: 20; 
   }
@@ -285,7 +284,7 @@ const sampleProducts = [{
 }];
 
 const defaultAppState = {
-    version: 3.0,
+    version: 3.1,
     products: sampleProducts,
     templates: [
         { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
@@ -295,7 +294,10 @@ const defaultAppState = {
         { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: 6 },
           styles:{ sku:{fs:12,color:'#ffffff',mt:0}, description:{fs:22,color:'#ffffff',mt:0}, details:{fs:12,color:'#ffffff',mt:0}, price:{fs:48,color:'#ffffff',mt:0}, oldPrice:{fs:16,color:'#ff4d4f',mt:0}, expire:{fs:11,color:'#ffffff',mt:0} } },
         { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: 4 },
-          styles:{ sku:{fs:11,color:'#ffffff',mt:2}, description:{fs:15,color:'#ffffff',mt:0, align:'center'}, price:{fs:22,color:'#ffffff',mt:0}, oldPrice:{fs:12,color:'#B91C1C',mt:0}, expire:{fs:10,color:'#ffffff',mt:0} } }
+          styles:{ sku:{fs:11,color:'#ffffff',mt:2}, description:{fs:15,color:'#ffffff',mt:0, align:'center'}, price:{fs:22,color:'#ffffff',mt:0}, oldPrice:{fs:12,color:'#B91C1C',mt:0}, expire:{fs:10,color:'#ffffff',mt:0} } },
+        // NEW: Added Card template
+        { id:'t-card', name:'Card (10 per A4 landscape)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: 4 },
+          styles:{ sku:{fs:10,color:'#ffffff',mt:2}, description:{fs:14,color:'#ffffff',mt:0, align:'center'}, price:{fs:20,color:'#ffffff',mt:0}, oldPrice:{fs:11,color:'#B91C1C',mt:0}, expire:{fs:9,color:'#ffffff',mt:0} } }
     ],
     dealerNames: defaultDealerNames,
     users: [],
@@ -855,9 +857,10 @@ function renderSettings(tab){
       <div class="flex items-center justify-between">
         <div class="text-2xl font-semibold mb-2">Template Management</div>
         <div class="flex items-center gap-2">
-          <label class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 cursor-pointer">
+           <button id="btnAddTpl" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
+          <label class="px-3 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 cursor-pointer">
             <input type="file" id="tplUploadNew" accept="image/png, image/jpeg" class="hidden">
-            Upload New Template
+            Upload Image Template
           </label>
         </div>
       </div>
@@ -1116,6 +1119,7 @@ function generateSingleTagHTML(p, tpl) {
     if(tpl.kind === 'IMAGE') { pad = '0mm'; }
     else if(tpl.kind === 'A6') { pad = '8mm'; }
     else if(tpl.kind === 'ACC') { pad = '6mm'; }
+    else if(tpl.kind === 'CARD') { pad = '4mm'; }
 
     const style = `
         <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
@@ -1201,7 +1205,7 @@ function renderTagInnerHTML(p, tpl){
         </div>
     </div>
   `;
-  if(tpl.kind==='ACC'){
+  if(tpl.kind === 'ACC' || tpl.kind === 'CARD'){
       const s=tpl.styles;
       return `
       <div style="position:absolute;left:6mm;top:4mm;${styleInline(s.sku)}" class="text-elevate">${p.sku}</div>
@@ -1223,6 +1227,7 @@ function baseSize(kind){
   if(kind==='A4') return {w:744,h:1052};
   if(kind==='A5') return {w:526,h:744};
   if(kind==='A6') return {w:372,h:526};
+  if(kind==='CARD') return {w:337, h:595}; // 59.4mm x 105mm aspect ratio
   return {w:640,h:320}; // ACC or default for IMAGE
 }
 
@@ -1237,6 +1242,7 @@ function openPrintTab(list,tpl){
   else if(tpl.kind==='A4'){ cols=1; rows=1; pad='10mm'; pageSize='A4'; }
   else if(tpl.kind==='A5'){ cols=2; rows=1; pad='10mm'; pageSize='A4 landscape'; }
   else if(tpl.kind==='A6'){ cols=2; rows=2; pad='8mm'; pageSize='A4'; }
+  else if(tpl.kind==='CARD'){ cols=5; rows=2; pad='4mm'; pageSize='A4 landscape'; }
   else { cols=2; rows=6; pad='6mm'; pageSize='A4'; }
 
   const style=`
@@ -1556,9 +1562,31 @@ function bindSettingsEvents(tab) {
         });
     } 
     if (tab === 'templates') {
+        // NEW: Add Template Button
+        $('#btnAddTpl').onclick = () => {
+            const kinds = defaultAppState.templates.map(t => t.kind).filter((v, i, a) => a.indexOf(v) === i);
+            const kind = prompt(`Enter template kind to create:\n(${kinds.join(', ')})`);
+            if (!kind || !kinds.includes(kind.toUpperCase())) return alert('Invalid kind selected.');
+
+            const name = prompt('Enter a name for the new template:');
+            if (!name) return;
+
+            const baseTemplate = defaultAppState.templates.find(t => t.kind === kind.toUpperCase());
+            const newTpl = JSON.parse(JSON.stringify(baseTemplate)); // Deep copy
+            newTpl.id = 'user-' + Math.random().toString(36).slice(2, 10);
+            newTpl.name = name;
+            newTpl.imageData = null; // New templates start without an image
+            
+            appData.templates.push(newTpl);
+            log('add_template', name);
+            updateLocalDataAndSave();
+            openSettings('templates');
+            alert('New template created.');
+        };
+
         $('#tplUploadNew').onchange = async (e) => {
           const f = e.target.files && e.target.files[0]; if(!f) return;
-          const nm = prompt('Enter a name for this new template:'); if(!nm){ e.target.value=''; return; }
+          const nm = prompt('Enter a name for this new image template:'); if(!nm){ e.target.value=''; return; }
           try{
             const imageData = await fileToBase64(f);
             const id = 'user-' + Math.random().toString(36).slice(2,10);
@@ -1571,7 +1599,7 @@ function bindSettingsEvents(tab) {
             log('create_template_image', nm);
             updateLocalDataAndSave();
             openSettings('templates');
-            alert('New template created.');
+            alert('New image template created.');
           }catch(err){ alert('Failed to create template: '+err.message); }
           e.target.value='';
         };
