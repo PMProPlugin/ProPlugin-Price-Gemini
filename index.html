@@ -1296,8 +1296,10 @@ function closeAllFilterDropdowns(exceptKey = null) {
   $$('.filter-dropdown').forEach(d => { d.style.display = 'none'; });
 }
 
+
+// --- REPLACE: openFilterDropdown(key)
 function openFilterDropdown(key) {
-  // ensure global portal
+  // 1) Ensure global portal dropdown (fixed + super high z-index)
   let g = document.querySelector('#global-filter-dropdown');
   if (!g) {
     g = document.createElement('div');
@@ -1306,7 +1308,7 @@ function openFilterDropdown(key) {
     document.body.appendChild(g);
   }
   g.style.position = 'fixed';
-  g.style.zIndex = '9999';
+  g.style.zIndex = '9999'; // อยู่หน้าสุดจริงๆ
 
   const btn = document.querySelector(`.filter-btn[data-filter-key="${key}"]`);
   if (!btn) return;
@@ -1315,30 +1317,21 @@ function openFilterDropdown(key) {
   closeAllFilterDropdowns(key);
   if (isVisible) { g.style.display = 'none'; return; }
 
-  // ค่าทั้งหมดในคอลัมน์
+  // 2) เตรียมค่าทั้งหมด + สถานะเดิม
   const allValues = [...new Set((appData.products || [])
     .map(p => (p[key] ?? '').toString())
     .filter(Boolean))];
 
-  // currentFilter = ที่ใช้งานอยู่จริงตอนนี้ (Set ว่าง = เลือกทุกค่า)
-  const currentFilter = columnFilters[key] || new Set();
-
-  // tempSelected = สถานะ "ที่ผู้ใช้กำลังเลือกอยู่ใน dropdown" (ไม่หายเมื่อ Sort/Search)
-  let tempSelected = currentFilter.size ? new Set(currentFilter) : new Set(allValues);
-
-  // เก็บลง portal เพื่อให้ handler ภายนอกอ่านได้ตอนกด Apply
-  g.dataset.key = String(key);
-  g._tempSelectedKey = key;
-  g._tempSelectedSet = tempSelected;
-  g._allValues = allValues.slice();
-
   let sortDir = 'asc';
-  let viewValues = [...allValues];
+  let viewValues = [...allValues].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  const currentFilter = columnFilters[key] || new Set(); // ถ้าว่าง = ถือว่าเลือกทุกค่า
 
+  // 3) สร้าง UI: Search + Sort + Select All + รายการค่า + ปุ่ม Apply/Clear
+  g.dataset.key = key;
   g.innerHTML = `
     <div class="filter-dropdown-content">
-      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none w-full"
-             placeholder="Search values… (Excel-like)" />
+      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none"
+             placeholder="Search values… (like Excel)" />
 
       <div class="flex gap-2 my-1">
         <button id="filter-sort-asc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort A–Z</button>
@@ -1352,32 +1345,32 @@ function openFilterDropdown(key) {
       <div id="filter-values-${key}" class="max-h-60 overflow-auto rounded border border-zinc-800"></div>
 
       <div class="flex gap-2 mt-2">
-        <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600">Apply</button>
-        <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600" data-clear-filter="${key}">Clear</button>
+        <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600" data-total-values="${allValues.length}">Apply</button>
+        <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
       </div>
     </div>
   `;
 
-  const $valsBox   = g.querySelector(`#filter-values-${key}`);
+  // 4) ฟังก์ชัน render รายการค่า (คง state เดิม + ค้นหา + เรียง)
+  const $valsBox = g.querySelector(`#filter-values-${key}`);
   const $selectAll = g.querySelector(`#filter-select-all-${key}`);
-  const $search    = g.querySelector(`#filter-search-${key}`);
+  const $search = g.querySelector(`#filter-search-${key}`);
 
-  function computeDisplay() {
+  function renderList() {
+    // เคลียร์ + วาดตาม viewValues (หลังค้นหา + เรียง)
+    $valsBox.innerHTML = '';
     const q = ($search.value || '').toString().trim().toLowerCase();
     let display = viewValues.filter(v => v.toLowerCase().includes(q));
+
+    // เรียงทิศทาง
     display.sort((a,b)=> sortDir==='asc'
       ? a.localeCompare(b,undefined,{numeric:true})
       : b.localeCompare(a,undefined,{numeric:true})
     );
-    return display;
-  }
 
-  function renderList() {
-    $valsBox.innerHTML = '';
-    const display = computeDisplay();
-
+    // วาด checkbox แต่ละค่า
     for (const v of display) {
-      const checked = tempSelected.has(v);
+      const checked = (currentFilter.size===0) ? true : currentFilter.has(v);
       const row = document.createElement('label');
       row.className = 'flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded';
       row.title = v;
@@ -1388,25 +1381,24 @@ function openFilterDropdown(key) {
       $valsBox.appendChild(row);
     }
 
+    // อัปเดตสถานะ Select All (เฉพาะที่ "มองเห็น" ตาม search)
     const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
     $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(cb => cb.checked);
 
+    // เมื่อติ๊กแต่ละตัว ให้ sync สถานะ Select All
     visibleChecks.forEach(cb => {
       cb.onchange = () => {
-        if (cb.checked) tempSelected.add(cb.value);
-        else tempSelected.delete(cb.value);
-        g._tempSelectedSet = tempSelected;
         const allOn = visibleChecks.length > 0 && visibleChecks.every(x => x.checked);
         $selectAll.checked = allOn;
       };
     });
   }
 
-  // Controls
-  g.querySelector(`#filter-sort-asc-${key}`).onclick  = () => { sortDir = 'asc';  renderList(); };
+  // 5) Bind controls
+  g.querySelector(`#filter-sort-asc-${key}`).onclick = () => { sortDir = 'asc'; renderList(); };
   g.querySelector(`#filter-sort-desc-${key}`).onclick = () => { sortDir = 'desc'; renderList(); };
-  $search.oninput = () => renderList();
 
+  $search.oninput = () => renderList();
   // Enter = Apply
   g.setAttribute('tabindex', -1);
   g.onkeydown = (e) => {
@@ -1416,23 +1408,24 @@ function openFilterDropdown(key) {
     }
   };
 
-  // Select All เฉพาะค่าที่ "มองเห็น"
+  // Select All = เลือก/ปลดเฉพาะรายการที่ "มองเห็น"
   $selectAll.onchange = (e) => {
-    const display = computeDisplay();
-    if (e.target.checked) display.forEach(v => tempSelected.add(v));
-    else display.forEach(v => tempSelected.delete(v));
-    g._tempSelectedSet = tempSelected;
-    renderList();
+    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
+    visibleChecks.forEach(cb => cb.checked = e.target.checked);
   };
 
-  // วาง dropdown ใต้ปุ่ม
+  // 6) จัดวาง dropdown (fixed) ให้อยู่ใต้ปุ่มฟิลเตอร์
   const r = btn.getBoundingClientRect();
   g.style.left = `${r.left}px`;
   g.style.top  = `${r.bottom + 4}px`;
   g.style.display = 'block';
 
+  // ครั้งแรกต้อง render รายการ
   renderList();
 }
+
+
+
 
 function makeTableResizable() {
     const header = $('#productTHead');
@@ -1845,23 +1838,20 @@ function init() {
       const applyFilterBtn = e.target.closest('[data-apply-filter]');
 if (applyFilterBtn) {
   const key = applyFilterBtn.dataset.applyFilter;
-  const g = document.querySelector('#global-filter-dropdown');
+  const total = +applyFilterBtn.dataset.totalValues || Infinity;
 
-  // อ่านชุดที่เลือกชั่วคราวจาก portal (ถ้าไม่มี fallback เป็นการอ่าน checkbox ใน DOM)
-  let tempSet = (g && g._tempSelectedSet && g.dataset.key === String(key))
-    ? new Set(g._tempSelectedSet)
-    : new Set($$(`.filter-item-${key}:checked`).map(cb => cb.value));
+  // อ่านค่าที่ถูกติ๊ก
+  const checkedValues = new Set(
+    Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value)
+  );
 
-  const total = (g && Array.isArray(g._allValues)) ? g._allValues.length : tempSet.size;
-
-  // ถ้าเลือกครบทุกค่า = "ไม่กรอง" → เก็บเป็น Set ว่าง
-  columnFilters[key] = (tempSet.size >= total) ? new Set() : tempSet;
+  // ถ้าเลือกครบทุกค่า = ถือว่า "ไม่กรอง" -> เก็บเป็น Set ว่าง
+  columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
 
   currentPage = 1;
   closeAllFilterDropdowns();
   updateLocalDataAndSave();
 }
-
       const clearFilterBtn = e.target.closest('[data-clear-filter]');
       if (clearFilterBtn) {
           const key = clearFilterBtn.dataset.clearFilter;
