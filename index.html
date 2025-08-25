@@ -88,11 +88,38 @@
     position: relative;
     z-index: 1;
   }
-  .style-btn {
-    width: 28px; height: 28px; border-radius: 6px; border: 1px solid #555; background-color: #333;
-    display: grid; place-items: center;
+  /* NEW: Table style improvements */
+  .main-table-wrapper {
+    border-radius: 1rem; /* rounded-2xl */
+    overflow: hidden;
+    border: 1px solid #3f3f46; /* zinc-700 */
   }
-  .style-btn.active { background-color: #E11D2E; border-color: #ff5566; }
+  .main-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .main-table th, .main-table td {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  .main-table thead th {
+    background-color: #18181b; /* zinc-900 */
+    border-bottom: 2px solid #3f3f46; /* zinc-700 */
+  }
+  .main-table tbody tr {
+    border-bottom: 1px solid #27272a; /* zinc-800 */
+  }
+   .main-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  .main-table tbody tr:nth-child(odd) {
+    background-color: rgba(39, 39, 42, 0.4); /* zinc-800 with opacity */
+  }
+  .main-table tbody tr:hover {
+     background-color: rgba(63, 63, 70, 0.6); /* zinc-700 with opacity */
+  }
 
 </style>
 </head>
@@ -181,10 +208,10 @@
     </div>
   </header>
   <main class="max-w-7xl mx-auto px-4 py-6">
-    <div class="overflow-auto border border-zinc-800 rounded-2xl">
-      <table class="w-full text-sm">
-        <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800 sticky top-0"></thead>
-        <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-900/40"></tbody>
+    <div class="main-table-wrapper">
+      <table class="main-table text-sm">
+        <thead id="productTHead"></thead>
+        <tbody id="productBody"></tbody>
       </table>
     </div>
     <div id="pagination" class="mt-4 flex justify-center items-center gap-2"></div>
@@ -269,6 +296,21 @@
     </div>
   </div>
 </div>
+
+<div id="addTplModal" class="hidden fixed inset-0 z-[75] bg-black/70 grid place-items-center">
+    <div class="w-full max-w-md bg-zinc-950 border border-zinc-800 rounded-2xl p-6">
+        <h3 class="text-xl font-semibold mb-4">Add New Template</h3>
+        <label class="text-sm text-zinc-400">Template Name</label>
+        <input id="newTplName" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="e.g., My Custom A4">
+        <label class="text-sm text-zinc-400 mt-4 block">Base Template Kind</label>
+        <select id="newTplKind" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></select>
+        <div class="flex gap-4 mt-6">
+            <button id="btnCancelAddTpl" class="w-full py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Cancel</button>
+            <button id="btnConfirmAddTpl" class="w-full py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Create</button>
+        </div>
+    </div>
+</div>
+
 <script>
 /* ================= CORE STATE / STORAGE ================= */
 const LS = {
@@ -289,31 +331,70 @@ const sampleProducts = [{
   marketplacePrice:5990, dealer1:5600, dealer2:5400, dealer3:5200
 }];
 
-const defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
-const defaultFontStyle = { fw: 'normal', fs: 'normal', td: 'none' };
-const defaultTextStyles = { fs: 14, color: '#ffffff', margin: defaultMargin, ...defaultFontStyle };
+// Helper to create default style object
+const createDefaultStyle = (fs, color = '#ffffff', align = 'left') => ({
+    fs, color, align,
+    margin: { t: 0, r: 0, b: 0, l: 0 },
+    fontWeight: 'normal',
+    fontStyle: 'normal',
+    textDecoration: 'none' // Can be 'underline', 'line-through', or 'underline line-through'
+});
 
 const defaultAppState = {
     version: 3.2,
     products: sampleProducts,
     templates: [
-        { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: { top: 10, right: 10, bottom: 10, left: 10 } },
-          styles:{ sku:{...defaultTextStyles, fs:16}, description:{...defaultTextStyles, fs:30}, details:{...defaultTextStyles, fs:14}, price:{...defaultTextStyles, fs:72}, oldPrice:{...defaultTextStyles, fs:20, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:13} } },
-        { id:'t-a5',  name:'A5 (2 per A4 landscape)', kind:'A5',  showLogo:true, imageData:null, logoStyles: { size: 50, margin: { top: 8, right: 8, bottom: 8, left: 8 } },
-          styles:{ sku:{...defaultTextStyles, fs:14}, description:{...defaultTextStyles, fs:26}, details:{...defaultTextStyles, fs:13}, price:{...defaultTextStyles, fs:60}, oldPrice:{...defaultTextStyles, fs:18, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:12} } },
-        { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: { top: 6, right: 6, bottom: 6, left: 6 } },
-          styles:{ sku:{...defaultTextStyles, fs:12}, description:{...defaultTextStyles, fs:22}, details:{...defaultTextStyles, fs:12}, price:{...defaultTextStyles, fs:48}, oldPrice:{...defaultTextStyles, fs:16, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:11} } },
-        { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
-        { id:'t-card', name:'Card (9 per A4 portrait)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
+        { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, top: 10, right: 10 },
+          styles:{ 
+            sku: createDefaultStyle(16), 
+            description: createDefaultStyle(30), 
+            details: createDefaultStyle(14), 
+            price: createDefaultStyle(72), 
+            oldPrice: createDefaultStyle(20, '#ff4d4f'), 
+            expire: createDefaultStyle(13) 
+          }},
+        { id:'t-a5',  name:'A5 (2 per A4 landscape)', kind:'A5',  showLogo:true, imageData:null, logoStyles: { size: 50, top: 8, right: 8 },
+          styles:{ 
+            sku: createDefaultStyle(14), 
+            description: createDefaultStyle(26), 
+            details: createDefaultStyle(13), 
+            price: createDefaultStyle(60), 
+            oldPrice: createDefaultStyle(18, '#ff4d4f'), 
+            expire: createDefaultStyle(12) 
+          }},
+        { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, top: 6, right: 6 },
+          styles:{ 
+            sku: createDefaultStyle(12), 
+            description: createDefaultStyle(22), 
+            details: createDefaultStyle(12), 
+            price: createDefaultStyle(48), 
+            oldPrice: createDefaultStyle(16, '#ff4d4f'), 
+            expire: createDefaultStyle(11) 
+          }},
+        { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, top: 4, right: 4 },
+          styles:{ 
+            sku: createDefaultStyle(11), 
+            description: createDefaultStyle(15, '#ffffff', 'center'), 
+            details: createDefaultStyle(10), 
+            price: createDefaultStyle(22), 
+            oldPrice: createDefaultStyle(12, '#B91C1C'), 
+            expire: createDefaultStyle(10) 
+          }},
+        { id:'t-card', name:'Card (9 per A4 portrait)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, top: 4, right: 4 },
+          styles:{ 
+            sku: createDefaultStyle(10), 
+            description: createDefaultStyle(14, '#ffffff', 'center'), 
+            details: createDefaultStyle(9), 
+            price: createDefaultStyle(20), 
+            oldPrice: createDefaultStyle(11, '#B91C1C'), 
+            expire: createDefaultStyle(9) 
+          }}
     ],
     dealerNames: defaultDealerNames,
     users: [],
     logo: '',
     logs: []
 };
-
 
 let appData = null;
 let currentUser = null;
@@ -580,7 +661,7 @@ function renderTableHeader() {
         { key: 'actions', label: 'Actions', width: '100px', class: 'col-actions', sortable: false }
     ];
     
-    let headerHTML = `<tr class="[&>th]:px-3 [&>th]:py-3 text-left">`;
+    let headerHTML = `<tr class="text-left">`;
     columns.forEach(col => {
         let thClass = col.class || '';
         let thAttrs = '';
@@ -606,7 +687,7 @@ function renderTableHeader() {
             content = label;
         }
 
-        headerHTML += `<th id="${col.id || ''}" class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
+        headerHTML += `<th class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
             ${content}
             <div class="resizer"></div>
         </th>`;
@@ -627,7 +708,6 @@ function renderTable(){
 
   paginatedItems.forEach(p=>{
     const tr=document.createElement('tr');
-    tr.className='border-b border-zinc-800 hover:bg-zinc-800/30';
     let isPromoExpired = p.expiresDate && new Date(p.expiresDate) < today;
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
     const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
@@ -638,24 +718,24 @@ function renderTable(){
     const detailsOneLine=(p.details||'').replace(/\n+/g,' • ');
 
     tr.innerHTML = `
-      <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${p.description}">${p.description || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${detailsOneLine}">${detailsOneLine}</td>
-      <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
-      <td class="px-3 py-3 hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
-      <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
-      <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
-      <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
-      <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
-      <td class="px-3 py-3 col-marketgp oneline" title="${gpM.toFixed(1)}%">${gpM.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t1 oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
-      <td class="px-3 py-3 col-gp1 oneline" title="${gp1.toFixed(1)}%">${gp1.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t2 oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
-      <td class="px-3 py-3 col-gp2 oneline" title="${gp2.toFixed(1)}%">${gp2.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t3 oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
-      <td class="px-3 py-3 col-gp3 oneline" title="${gp3.toFixed(1)}%">${gp3.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-actions">
+      <td class="oneline" title="${p.sku}">${p.sku || '-'}</td>
+      <td class="oneline" title="${p.description}">${p.description || '-'}</td>
+      <td class="oneline" title="${detailsOneLine}">${detailsOneLine}</td>
+      <td class="oneline" title="${p.brand}">${p.brand || '-'}</td>
+      <td class="oneline" title="${p.category}">${p.category || '-'}</td>
+      <td class="hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
+      <td class="col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
+      <td class="col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
+      <td class="col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
+      <td class="col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
+      <td class="col-marketgp oneline" title="${gpM.toFixed(1)}%">${gpM.toFixed(1)}%</td>
+      <td class="col-t1 oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
+      <td class="col-gp1 oneline" title="${gp1.toFixed(1)}%">${gp1.toFixed(1)}%</td>
+      <td class="col-t2 oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
+      <td class="col-gp2 oneline" title="${gp2.toFixed(1)}%">${gp2.toFixed(1)}%</td>
+      <td class="col-t3 oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
+      <td class="col-gp3 oneline" title="${gp3.toFixed(1)}%">${gp3.toFixed(1)}%</td>
+      <td class="col-actions">
           <div class="flex items-center gap-2">
             <button class="px-2 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs" data-edit="${p.sku}">Edit</button>
             <button title="Delete" class="px-2 py-1 rounded-xl bg-transparent border border-red-700 hover:bg-red-700/20 text-xs" data-del="${p.sku}">❌</button>
@@ -911,30 +991,11 @@ function renderSettings(tab){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
     const arr = appData.templates || [];
     box.innerHTML = `
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <div class="text-2xl font-semibold">Template Management</div>
-          <div class="text-sm text-zinc-400">All templates are fully customizable.</div>
-        </div>
-        <button id="btnShowAddTpl" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
+      <div class="flex items-center justify-between">
+        <div class="text-2xl font-semibold mb-2">Template Management</div>
+        <button id="btnAddTpl" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
       </div>
-      
-      <div id="addTplBox" class="hidden p-4 mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
-        <h3 class="font-semibold">Create New Template</h3>
-        <div>
-          <label class="text-sm text-zinc-400">Template Base</label>
-          <select id="newTplKind" class="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700"></select>
-        </div>
-        <div>
-          <label class="text-sm text-zinc-400">Template Name</label>
-          <input id="newTplName" class="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" placeholder="e.g., My Custom A4">
-        </div>
-        <div class="flex gap-2">
-          <button id="btnCreateTpl" class="px-4 py-2 rounded-xl bg-brand.red hover:bg-red-600 border border-red-700">Create</button>
-          <button id="btnCancelTpl" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Cancel</button>
-        </div>
-      </div>
-
+      <div class="text-sm text-zinc-400 mb-3">All templates are fully customizable.</div>
       <div id="tplList" class="grid lg:grid-cols-2 gap-6 mt-2"></div>
     `;
 
@@ -942,19 +1003,13 @@ function renderSettings(tab){
     arr.forEach((t,i)=>{
       const card = document.createElement('div');
       card.className = 'p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40';
-      
-      // Ensure data structure integrity for older templates
-      t.logoStyles = t.logoStyles || { size: 64, margin: { top: 10, right: 10, bottom: 10, left: 10 } };
-      if(typeof t.logoStyles.margin !== 'object') t.logoStyles.margin = { top: t.logoStyles.margin, right: t.logoStyles.margin, bottom:0, left:0 };
-
+      const safe = (v, d) => (v === undefined || v === null) ? d : v;
       t.styles = t.styles || {};
       ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
-        t.styles[k] = t.styles[k] || { ...defaultTextStyles };
-        if(typeof t.styles[k].margin !== 'object') t.styles[k].margin = { top: t.styles[k].mt || 0, right:0, bottom:0, left:0 };
-        t.styles[k].fw = t.styles[k].fw || 'normal';
-        t.styles[k].fs = t.styles[k].fs || 'normal';
-        t.styles[k].td = t.styles[k].td || 'none';
+        t.styles[k] = t.styles[k] || createDefaultStyle(14);
+        t.styles[k].margin = t.styles[k].margin || {t:0,r:0,b:0,l:0};
       });
+      t.logoStyles = t.logoStyles || { size: 64, top: 10, right: 10 };
 
       card.innerHTML = `
         <div class="flex justify-between items-start">
@@ -962,51 +1017,62 @@ function renderSettings(tab){
           <button class="ml-2 px-3 py-1 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700" data-del-tpl="${i}">Delete</button>
         </div>
         <div class="text-xs text-zinc-400 mb-3">ID: ${t.id||'-'} • Kind: ${t.kind||'-'}</div>
-        <div class="grid grid-cols-2 gap-4">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
+             <div class="text-sm font-semibold mb-2">Logo Settings</div>
+             <label class="flex items-center gap-2 text-sm"><input type="checkbox" data-logo-tpl="${i}" ${t.showLogo?'checked':''}> Show logo</label>
+             <div class="grid grid-cols-3 gap-2 mt-2">
+                <div>
+                  <label class="text-xs text-zinc-400">Size</label>
+                  <input type="number" step="1" data-logostyles-tpl="${i}|size" value="${safe(t.logoStyles.size, 64)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                </div>
+                <div>
+                  <label class="text-xs text-zinc-400">Top</label>
+                  <input type="number" step="1" data-logostyles-tpl="${i}|top" value="${safe(t.logoStyles.top, 10)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                </div>
+                <div>
+                  <label class="text-xs text-zinc-400">Right</label>
+                  <input type="number" step="1" data-logostyles-tpl="${i}|right" value="${safe(t.logoStyles.right, 10)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                </div>
+             </div>
+          </div>
+           <div>
             <div class="text-sm font-semibold mb-2">Background Image</div>
-            <img src="${t.imageData||''}" alt="template" class="w-full rounded-lg border border-zinc-700 my-2 object-contain max-h-32 ${t.imageData?'':'hidden'}">
-            <div class="${t.imageData?'hidden':''} text-xs text-zinc-500">No background image</div>
             <label class="w-full text-center block mt-2 px-3 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 cursor-pointer">
               <input type="file" data-img-tpl="${i}" accept="image/png, image/jpeg" class="hidden">
               Upload/Change Image
             </label>
-          </div>
-          <div>
-            <div class="text-sm font-semibold mb-2">Logo Settings</div>
-            <label class="flex items-center gap-2 text-sm"><input type="checkbox" data-logo-tpl="${i}" ${t.showLogo?'checked':''}> Show logo</label>
-            <div class="grid grid-cols-2 gap-2 mt-2">
-              <div><label class="text-xs text-zinc-400">Size (px)</label><input type="number" step="1" data-logosize-tpl="${i}" value="${t.logoStyles.size}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
-              <div><label class="text-xs text-zinc-400">Margin Top</label><input type="number" step="1" data-logomargintop-tpl="${i}" value="${t.logoStyles.margin.top}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
-              <div></div><div><label class="text-xs text-zinc-400">Margin Right</label><input type="number" step="1" data-logomarginright-tpl="${i}" value="${t.logoStyles.margin.right}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
-            </div>
+            <img src="${t.imageData||''}" class="w-full rounded-lg border border-zinc-700 my-2 object-contain max-h-16 ${t.imageData?'':'hidden'}">
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-3 mt-4">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
           ${['sku','description','details','price','oldPrice','expire'].map(k=>`
-            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
-              <div class="text-xs text-zinc-400 capitalize">${k.replace('oldPrice','Old Price')}</div>
+            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
+              <div class="text-sm font-semibold mb-1 capitalize">${k.replace('oldPrice','Old Price')}</div>
               <div class="grid grid-cols-2 gap-2">
-                <div><label class="text-xs">Font size</label><input type="number" step="1" data-val-tpl="${i}|${k}|fs" value="${t.styles[k].fs}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
-                <div><label class="text-xs">Color</label><input type="color" data-val-tpl="${i}|${k}|color" value="${t.styles[k].color}" class="w-full h-8 rounded-xl bg-zinc-950 border border-zinc-800"></div>
+                  <div>
+                    <label class="text-xs">Font size</label>
+                    <input type="number" step="1" data-style-tpl="${i}|${k}|fs" value="${t.styles[k].fs}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+                  </div>
+                  <div>
+                    <label class="text-xs">Color</label>
+                    <input type="color" data-style-tpl="${i}|${k}|color" value="${t.styles[k].color}" class="w-full h-8 rounded-xl bg-zinc-950 border border-zinc-800 p-0.5">
+                  </div>
               </div>
-              <div>
-                <label class="text-xs">Margin (T-R-B-L)</label>
-                <div class="grid grid-cols-4 gap-1">
-                  <input type="number" step="1" placeholder="T" data-val-tpl="${i}|${k}|margin|top" value="${t.styles[k].margin.top}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
-                  <input type="number" step="1" placeholder="R" data-val-tpl="${i}|${k}|margin|right" value="${t.styles[k].margin.right}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
-                  <input type="number" step="1" placeholder="B" data-val-tpl="${i}|${k}|margin|bottom" value="${t.styles[k].margin.bottom}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
-                  <input type="number" step="1" placeholder="L" data-val-tpl="${i}|${k}|margin|left" value="${t.styles[k].margin.left}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
-                </div>
+              <div class="text-xs mt-2">Margin (T-R-B-L)</div>
+              <div class="grid grid-cols-4 gap-1 mt-1">
+                <input type="number" step="1" data-style-tpl="${i}|${k}|margin|t" value="${t.styles[k].margin.t}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800" title="Margin Top">
+                <input type="number" step="1" data-style-tpl="${i}|${k}|margin|r" value="${t.styles[k].margin.r}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800" title="Margin Right">
+                <input type="number" step="1" data-style-tpl="${i}|${k}|margin|b" value="${t.styles[k].margin.b}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800" title="Margin Bottom">
+                <input type="number" step="1" data-style-tpl="${i}|${k}|margin|l" value="${t.styles[k].margin.l}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800" title="Margin Left">
               </div>
-              <div>
-                <label class="text-xs">Font Style</label>
-                <div class="grid grid-cols-4 gap-1">
-                  <button data-style-tpl="${i}|${k}|fw|bold" class="style-btn ${t.styles[k].fw === 'bold' ? 'active':''}"><b>B</b></button>
-                  <button data-style-tpl="${i}|${k}|fs|italic" class="style-btn ${t.styles[k].fs === 'italic' ? 'active':''}"><i>I</i></button>
-                  <button data-style-tpl="${i}|${k}|td|underline" class="style-btn ${t.styles[k].td.includes('underline') ? 'active':''}"><u>U</u></button>
-                  <button data-style-tpl="${i}|${k}|td|line-through" class="style-btn ${t.styles[k].td.includes('line-through') ? 'active':''}"><s>S</s></button>
-                </div>
+              <div class="text-xs mt-2">Font Style</div>
+              <div class="flex items-center gap-2 text-sm mt-1">
+                  <label title="Bold"><input type="checkbox" data-fontstyle-tpl="${i}|${k}|bold" ${t.styles[k].fontWeight==='bold'?'checked':''}> B</label>
+                  <label title="Italic"><input type="checkbox" data-fontstyle-tpl="${i}|${k}|italic" ${t.styles[k].fontStyle==='italic'?'checked':''}> I</label>
+                  <label title="Underline"><input type="checkbox" data-fontstyle-tpl="${i}|${k}|underline" ${t.styles[k].textDecoration.includes('underline')?'checked':''}> U</label>
               </div>
             </div>
           `).join('')}
@@ -1079,6 +1145,7 @@ async function doImportMaster(){
     updateLocalDataAndSave();
   } catch(e){ alert('An error occurred during import: ' + e.message); }
 }
+
 async function doExportMaster(){
   const wb=await XlsxPopulate.fromBlankAsync(); const sh=wb.sheet(0).name('MasterPriceData');
   const header=['SKU','Description','Details','Brand','Category','Costs','Normal Price','Marketplace Price','Dealer T1','Dealer T2','Dealer T3'];
@@ -1095,6 +1162,7 @@ async function doExportMaster(){
   const a=document.createElement('a'); a.href=url; a.download='master_price_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
   log('export_master', `${appData.products.length} rows`);
 }
+
 async function doImportPromo() {
     const fi = $('#fileImportPromo'); if (!fi.files[0]) return alert('Choose a file');
     try {
@@ -1218,8 +1286,8 @@ function generateSingleTagHTML(p, tpl) {
 
     let logoTag = '';
     if (tpl.showLogo && logo) {
-        const { size = 64, margin = {top:10, right:10} } = tpl.logoStyles || {};
-        logoTag = `<img src="${logo}" class="logo" style="top:${margin.top}px; right:${margin.right}px; width:${size}px; height:auto;">`;
+        const { size = 64, top = 10, right = 10 } = tpl.logoStyles || {};
+        logoTag = `<img src="${logo}" class="logo" style="right:${right}px;top:${top}px;width:${size}px;height:auto;">`;
     }
     const content = renderTagInnerHTML(p, tpl);
     const cardHTML = `<div class="card">${logoTag}${content}</div>`;
@@ -1274,26 +1342,30 @@ function renderPreview(item, tpl) {
 function renderTagInnerHTML(p, tpl){
   const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
   const styleInline = (o) => {
-    const m = o.margin || defaultMargin;
-    return `font-size:${o.fs||14}px; color:${o.color||'#fff'}; font-weight:${o.fw||'normal'}; font-style:${o.fs||'normal'}; text-decoration:${o.td||'none'}; margin: ${m.top}px ${m.right}px ${m.bottom}px ${m.left}px;`;
+    const m = o.margin || {t:0,r:0,b:0,l:0};
+    return `font-size:${o.fs||14}px;color:${o.color||'#fff'};text-align:${o.align||'left'};` +
+           `margin:${m.t}px ${m.r}px ${m.b}px ${m.l}px;` +
+           `font-weight:${o.fontWeight||'normal'};font-style:${o.fontStyle||'normal'};`+
+           `text-decoration:${o.textDecoration||'none'};`;
   };
+
+  const s = tpl.styles;
   const content = `
     <div style="position:absolute; top:0; left:0; right:0; bottom:0; padding:${innerPadding}; display:flex; flex-direction:column;">
-        <div style="${styleInline(tpl.styles.sku)}" class="text-right text-elevate">${p.sku}</div>
-        <div style="font-weight:800;line-height:1.2; ${styleInline(tpl.styles.description)}" class="text-elevate">${p.description}</div>
-        <div class="space-y-1">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
-            <div class="flex gap-2 items-start text-elevate" style="${styleInline(tpl.styles.details)}"><span>•</span><span>${t}</span></div>`).join('')}</div>
+        <div style="${styleInline(s.sku)}" class="text-right text-elevate">${p.sku}</div>
+        <div style="line-height:1.2;${styleInline(s.description)}" class="text-elevate">${p.description}</div>
+        <div class="space-y-1" style="flex-shrink: 1; overflow: hidden; ${styleInline(s.details)}">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
+            <div class="flex gap-2 items-start text-elevate"><span>•</span><span>${t}</span></div>`).join('')}</div>
         <div class="mt-auto flex items-end justify-between">
-            <div style="${styleInline(tpl.styles.expire)}" class="text-elevate">Expire : ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
+            <div style="${styleInline(s.expire)}" class="text-elevate">Expire : ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
             <div class="text-right">
-            <div style="${styleInline(tpl.styles.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
-            <div style="font-weight:900; ${styleInline(tpl.styles.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
+            <div style="${styleInline(s.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
+            <div style="font-weight:900;${styleInline(s.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
             </div>
         </div>
     </div>
   `;
-  if(tpl.kind === 'ACC' || tpl.kind === 'CARD'){
-      const s=tpl.styles;
+  if(tpl.kind === 'ACC'){
       return `
       <div style="position:absolute;left:6mm;top:4mm;${styleInline(s.sku)}" class="text-elevate">${p.sku}</div>
       <div style="display:flex;align-items:center;justify-content:center;text-align:center;height:100%;padding:10mm 8mm;" class="text-elevate">
@@ -1306,6 +1378,25 @@ function renderTagInnerHTML(p, tpl){
       </div>
       `;
   }
+  if (tpl.kind === 'CARD') {
+    const detailsText = (p.details || '').split(/\n+/).join(' • ');
+    return `
+      <div style="display:flex; flex-direction:column; justify-content:space-between; height:100%; padding: 4mm;">
+          <div style="${styleInline(s.sku)}" class="text-left text-elevate">${p.sku}</div>
+          <div class="text-center my-1 flex-grow flex flex-col justify-center">
+             <div style="${styleInline(s.description)}; max-width:100%; word-break:break-word;">${p.description}</div>
+             <div style="${styleInline(s.details)}; max-width:100%; word-break:break-word; opacity:0.8; line-height:1.2;">${ellip(detailsText, 80)}</div>
+          </div>
+          <div class="flex justify-between items-end">
+             <div style="${styleInline(s.expire)}" class="text-elevate">Expire: ${p.expiresDate ? toDateInput(p.expiresDate) : ''}</div>
+             <div class="text-right">
+                <div style="${styleInline(s.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
+                <div style="font-weight:900; ${styleInline(s.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
+             </div>
+          </div>
+      </div>
+    `;
+  }
   return content;
 }
 
@@ -1314,7 +1405,7 @@ function baseSize(kind){
   if(kind==='A4') return {w:744,h:1052};
   if(kind==='A5') return {w:526,h:744};
   if(kind==='A6') return {w:372,h:526};
-  if(kind==='CARD') return {w:265, h:374}; // 70mm x 99mm for 3x3 on A4 portrait
+  if(kind==='CARD') return {w:265, h:374}; // 70mm x 99mm aspect ratio
   return {w:640,h:320}; // ACC or default for IMAGE
 }
 
@@ -1329,7 +1420,7 @@ function openPrintTab(list,tpl){
   else if(tpl.kind==='A4'){ cols=1; rows=1; pad='10mm'; pageSize='A4'; }
   else if(tpl.kind==='A5'){ cols=2; rows=1; pad='10mm'; pageSize='A4 landscape'; }
   else if(tpl.kind==='A6'){ cols=2; rows=2; pad='8mm'; pageSize='A4'; }
-  else if(tpl.kind==='CARD'){ cols=3; rows=3; pad='4mm'; pageSize='A4'; }
+  else if(tpl.kind==='CARD'){ cols=3; rows=3; pad='2mm'; pageSize='A4'; }
   else { cols=2; rows=6; pad='6mm'; pageSize='A4'; }
 
   const style=`
@@ -1342,12 +1433,6 @@ function openPrintTab(list,tpl){
       .card{ position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid #1f1f22; background-color:${tpl.imageData ? 'transparent' : (tpl.kind==='ACC'?'#000':'#0b0b0c')}; color:#fff; background-image: ${tpl.imageData ? `url(${tpl.imageData})` : 'none'}; background-size: cover; background-position: center; }
       .logo{ position:absolute; }
       .text-elevate{ text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
-      
-#global-filter-dropdown.filter-dropdown {
-  position: fixed !important;
-  z-index: 9999 !important;
-}
-
     </style>
   `;
   const perSheet = cols*rows;
@@ -1356,8 +1441,8 @@ function openPrintTab(list,tpl){
     const inner=pg.map(p=>{
       let logoTag = '';
       if(tpl.showLogo && logo) {
-        const { size = 64, margin = {top:10, right:10} } = tpl.logoStyles || {};
-        logoTag = `<img src="${logo}" class="logo" style="top:${margin.top}px; right:${margin.right}px; width:${size}px; height:auto;">`;
+        const { size = 64, top = 10, right = 10 } = tpl.logoStyles || {};
+        logoTag = `<img src="${logo}" class="logo" style="right:${right}px;top:${top}px;width:${size}px;height:auto;">`;
       }
       const content = renderTagInnerHTML(p, tpl);
       return `<div class="tag"><div class="card">${logoTag}${content}</div></div>`;
@@ -1395,18 +1480,14 @@ function openFilterDropdown(key) {
   closeAllFilterDropdowns(key);
   if (isVisible) { g.style.display = 'none'; return; }
 
-  const allValues = [...new Set((appData.products || [])
-    .map(p => (p[key] ?? '').toString())
-    .filter(Boolean))];
-
+  const allValues = [...new Set((appData.products || []).map(p => (p[key] ?? '').toString()).filter(Boolean))];
   let sortDir = 'asc';
-  let viewValues = [...allValues].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   const currentFilter = columnFilters[key] || new Set();
 
   g.dataset.key = key;
   g.innerHTML = `
     <div class="filter-dropdown-content">
-      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none" placeholder="Search values… (like Excel)" />
+      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none" placeholder="Search values…"/>
       <div class="flex gap-2 my-1">
         <button id="filter-sort-asc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort A–Z</button>
         <button id="filter-sort-desc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort Z–A</button>
@@ -1419,8 +1500,7 @@ function openFilterDropdown(key) {
         <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600" data-total-values="${allValues.length}">Apply</button>
         <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
       </div>
-    </div>
-  `;
+    </div>`;
 
   const $valsBox = g.querySelector(`#filter-values-${key}`);
   const $selectAll = g.querySelector(`#filter-select-all-${key}`);
@@ -1429,34 +1509,33 @@ function openFilterDropdown(key) {
   function renderList() {
     $valsBox.innerHTML = '';
     const q = ($search.value || '').toString().trim().toLowerCase();
-    let display = viewValues.filter(v => v.toLowerCase().includes(q));
+    let display = allValues.filter(v => v.toLowerCase().includes(q));
     display.sort((a,b)=> sortDir==='asc' ? a.localeCompare(b,undefined,{numeric:true}) : b.localeCompare(a,undefined,{numeric:true}));
+    
     for (const v of display) {
       const checked = (currentFilter.size===0) ? true : currentFilter.has(v);
-      const row = document.createElement('label');
-      row.className = 'flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded';
-      row.title = v;
-      row.innerHTML = `<input type="checkbox" class="filter-item-${key}" value="${v}" ${checked ? 'checked' : ''}><span class="oneline">${ellip(v, 40)}</span>`;
-      $valsBox.appendChild(row);
+      $valsBox.innerHTML += `<label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded" title="${v}">
+        <input type="checkbox" class="filter-item-${key}" value="${v}" ${checked ? 'checked' : ''}>
+        <span class="oneline">${ellip(v, 40)}</span></label>`;
     }
-    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
+    const visibleChecks = $$(`.filter-item-${key}`, $valsBox);
     $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(cb => cb.checked);
-    visibleChecks.forEach(cb => { cb.onchange = () => { $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(x => x.checked); }; });
+    visibleChecks.forEach(cb => { cb.onchange = () => { $selectAll.checked = visibleChecks.every(x => x.checked); }; });
   }
 
   g.querySelector(`#filter-sort-asc-${key}`).onclick = () => { sortDir = 'asc'; renderList(); };
   g.querySelector(`#filter-sort-desc-${key}`).onclick = () => { sortDir = 'desc'; renderList(); };
-  $search.oninput = () => renderList();
-  g.setAttribute('tabindex', -1);
+  $search.oninput = renderList;
   g.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); g.querySelector(`[data-apply-filter="${key}"]`).click(); } };
-  $selectAll.onchange = (e) => { Array.from($valsBox.querySelectorAll(`.filter-item-${key}`)).forEach(cb => cb.checked = e.target.checked); };
-  
+  $selectAll.onchange = (e) => { $$(`.filter-item-${key}`, $valsBox).forEach(cb => cb.checked = e.target.checked); };
+
   const r = btn.getBoundingClientRect();
   g.style.left = `${r.left}px`;
   g.style.top  = `${r.bottom + 4}px`;
   g.style.display = 'block';
   renderList();
 }
+
 
 function makeTableResizable() {
     const header = $('#productTHead');
@@ -1567,6 +1646,7 @@ function bindAppEvents() {
         openPrintTab(list, tpl);
     };
 
+    // Table sorting handler
     $('#productTHead').addEventListener('click', (e) => {
         const headerCell = e.target.closest('th[data-sort-key]');
         if (!headerCell) return;
@@ -1656,47 +1736,40 @@ function bindSettingsEvents(tab) {
             alert('User created');
         };
 
-$$('button[data-saveu-idx]').forEach(b => {
-  b.onclick = async (e) => {
-    const i = +e.target.dataset.saveuIdx;
-    const u = appData.users[i];
-    if (!u) return;
-
-    if (currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host')) {
-      alert('Admin cannot modify Host accounts.');
-      return;
-    }
-
-    const roleSel = $(`select[data-role-idx="${i}"]`);
-    const newRole = roleSel ? roleSel.value : u.role;
-    if (currentUser.role === 'Admin' && newRole === 'Host') {
-      alert('Admin cannot assign Host role.');
-      if (roleSel) roleSel.value = u.role;
-    } else {
-      u.role = newRole;
-    }
-
-    u.canSeeCosts = $(`input[data-cost-idx="${i}"]`).checked;
-    u.canPrint   = $(`input[data-print-idx="${i}"]`).checked;
-
-    const newPass = $(`input[data-pass-idx="${i}"]`).value.trim();
-    if (!(currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host'))) {
-      if (newPass) { u.passwordHash = await hashPassword(newPass); }
-    }
-
-    u.channels = Channels.filter(ch => $(`input[data-ch-idx="${i}|${ch}"]`).checked);
-
-    if (currentUser.username === u.username) {
-      currentUser = u;
-      initFiltersForUser();
-    }
-
-    log('update_user', u.username);
-    updateLocalDataAndSave();
-    alert('Saved.');
-    openSettings('users');
-  };
-});
+        $$('button[data-saveu-idx]').forEach(b => {
+            b.onclick = async (e) => {
+                const i = +e.target.dataset.saveuIdx;
+                const u = appData.users[i];
+                if (!u) return;
+                if (currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host')) {
+                  alert('Admin cannot modify Host accounts.');
+                  return;
+                }
+                const roleSel = $(`select[data-role-idx="${i}"]`);
+                const newRole = roleSel ? roleSel.value : u.role;
+                if (currentUser.role === 'Admin' && newRole === 'Host') {
+                  alert('Admin cannot assign Host role.');
+                  if (roleSel) roleSel.value = u.role;
+                } else {
+                  u.role = newRole;
+                }
+                u.canSeeCosts = $(`input[data-cost-idx="${i}"]`).checked;
+                u.canPrint   = $(`input[data-print-idx="${i}"]`).checked;
+                const newPass = $(`input[data-pass-idx="${i}"]`).value.trim();
+                if (!(currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host'))) {
+                  if (newPass) { u.passwordHash = await hashPassword(newPass); }
+                }
+                u.channels = Channels.filter(ch => $(`input[data-ch-idx="${i}|${ch}"]`).checked);
+                if (currentUser.username === u.username) {
+                  currentUser = u;
+                  initFiltersForUser();
+                }
+                log('update_user', u.username);
+                updateLocalDataAndSave();
+                alert('Saved.');
+                openSettings('users');
+            };
+        });
 
         $$('button[data-delu-idx]').forEach(b => {
             b.onclick = (e) => {
@@ -1714,28 +1787,26 @@ $$('button[data-saveu-idx]').forEach(b => {
         });
     } 
     if (tab === 'templates') {
-        const addTplBox = $('#addTplBox');
-        $('#btnShowAddTpl').onclick = () => {
-            addTplBox.classList.remove('hidden');
+        $('#btnAddTpl').onclick = () => {
+            const modal = $('#addTplModal');
             const kindSelect = $('#newTplKind');
-            if (kindSelect.options.length === 0) {
-                const kinds = defaultAppState.templates.map(t => t.kind).filter((v, i, a) => a.indexOf(v) === i);
-                kinds.forEach(k => {
-                    const opt = document.createElement('option');
-                    opt.value = k;
-                    opt.textContent = k;
-                    kindSelect.appendChild(opt);
-                });
-            }
+            kindSelect.innerHTML = '';
+            const kinds = defaultAppState.templates.map(t => t.kind).filter((v, i, a) => a.indexOf(v) === i);
+            kinds.forEach(k => {
+                const option = document.createElement('option');
+                option.value = k;
+                option.textContent = k;
+                kindSelect.appendChild(option);
+            });
+            modal.classList.remove('hidden');
         };
-
-        $('#btnCancelTpl').onclick = () => addTplBox.classList.add('hidden');
-        $('#btnCreateTpl').onclick = () => {
-            const kind = $('#newTplKind').value;
+        $('#btnCancelAddTpl').onclick = () => $('#addTplModal').classList.add('hidden');
+        $('#btnConfirmAddTpl').onclick = () => {
             const name = $('#newTplName').value.trim();
-            if (!name) { return alert('Please enter a template name.'); }
+            const kind = $('#newTplKind').value;
+            if (!name || !kind) return alert('Please provide a name and select a kind.');
 
-            const baseTemplate = defaultAppState.templates.find(t => t.kind === kind);
+            const baseTemplate = defaultAppState.templates.find(t => t.kind === kind.toUpperCase());
             const newTpl = JSON.parse(JSON.stringify(baseTemplate));
             newTpl.id = 'user-' + Math.random().toString(36).slice(2, 10);
             newTpl.name = name;
@@ -1745,47 +1816,45 @@ $$('button[data-saveu-idx]').forEach(b => {
             log('add_template', name);
             updateLocalDataAndSave();
             openSettings('templates');
+            $('#addTplModal').classList.add('hidden');
+            $('#newTplName').value = '';
             alert('New template created.');
         };
         
-        $$('[data-style-tpl]').forEach(btn => {
-          btn.onclick = () => btn.classList.toggle('active');
-        });
-
         $$('[data-savetpl-idx]').forEach(btn => {
             btn.onclick = () => {
                 const i = +btn.dataset.savetplIdx;
                 const t = appData.templates[i];
                 if(!t) return;
                 t.name = $(`[data-name-tpl="${i}"]`).value.trim() || 'Untitled Template';
-                ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
-                    t.styles[k].fs = parseInt($(`[data-val-tpl="${i}|${k}|fs"]`).value) || 14;
-                    t.styles[k].color = $(`[data-val-tpl="${i}|${k}|color"]`).value || '#ffffff';
-                    t.styles[k].margin = {
-                        top: parseInt($(`[data-val-tpl="${i}|${k}|margin|top"]`).value) || 0,
-                        right: parseInt($(`[data-val-tpl="${i}|${k}|margin|right"]`).value) || 0,
-                        bottom: parseInt($(`[data-val-tpl="${i}|${k}|margin|bottom"]`).value) || 0,
-                        left: parseInt($(`[data-val-tpl="${i}|${k}|margin|left"]`).value) || 0,
-                    };
-                    t.styles[k].fw = $(`[data-style-tpl="${i}|${k}|fw|bold"]`).classList.contains('active') ? 'bold' : 'normal';
-                    t.styles[k].fs = $(`[data-style-tpl="${i}|${k}|fs|italic"]`).classList.contains('active') ? 'italic' : 'normal';
-                    let td = [];
-                    if ($(`[data-style-tpl="${i}|${k}|td|underline"]`).classList.contains('active')) td.push('underline');
-                    if ($(`[data-style-tpl="${i}|${k}|td|line-through"]`).classList.contains('active')) td.push('line-through');
-                    t.styles[k].td = td.length > 0 ? td.join(' ') : 'none';
-                });
                 t.showLogo = $(`[data-logo-tpl="${i}"]`).checked;
-                t.logoStyles.size = parseInt($(`[data-logosize-tpl="${i}"]`).value) || 64;
-                t.logoStyles.margin = {
-                    top: parseInt($(`[data-logomargintop-tpl="${i}"]`).value) || 10,
-                    right: parseInt($(`[data-logomarginright-tpl="${i}"]`).value) || 10,
-                    bottom: 0, left: 0
+                t.logoStyles = {
+                    size: parseInt($(`[data-logostyles-tpl="${i}|size"]`).value) || 64,
+                    top: parseInt($(`[data-logostyles-tpl="${i}|top"]`).value) || 10,
+                    right: parseInt($(`[data-logostyles-tpl="${i}|right"]`).value) || 10,
                 };
+
+                ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
+                    const style = t.styles[k];
+                    style.fs = parseInt($(`[data-style-tpl="${i}|${k}|fs"]`).value) || 14;
+                    style.color = $(`[data-style-tpl="${i}|${k}|color"]`).value || '#ffffff';
+                    style.margin = {
+                        t: parseInt($(`[data-style-tpl="${i}|${k}|margin|t"]`).value) || 0,
+                        r: parseInt($(`[data-style-tpl="${i}|${k}|margin|r"]`).value) || 0,
+                        b: parseInt($(`[data-style-tpl="${i}|${k}|margin|b"]`).value) || 0,
+                        l: parseInt($(`[data-style-tpl="${i}|${k}|margin|l"]`).value) || 0,
+                    };
+                    style.fontWeight = $(`[data-fontstyle-tpl="${i}|${k}|bold"]`).checked ? 'bold' : 'normal';
+                    style.fontStyle = $(`[data-fontstyle-tpl="${i}|${k}|italic"]`).checked ? 'italic' : 'normal';
+                    const isUnderline = $(`[data-fontstyle-tpl="${i}|${k}|underline"]`).checked;
+                    style.textDecoration = isUnderline ? 'underline' : 'none';
+                });
                 log('save_template', t.name);
                 updateLocalDataAndSave();
                 alert('Template saved.');
             };
         });
+
         $$('[data-del-tpl]').forEach(btn => {
             btn.onclick = () => {
                 const i = +btn.dataset.delTpl;
@@ -1802,10 +1871,8 @@ $$('button[data-saveu-idx]').forEach(b => {
         $$('[data-img-tpl]').forEach(input => {
             input.onchange = async (e) => {
                 const i = +e.target.dataset.imgTpl;
-                const file = e.target.files[0];
-                if (!file) return;
-                const t = appData.templates[i];
-                if (!t) return;
+                const file = e.target.files[0]; if (!file) return;
+                const t = appData.templates[i]; if (!t) return;
                 try {
                     t.imageData = await fileToBase64(file);
                     t.kind = t.kind || 'IMAGE';
@@ -1877,20 +1944,15 @@ function init() {
       }
       
       const applyFilterBtn = e.target.closest('[data-apply-filter]');
-if (applyFilterBtn) {
-  const key = applyFilterBtn.dataset.applyFilter;
-  const total = +applyFilterBtn.dataset.totalValues || Infinity;
-
-  const checkedValues = new Set(
-    Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value)
-  );
-
-  columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
-
-  currentPage = 1;
-  closeAllFilterDropdowns();
-  updateLocalDataAndSave();
-}
+      if (applyFilterBtn) {
+        const key = applyFilterBtn.dataset.applyFilter;
+        const total = +applyFilterBtn.dataset.totalValues || Infinity;
+        const checkedValues = new Set(Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value));
+        columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
+        currentPage = 1;
+        closeAllFilterDropdowns();
+        updateLocalDataAndSave();
+      }
       const clearFilterBtn = e.target.closest('[data-clear-filter]');
       if (clearFilterBtn) {
           const key = clearFilterBtn.dataset.clearFilter;
