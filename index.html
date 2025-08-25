@@ -963,7 +963,7 @@ function renderSettings(tab){
   }
 }
 
-  async function doImportMaster(){
+async function doImportMaster(){
   const fi = $('#fileImportMaster'); if (!fi.files[0]) return alert('Choose a file');
   try {
     const data = await fi.files[0].arrayBuffer();
@@ -1343,6 +1343,7 @@ function closeAllFilterDropdowns(exceptKey = null) {
   $$('.filter-dropdown').forEach(d => { d.style.display = 'none'; });
 }
 
+
 function openFilterDropdown(key) {
   // ensure portal
   let g = document.querySelector('#global-filter-dropdown');
@@ -1482,6 +1483,8 @@ function openFilterDropdown(key) {
 
   renderList();
 }
+
+
 
 
 function makeTableResizable() {
@@ -1903,13 +1906,14 @@ if (applyFilterBtn) {
 
   const total = (g && g._allValues) ? g._allValues.length : tempSet.size;
 
-  // เลือกครบทุกค่า = "ไม่กรอง" -> เก็บ Set ว่าง
+  // ถ้าเลือกครบทุกค่า = "ไม่กรอง" -> เก็บ Set ว่าง
   columnFilters[key] = (tempSet.size >= total) ? new Set() : tempSet;
 
   currentPage = 1;
   closeAllFilterDropdowns();
-  updateLocalDataAndSave(); // จะ renderTableHeader+renderTable ให้เอง => UI ราคาอัปเดต
+  updateLocalDataAndSave(); // จะ re-render ตารางให้ทันที
 }
+
 
     
       const clearFilterBtn = e.target.closest('[data-clear-filter]');
