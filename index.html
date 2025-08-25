@@ -1598,11 +1598,14 @@ function bindAppEvents() {
     $('#btnSaveEd').onclick = saveEditor;
     $('#btnClosePrintModal').onclick = () => togglePrintModal(false);
     $('#btnOpenPrint').onclick = () => {
-        const picks = $$('#printList input[type="checkbox"]:checked').map(c => c.dataset.sel);
-        const list = picks.map(sku => ({ p: appData.products.find(p => p.sku === sku), qty: parseInt($(`[data-qty="${sku}"]`).value) || 1 })).filter(item => item.p);
-        const tpl = appData.templates.find(t => t.id === $('#printTemplate').value) || appData.templates[0];
-        openPrintTab(list, tpl);
-    };
+  const picks = $$('#printList input[type="checkbox"]:checked').map(c => c.dataset.sel);
+  const list = picks.map(sku => ({
+    p: appData.products.find(x => x.sku === sku),
+    qty: parseInt($(`[data-qty="${sku}"]`).value, 10) || 1
+  })).filter(item => item.p);
+  const tpl = appData.templates.find(t => t.id === $('#printTemplate').value) || appData.templates[0];
+  openPrintTab(list, tpl);
+};
 }
 
 function bindTableEvents() {
@@ -1889,42 +1892,43 @@ async function initialCheck() {
 
 function init() {
   bindAuthEvents();
-  
   document.addEventListener('click', (e) => {
-      if (!e.target.closest('.filter-dropdown')) {
-          closeAllFilterDropdowns();
-      }
-      
-const applyFilterBtn = e.target.closest('[data-apply-filter]');
-if (applyFilterBtn) {
-  const key = applyFilterBtn.dataset.applyFilter;
-  const g = document.querySelector('#global-filter-dropdown');
+  if (!e.target.closest('.filter-dropdown')) {
+    closeAllFilterDropdowns();
+  }
 
-  // ใช้ชุดที่เลือกค้างไว้บน portal (รองรับหลัง Sort/Search)
-  let tempSet = (g && g._tempSelectedSet) ? new Set(g._tempSelectedSet)
-    : new Set($$(`.filter-item-${key}:checked`).map(cb => cb.value));
+  const applyFilterBtn = e.target.closest('[data-apply-filter]');
+  if (applyFilterBtn) {
+    const key = applyFilterBtn.dataset.applyFilter;
+    const g = document.querySelector('#global-filter-dropdown');
 
-  const total = (g && g._allValues) ? g._allValues.length : tempSet.size;
+    // ใช้ชุดที่เลือกค้างไว้บน portal (รองรับหลัง Sort/Search)
+    const tempSet = (g && g._tempSelectedSet)
+      ? new Set(g._tempSelectedSet)
+      : new Set($$(`.filter-item-${key}:checked`).map(cb => cb.value));
 
-  // ถ้าเลือกครบทุกค่า = "ไม่กรอง" -> เก็บ Set ว่าง
-  columnFilters[key] = (tempSet.size >= total) ? new Set() : tempSet;
+    const total = (g && g._allValues) ? g._allValues.length : tempSet.size;
 
-  currentPage = 1;
-  closeAllFilterDropdowns();
-  updateLocalDataAndSave(); // จะ re-render ตารางให้ทันที
-}
+    // ถ้าเลือกครบทุกค่า = ไม่กรอง -> เก็บ Set ว่าง
+    columnFilters[key] = (tempSet.size >= total) ? new Set() : tempSet;
 
+    currentPage = 1;
+    closeAllFilterDropdowns();
+    updateLocalDataAndSave(); // re-render ตาราง
+  }
 
-    
-      const clearFilterBtn = e.target.closest('[data-clear-filter]');
-      if (clearFilterBtn) {
-          const key = clearFilterBtn.dataset.clearFilter;
-          if(columnFilters[key]) columnFilters[key].clear();
-          currentPage = 1;
-          closeAllFilterDropdowns();
-          updateLocalDataAndSave();
-      }
-  });
+  const clearFilterBtn = e.target.closest('[data-clear-filter]');
+  if (clearFilterBtn) {
+    const key = clearFilterBtn.dataset.clearFilter;
+    const g = document.querySelector('#global-filter-dropdown');
+    delete columnFilters[key];
+    if (g) g._tempSelectedSet = new Set();
+    currentPage = 1;
+    closeAllFilterDropdowns();
+    updateLocalDataAndSave();
+  }
+});
+
   
   window.addEventListener('keydown', e => { 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { 
