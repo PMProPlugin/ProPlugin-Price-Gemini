@@ -88,6 +88,12 @@
     position: relative;
     z-index: 1;
   }
+  .style-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid #555; background-color: #333;
+    display: grid; place-items: center;
+  }
+  .style-btn.active { background-color: #E11D2E; border-color: #ff5566; }
+
 </style>
 </head>
 
@@ -283,27 +289,31 @@ const sampleProducts = [{
   marketplacePrice:5990, dealer1:5600, dealer2:5400, dealer3:5200
 }];
 
+const defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
+const defaultFontStyle = { fw: 'normal', fs: 'normal', td: 'none' };
+const defaultTextStyles = { fs: 14, color: '#ffffff', margin: defaultMargin, ...defaultFontStyle };
+
 const defaultAppState = {
-    version: 3.1,
+    version: 3.2,
     products: sampleProducts,
     templates: [
-        { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: 10 },
-          styles:{ sku:{fs:16,color:'#ffffff',mt:0}, description:{fs:30,color:'#ffffff',mt:0}, details:{fs:14,color:'#ffffff',mt:0}, price:{fs:72,color:'#ffffff',mt:0}, oldPrice:{fs:20,color:'#ff4d4f',mt:0}, expire:{fs:13,color:'#ffffff',mt:0} } },
-        { id:'t-a5',  name:'A5 (2 per A4 landscape)', kind:'A5',  showLogo:true, imageData:null, logoStyles: { size: 50, margin: 8 },
-          styles:{ sku:{fs:14,color:'#ffffff',mt:0}, description:{fs:26,color:'#ffffff',mt:0}, details:{fs:13,color:'#ffffff',mt:0}, price:{fs:60,color:'#ffffff',mt:0}, oldPrice:{fs:18,color:'#ff4d4f',mt:0}, expire:{fs:12,color:'#ffffff',mt:0} } },
-        { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: 6 },
-          styles:{ sku:{fs:12,color:'#ffffff',mt:0}, description:{fs:22,color:'#ffffff',mt:0}, details:{fs:12,color:'#ffffff',mt:0}, price:{fs:48,color:'#ffffff',mt:0}, oldPrice:{fs:16,color:'#ff4d4f',mt:0}, expire:{fs:11,color:'#ffffff',mt:0} } },
-        { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: 4 },
-          styles:{ sku:{fs:11,color:'#ffffff',mt:2}, description:{fs:15,color:'#ffffff',mt:0, align:'center'}, price:{fs:22,color:'#ffffff',mt:0}, oldPrice:{fs:12,color:'#B91C1C',mt:0}, expire:{fs:10,color:'#ffffff',mt:0} } },
-        // NEW: Added Card template
-        { id:'t-card', name:'Card (10 per A4 landscape)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: 4 },
-          styles:{ sku:{fs:10,color:'#ffffff',mt:2}, description:{fs:14,color:'#ffffff',mt:0, align:'center'}, price:{fs:20,color:'#ffffff',mt:0}, oldPrice:{fs:11,color:'#B91C1C',mt:0}, expire:{fs:9,color:'#ffffff',mt:0} } }
+        { id:'t-a4',  name:'A4 (1 per sheet)', kind:'A4',  showLogo:true, imageData:null, logoStyles: { size: 64, margin: { top: 10, right: 10, bottom: 10, left: 10 } },
+          styles:{ sku:{...defaultTextStyles, fs:16}, description:{...defaultTextStyles, fs:30}, details:{...defaultTextStyles, fs:14}, price:{...defaultTextStyles, fs:72}, oldPrice:{...defaultTextStyles, fs:20, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:13} } },
+        { id:'t-a5',  name:'A5 (2 per A4 landscape)', kind:'A5',  showLogo:true, imageData:null, logoStyles: { size: 50, margin: { top: 8, right: 8, bottom: 8, left: 8 } },
+          styles:{ sku:{...defaultTextStyles, fs:14}, description:{...defaultTextStyles, fs:26}, details:{...defaultTextStyles, fs:13}, price:{...defaultTextStyles, fs:60}, oldPrice:{...defaultTextStyles, fs:18, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:12} } },
+        { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: { top: 6, right: 6, bottom: 6, left: 6 } },
+          styles:{ sku:{...defaultTextStyles, fs:12}, description:{...defaultTextStyles, fs:22}, details:{...defaultTextStyles, fs:12}, price:{...defaultTextStyles, fs:48}, oldPrice:{...defaultTextStyles, fs:16, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:11} } },
+        { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
+          styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
+        { id:'t-card', name:'Card (9 per A4 portrait)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
+          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
     ],
     dealerNames: defaultDealerNames,
     users: [],
     logo: '',
     logs: []
 };
+
 
 let appData = null;
 let currentUser = null;
@@ -901,17 +911,30 @@ function renderSettings(tab){
     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
     const arr = appData.templates || [];
     box.innerHTML = `
-      <div class="flex items-center justify-between">
-        <div class="text-2xl font-semibold mb-2">Template Management</div>
-        <div class="flex items-center gap-2">
-           <button id="btnAddTpl" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
-          <label class="px-3 py-2 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 cursor-pointer">
-            <input type="file" id="tplUploadNew" accept="image/png, image/jpeg" class="hidden">
-            Upload Image Template
-          </label>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <div class="text-2xl font-semibold">Template Management</div>
+          <div class="text-sm text-zinc-400">All templates are fully customizable.</div>
+        </div>
+        <button id="btnShowAddTpl" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
+      </div>
+      
+      <div id="addTplBox" class="hidden p-4 mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
+        <h3 class="font-semibold">Create New Template</h3>
+        <div>
+          <label class="text-sm text-zinc-400">Template Base</label>
+          <select id="newTplKind" class="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700"></select>
+        </div>
+        <div>
+          <label class="text-sm text-zinc-400">Template Name</label>
+          <input id="newTplName" class="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" placeholder="e.g., My Custom A4">
+        </div>
+        <div class="flex gap-2">
+          <button id="btnCreateTpl" class="px-4 py-2 rounded-xl bg-brand.red hover:bg-red-600 border border-red-700">Create</button>
+          <button id="btnCancelTpl" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Cancel</button>
         </div>
       </div>
-      <div class="text-sm text-zinc-400 mb-3">All templates are fully customizable.</div>
+
       <div id="tplList" class="grid lg:grid-cols-2 gap-6 mt-2"></div>
     `;
 
@@ -919,12 +942,19 @@ function renderSettings(tab){
     arr.forEach((t,i)=>{
       const card = document.createElement('div');
       card.className = 'p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40';
-      const safe = (v, d) => (v===undefined || v===null) ? d : v;
+      
+      // Ensure data structure integrity for older templates
+      t.logoStyles = t.logoStyles || { size: 64, margin: { top: 10, right: 10, bottom: 10, left: 10 } };
+      if(typeof t.logoStyles.margin !== 'object') t.logoStyles.margin = { top: t.logoStyles.margin, right: t.logoStyles.margin, bottom:0, left:0 };
+
       t.styles = t.styles || {};
       ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
-        t.styles[k] = t.styles[k] || {fs:14,color:'#ffffff',mt:0};
+        t.styles[k] = t.styles[k] || { ...defaultTextStyles };
+        if(typeof t.styles[k].margin !== 'object') t.styles[k].margin = { top: t.styles[k].mt || 0, right:0, bottom:0, left:0 };
+        t.styles[k].fw = t.styles[k].fw || 'normal';
+        t.styles[k].fs = t.styles[k].fs || 'normal';
+        t.styles[k].td = t.styles[k].td || 'none';
       });
-      t.logoStyles = t.logoStyles || {size:64, margin:10};
 
       card.innerHTML = `
         <div class="flex justify-between items-start">
@@ -944,31 +974,40 @@ function renderSettings(tab){
           </div>
           <div>
             <div class="text-sm font-semibold mb-2">Logo Settings</div>
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" data-logo-tpl="${i}" ${t.showLogo?'checked':''}> Show logo
-            </label>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" data-logo-tpl="${i}" ${t.showLogo?'checked':''}> Show logo</label>
             <div class="grid grid-cols-2 gap-2 mt-2">
-              <div>
-                <label class="text-xs text-zinc-400">Size (px)</label>
-                <input type="number" step="1" data-logosize-tpl="${i}" value="${safe(parseInt(t.logoStyles.size),64)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
-              </div>
-              <div>
-                <label class="text-xs text-zinc-400">Margin (px)</label>
-                <input type="number" step="1" data-logomargin-tpl="${i}" value="${safe(parseInt(t.logoStyles.margin),10)}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
-              </div>
+              <div><label class="text-xs text-zinc-400">Size (px)</label><input type="number" step="1" data-logosize-tpl="${i}" value="${t.logoStyles.size}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
+              <div><label class="text-xs text-zinc-400">Margin Top</label><input type="number" step="1" data-logomargintop-tpl="${i}" value="${t.logoStyles.margin.top}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
+              <div></div><div><label class="text-xs text-zinc-400">Margin Right</label><input type="number" step="1" data-logomarginright-tpl="${i}" value="${t.logoStyles.margin.right}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
             </div>
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3 mt-4">
           ${['sku','description','details','price','oldPrice','expire'].map(k=>`
-            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800">
-              <div class="text-xs text-zinc-400 mb-1 capitalize">${k.replace('oldPrice','Old Price')}</div>
-              <label class="text-xs">Font size</label>
-              <input type="number" step="1" data-fs-tpl="${i}|${k}" value="${t.styles[k].fs}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800 mb-1">
-              <label class="text-xs">Color</label>
-              <input type="color" data-color-tpl="${i}|${k}" value="${t.styles[k].color}" class="w-full h-8 rounded-xl bg-zinc-950 border border-zinc-800 mb-1">
-              <label class="text-xs">Top margin (px)</label>
-              <input type="number" step="1" data-mt-tpl="${i}|${k}" value="${t.styles[k].mt}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800">
+            <div class="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+              <div class="text-xs text-zinc-400 capitalize">${k.replace('oldPrice','Old Price')}</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-xs">Font size</label><input type="number" step="1" data-val-tpl="${i}|${k}|fs" value="${t.styles[k].fs}" class="w-full px-2 py-1 rounded-xl bg-zinc-950 border border-zinc-800"></div>
+                <div><label class="text-xs">Color</label><input type="color" data-val-tpl="${i}|${k}|color" value="${t.styles[k].color}" class="w-full h-8 rounded-xl bg-zinc-950 border border-zinc-800"></div>
+              </div>
+              <div>
+                <label class="text-xs">Margin (T-R-B-L)</label>
+                <div class="grid grid-cols-4 gap-1">
+                  <input type="number" step="1" placeholder="T" data-val-tpl="${i}|${k}|margin|top" value="${t.styles[k].margin.top}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
+                  <input type="number" step="1" placeholder="R" data-val-tpl="${i}|${k}|margin|right" value="${t.styles[k].margin.right}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
+                  <input type="number" step="1" placeholder="B" data-val-tpl="${i}|${k}|margin|bottom" value="${t.styles[k].margin.bottom}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
+                  <input type="number" step="1" placeholder="L" data-val-tpl="${i}|${k}|margin|left" value="${t.styles[k].margin.left}" class="w-full px-1 py-1 text-center rounded-md bg-zinc-950 border border-zinc-800">
+                </div>
+              </div>
+              <div>
+                <label class="text-xs">Font Style</label>
+                <div class="grid grid-cols-4 gap-1">
+                  <button data-style-tpl="${i}|${k}|fw|bold" class="style-btn ${t.styles[k].fw === 'bold' ? 'active':''}"><b>B</b></button>
+                  <button data-style-tpl="${i}|${k}|fs|italic" class="style-btn ${t.styles[k].fs === 'italic' ? 'active':''}"><i>I</i></button>
+                  <button data-style-tpl="${i}|${k}|td|underline" class="style-btn ${t.styles[k].td.includes('underline') ? 'active':''}"><u>U</u></button>
+                  <button data-style-tpl="${i}|${k}|td|line-through" class="style-btn ${t.styles[k].td.includes('line-through') ? 'active':''}"><s>S</s></button>
+                </div>
+              </div>
             </div>
           `).join('')}
         </div>
@@ -1040,7 +1079,6 @@ async function doImportMaster(){
     updateLocalDataAndSave();
   } catch(e){ alert('An error occurred during import: ' + e.message); }
 }
-
 async function doExportMaster(){
   const wb=await XlsxPopulate.fromBlankAsync(); const sh=wb.sheet(0).name('MasterPriceData');
   const header=['SKU','Description','Details','Brand','Category','Costs','Normal Price','Marketplace Price','Dealer T1','Dealer T2','Dealer T3'];
@@ -1057,7 +1095,6 @@ async function doExportMaster(){
   const a=document.createElement('a'); a.href=url; a.download='master_price_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
   log('export_master', `${appData.products.length} rows`);
 }
-
 async function doImportPromo() {
     const fi = $('#fileImportPromo'); if (!fi.files[0]) return alert('Choose a file');
     try {
@@ -1181,8 +1218,8 @@ function generateSingleTagHTML(p, tpl) {
 
     let logoTag = '';
     if (tpl.showLogo && logo) {
-        const { size = 64, margin = 10 } = tpl.logoStyles || {};
-        logoTag = `<img src="${logo}" class="logo" style="right:${margin}px;top:${margin}px;width:${size}px;height:auto;">`;
+        const { size = 64, margin = {top:10, right:10} } = tpl.logoStyles || {};
+        logoTag = `<img src="${logo}" class="logo" style="top:${margin.top}px; right:${margin.right}px; width:${size}px; height:auto;">`;
     }
     const content = renderTagInnerHTML(p, tpl);
     const cardHTML = `<div class="card">${logoTag}${content}</div>`;
@@ -1236,18 +1273,21 @@ function renderPreview(item, tpl) {
 
 function renderTagInnerHTML(p, tpl){
   const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
-  const styleInline = (o) => `font-size:${o.fs||14}px;color:${o.color||'#fff'};margin-top:${o.mt||0}px;`;
+  const styleInline = (o) => {
+    const m = o.margin || defaultMargin;
+    return `font-size:${o.fs||14}px; color:${o.color||'#fff'}; font-weight:${o.fw||'normal'}; font-style:${o.fs||'normal'}; text-decoration:${o.td||'none'}; margin: ${m.top}px ${m.right}px ${m.bottom}px ${m.left}px;`;
+  };
   const content = `
     <div style="position:absolute; top:0; left:0; right:0; bottom:0; padding:${innerPadding}; display:flex; flex-direction:column;">
-        <div style="${styleInline(tpl.styles.sku)};opacity:.9" class="text-right text-elevate">${p.sku}</div>
-        <div style="font-weight:800;line-height:1.2;${styleInline(tpl.styles.description)}" class="mt-2 text-elevate">${p.description}</div>
-        <div class="mt-3 space-y-1">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
+        <div style="${styleInline(tpl.styles.sku)}" class="text-right text-elevate">${p.sku}</div>
+        <div style="font-weight:800;line-height:1.2; ${styleInline(tpl.styles.description)}" class="text-elevate">${p.description}</div>
+        <div class="space-y-1">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
             <div class="flex gap-2 items-start text-elevate" style="${styleInline(tpl.styles.details)}"><span>•</span><span>${t}</span></div>`).join('')}</div>
         <div class="mt-auto flex items-end justify-between">
             <div style="${styleInline(tpl.styles.expire)}" class="text-elevate">Expire : ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
             <div class="text-right">
             <div style="${styleInline(tpl.styles.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
-            <div style="font-weight:900;${styleInline(tpl.styles.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
+            <div style="font-weight:900; ${styleInline(tpl.styles.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
             </div>
         </div>
     </div>
@@ -1274,7 +1314,7 @@ function baseSize(kind){
   if(kind==='A4') return {w:744,h:1052};
   if(kind==='A5') return {w:526,h:744};
   if(kind==='A6') return {w:372,h:526};
-  if(kind==='CARD') return {w:337, h:595}; // 59.4mm x 105mm aspect ratio
+  if(kind==='CARD') return {w:265, h:374}; // 70mm x 99mm for 3x3 on A4 portrait
   return {w:640,h:320}; // ACC or default for IMAGE
 }
 
@@ -1289,7 +1329,7 @@ function openPrintTab(list,tpl){
   else if(tpl.kind==='A4'){ cols=1; rows=1; pad='10mm'; pageSize='A4'; }
   else if(tpl.kind==='A5'){ cols=2; rows=1; pad='10mm'; pageSize='A4 landscape'; }
   else if(tpl.kind==='A6'){ cols=2; rows=2; pad='8mm'; pageSize='A4'; }
-  else if(tpl.kind==='CARD'){ cols=5; rows=2; pad='4mm'; pageSize='A4 landscape'; }
+  else if(tpl.kind==='CARD'){ cols=3; rows=3; pad='4mm'; pageSize='A4'; }
   else { cols=2; rows=6; pad='6mm'; pageSize='A4'; }
 
   const style=`
@@ -1303,10 +1343,9 @@ function openPrintTab(list,tpl){
       .logo{ position:absolute; }
       .text-elevate{ text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
       
-      /* Floating filter dropdown (portal to body) */
 #global-filter-dropdown.filter-dropdown {
   position: fixed !important;
-  z-index: 9999 !important; /* สูงกว่า editor (z-70) / print (z-80) */
+  z-index: 9999 !important;
 }
 
     </style>
@@ -1317,8 +1356,8 @@ function openPrintTab(list,tpl){
     const inner=pg.map(p=>{
       let logoTag = '';
       if(tpl.showLogo && logo) {
-        const { size = 64, margin = 10 } = tpl.logoStyles || {};
-        logoTag = `<img src="${logo}" class="logo" style="right:${margin}px;top:${margin}px;width:${size}px;height:auto;">`;
+        const { size = 64, margin = {top:10, right:10} } = tpl.logoStyles || {};
+        logoTag = `<img src="${logo}" class="logo" style="top:${margin.top}px; right:${margin.right}px; width:${size}px; height:auto;">`;
       }
       const content = renderTagInnerHTML(p, tpl);
       return `<div class="tag"><div class="card">${logoTag}${content}</div></div>`;
@@ -1335,14 +1374,10 @@ function openPrintTab(list,tpl){
 function closeAllFilterDropdowns(exceptKey = null) {
   const g = $('#global-filter-dropdown');
   if (g && (!exceptKey || g.dataset.key !== exceptKey)) g.style.display = 'none';
-  // เผื่อมีของเก่าใน <th> ค้างอยู่
   $$('.filter-dropdown').forEach(d => { d.style.display = 'none'; });
 }
 
-
-// --- REPLACE: openFilterDropdown(key)
 function openFilterDropdown(key) {
-  // 1) Ensure global portal dropdown (fixed + super high z-index)
   let g = document.querySelector('#global-filter-dropdown');
   if (!g) {
     g = document.createElement('div');
@@ -1351,7 +1386,7 @@ function openFilterDropdown(key) {
     document.body.appendChild(g);
   }
   g.style.position = 'fixed';
-  g.style.zIndex = '9999'; // อยู่หน้าสุดจริงๆ
+  g.style.zIndex = '9999';
 
   const btn = document.querySelector(`.filter-btn[data-filter-key="${key}"]`);
   if (!btn) return;
@@ -1360,33 +1395,26 @@ function openFilterDropdown(key) {
   closeAllFilterDropdowns(key);
   if (isVisible) { g.style.display = 'none'; return; }
 
-  // 2) เตรียมค่าทั้งหมด + สถานะเดิม
   const allValues = [...new Set((appData.products || [])
     .map(p => (p[key] ?? '').toString())
     .filter(Boolean))];
 
   let sortDir = 'asc';
   let viewValues = [...allValues].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-  const currentFilter = columnFilters[key] || new Set(); // ถ้าว่าง = ถือว่าเลือกทุกค่า
+  const currentFilter = columnFilters[key] || new Set();
 
-  // 3) สร้าง UI: Search + Sort + Select All + รายการค่า + ปุ่ม Apply/Clear
   g.dataset.key = key;
   g.innerHTML = `
     <div class="filter-dropdown-content">
-      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none"
-             placeholder="Search values… (like Excel)" />
-
+      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none" placeholder="Search values… (like Excel)" />
       <div class="flex gap-2 my-1">
         <button id="filter-sort-asc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort A–Z</button>
         <button id="filter-sort-desc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort Z–A</button>
       </div>
-
       <label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded">
         <input type="checkbox" id="filter-select-all-${key}"> Select All (visible)
       </label>
-
       <div id="filter-values-${key}" class="max-h-60 overflow-auto rounded border border-zinc-800"></div>
-
       <div class="flex gap-2 mt-2">
         <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600" data-total-values="${allValues.length}">Apply</button>
         <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
@@ -1394,95 +1422,50 @@ function openFilterDropdown(key) {
     </div>
   `;
 
-  // 4) ฟังก์ชัน render รายการค่า (คง state เดิม + ค้นหา + เรียง)
   const $valsBox = g.querySelector(`#filter-values-${key}`);
   const $selectAll = g.querySelector(`#filter-select-all-${key}`);
   const $search = g.querySelector(`#filter-search-${key}`);
 
   function renderList() {
-    // เคลียร์ + วาดตาม viewValues (หลังค้นหา + เรียง)
     $valsBox.innerHTML = '';
     const q = ($search.value || '').toString().trim().toLowerCase();
     let display = viewValues.filter(v => v.toLowerCase().includes(q));
-
-    // เรียงทิศทาง
-    display.sort((a,b)=> sortDir==='asc'
-      ? a.localeCompare(b,undefined,{numeric:true})
-      : b.localeCompare(a,undefined,{numeric:true})
-    );
-
-    // วาด checkbox แต่ละค่า
+    display.sort((a,b)=> sortDir==='asc' ? a.localeCompare(b,undefined,{numeric:true}) : b.localeCompare(a,undefined,{numeric:true}));
     for (const v of display) {
       const checked = (currentFilter.size===0) ? true : currentFilter.has(v);
       const row = document.createElement('label');
       row.className = 'flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded';
       row.title = v;
-      row.innerHTML = `
-        <input type="checkbox" class="filter-item-${key}" value="${v}" ${checked ? 'checked' : ''}>
-        <span class="oneline">${ellip(v, 40)}</span>
-      `;
+      row.innerHTML = `<input type="checkbox" class="filter-item-${key}" value="${v}" ${checked ? 'checked' : ''}><span class="oneline">${ellip(v, 40)}</span>`;
       $valsBox.appendChild(row);
     }
-
-    // อัปเดตสถานะ Select All (เฉพาะที่ "มองเห็น" ตาม search)
     const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
     $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(cb => cb.checked);
-
-    // เมื่อติ๊กแต่ละตัว ให้ sync สถานะ Select All
-    visibleChecks.forEach(cb => {
-      cb.onchange = () => {
-        const allOn = visibleChecks.length > 0 && visibleChecks.every(x => x.checked);
-        $selectAll.checked = allOn;
-      };
-    });
+    visibleChecks.forEach(cb => { cb.onchange = () => { $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(x => x.checked); }; });
   }
 
-  // 5) Bind controls
   g.querySelector(`#filter-sort-asc-${key}`).onclick = () => { sortDir = 'asc'; renderList(); };
   g.querySelector(`#filter-sort-desc-${key}`).onclick = () => { sortDir = 'desc'; renderList(); };
-
   $search.oninput = () => renderList();
-  // Enter = Apply
   g.setAttribute('tabindex', -1);
-  g.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      g.querySelector(`[data-apply-filter="${key}"]`).click();
-    }
-  };
-
-  // Select All = เลือก/ปลดเฉพาะรายการที่ "มองเห็น"
-  $selectAll.onchange = (e) => {
-    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
-    visibleChecks.forEach(cb => cb.checked = e.target.checked);
-  };
-
-  // 6) จัดวาง dropdown (fixed) ให้อยู่ใต้ปุ่มฟิลเตอร์
+  g.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); g.querySelector(`[data-apply-filter="${key}"]`).click(); } };
+  $selectAll.onchange = (e) => { Array.from($valsBox.querySelectorAll(`.filter-item-${key}`)).forEach(cb => cb.checked = e.target.checked); };
+  
   const r = btn.getBoundingClientRect();
   g.style.left = `${r.left}px`;
   g.style.top  = `${r.bottom + 4}px`;
   g.style.display = 'block';
-
-  // ครั้งแรกต้อง render รายการ
   renderList();
 }
-
-
-
 
 function makeTableResizable() {
     const header = $('#productTHead');
     if (!header) return;
-
     let th, startX, startWidth;
-
     function onMouseMove(e) {
         const newWidth = startWidth + (e.clientX - startX);
-        if (newWidth > 50) {
-            th.style.width = `${newWidth}px`;
-        }
+        if (newWidth > 50) { th.style.width = `${newWidth}px`; }
     }
-
     function onMouseUp() {
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
@@ -1491,17 +1474,14 @@ function makeTableResizable() {
         document.body.style.cursor = 'default';
         document.body.style.userSelect = 'auto';
     }
-    
     header.addEventListener('mousedown', (e) => {
         if (e.target.classList.contains('resizer')) {
             e.preventDefault();
             th = e.target.parentElement;
             startX = e.clientX;
             startWidth = th.offsetWidth;
-            
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
-
             e.target.classList.add('resizing');
             document.body.style.cursor = 'col-resize';
             document.body.style.userSelect = 'none';
@@ -1587,7 +1567,6 @@ function bindAppEvents() {
         openPrintTab(list, tpl);
     };
 
-    // Table sorting handler
     $('#productTHead').addEventListener('click', (e) => {
         const headerCell = e.target.closest('th[data-sort-key]');
         if (!headerCell) return;
@@ -1683,36 +1662,30 @@ $$('button[data-saveu-idx]').forEach(b => {
     const u = appData.users[i];
     if (!u) return;
 
-    // กันแก้ไข Host โดย Admin (กันทุกช่องทาง เผื่อกรณีมองเห็น)
     if (currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host')) {
       alert('Admin cannot modify Host accounts.');
       return;
     }
 
-    // กันเปลี่ยน Role เป็น Host โดย Admin
     const roleSel = $(`select[data-role-idx="${i}"]`);
     const newRole = roleSel ? roleSel.value : u.role;
     if (currentUser.role === 'Admin' && newRole === 'Host') {
       alert('Admin cannot assign Host role.');
-      if (roleSel) roleSel.value = u.role; // revert UI
+      if (roleSel) roleSel.value = u.role;
     } else {
       u.role = newRole;
     }
 
-    // สิทธิ์อื่น ๆ
     u.canSeeCosts = $(`input[data-cost-idx="${i}"]`).checked;
     u.canPrint   = $(`input[data-print-idx="${i}"]`).checked;
 
-    // กันเปลี่ยนรหัส Host โดย Admin (defensive)
     const newPass = $(`input[data-pass-idx="${i}"]`).value.trim();
     if (!(currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host'))) {
       if (newPass) { u.passwordHash = await hashPassword(newPass); }
     }
 
-    // ช่องทางที่ดูได้
     u.channels = Channels.filter(ch => $(`input[data-ch-idx="${i}|${ch}"]`).checked);
 
-    // ถ้าแก้ผู้ใช้ที่ล็อกอินอยู่ ปรับ context ให้ตรง
     if (currentUser.username === u.username) {
       currentUser = u;
       initFiltersForUser();
@@ -1724,7 +1697,6 @@ $$('button[data-saveu-idx]').forEach(b => {
     openSettings('users');
   };
 });
-
 
         $$('button[data-delu-idx]').forEach(b => {
             b.onclick = (e) => {
@@ -1742,20 +1714,32 @@ $$('button[data-saveu-idx]').forEach(b => {
         });
     } 
     if (tab === 'templates') {
-        // NEW: Add Template Button
-        $('#btnAddTpl').onclick = () => {
-            const kinds = defaultAppState.templates.map(t => t.kind).filter((v, i, a) => a.indexOf(v) === i);
-            const kind = prompt(`Enter template kind to create:\n(${kinds.join(', ')})`);
-            if (!kind || !kinds.includes(kind.toUpperCase())) return alert('Invalid kind selected.');
+        const addTplBox = $('#addTplBox');
+        $('#btnShowAddTpl').onclick = () => {
+            addTplBox.classList.remove('hidden');
+            const kindSelect = $('#newTplKind');
+            if (kindSelect.options.length === 0) {
+                const kinds = defaultAppState.templates.map(t => t.kind).filter((v, i, a) => a.indexOf(v) === i);
+                kinds.forEach(k => {
+                    const opt = document.createElement('option');
+                    opt.value = k;
+                    opt.textContent = k;
+                    kindSelect.appendChild(opt);
+                });
+            }
+        };
 
-            const name = prompt('Enter a name for the new template:');
-            if (!name) return;
+        $('#btnCancelTpl').onclick = () => addTplBox.classList.add('hidden');
+        $('#btnCreateTpl').onclick = () => {
+            const kind = $('#newTplKind').value;
+            const name = $('#newTplName').value.trim();
+            if (!name) { return alert('Please enter a template name.'); }
 
-            const baseTemplate = defaultAppState.templates.find(t => t.kind === kind.toUpperCase());
-            const newTpl = JSON.parse(JSON.stringify(baseTemplate)); // Deep copy
+            const baseTemplate = defaultAppState.templates.find(t => t.kind === kind);
+            const newTpl = JSON.parse(JSON.stringify(baseTemplate));
             newTpl.id = 'user-' + Math.random().toString(36).slice(2, 10);
             newTpl.name = name;
-            newTpl.imageData = null; // New templates start without an image
+            newTpl.imageData = null;
             
             appData.templates.push(newTpl);
             log('add_template', name);
@@ -1763,26 +1747,11 @@ $$('button[data-saveu-idx]').forEach(b => {
             openSettings('templates');
             alert('New template created.');
         };
+        
+        $$('[data-style-tpl]').forEach(btn => {
+          btn.onclick = () => btn.classList.toggle('active');
+        });
 
-        $('#tplUploadNew').onchange = async (e) => {
-          const f = e.target.files && e.target.files[0]; if(!f) return;
-          const nm = prompt('Enter a name for this new image template:'); if(!nm){ e.target.value=''; return; }
-          try{
-            const imageData = await fileToBase64(f);
-            const id = 'user-' + Math.random().toString(36).slice(2,10);
-            const base = defaultAppState.templates[2] || {styles:{}};
-            appData.templates.push({
-              id, name: nm, kind: 'IMAGE', imageData,
-              showLogo: false, logoStyles: { size: 40, margin: 6 },
-              styles: JSON.parse(JSON.stringify(base.styles||{}))
-            });
-            log('create_template_image', nm);
-            updateLocalDataAndSave();
-            openSettings('templates');
-            alert('New image template created.');
-          }catch(err){ alert('Failed to create template: '+err.message); }
-          e.target.value='';
-        };
         $$('[data-savetpl-idx]').forEach(btn => {
             btn.onclick = () => {
                 const i = +btn.dataset.savetplIdx;
@@ -1790,16 +1759,27 @@ $$('button[data-saveu-idx]').forEach(b => {
                 if(!t) return;
                 t.name = $(`[data-name-tpl="${i}"]`).value.trim() || 'Untitled Template';
                 ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
-                    t.styles[k] = {
-                        fs: parseInt($(`[data-fs-tpl="${i}|${k}"]`).value) || 14,
-                        color: $(`[data-color-tpl="${i}|${k}"]`).value || '#ffffff',
-                        mt: parseInt($(`[data-mt-tpl="${i}|${k}"]`).value) || 0,
+                    t.styles[k].fs = parseInt($(`[data-val-tpl="${i}|${k}|fs"]`).value) || 14;
+                    t.styles[k].color = $(`[data-val-tpl="${i}|${k}|color"]`).value || '#ffffff';
+                    t.styles[k].margin = {
+                        top: parseInt($(`[data-val-tpl="${i}|${k}|margin|top"]`).value) || 0,
+                        right: parseInt($(`[data-val-tpl="${i}|${k}|margin|right"]`).value) || 0,
+                        bottom: parseInt($(`[data-val-tpl="${i}|${k}|margin|bottom"]`).value) || 0,
+                        left: parseInt($(`[data-val-tpl="${i}|${k}|margin|left"]`).value) || 0,
                     };
+                    t.styles[k].fw = $(`[data-style-tpl="${i}|${k}|fw|bold"]`).classList.contains('active') ? 'bold' : 'normal';
+                    t.styles[k].fs = $(`[data-style-tpl="${i}|${k}|fs|italic"]`).classList.contains('active') ? 'italic' : 'normal';
+                    let td = [];
+                    if ($(`[data-style-tpl="${i}|${k}|td|underline"]`).classList.contains('active')) td.push('underline');
+                    if ($(`[data-style-tpl="${i}|${k}|td|line-through"]`).classList.contains('active')) td.push('line-through');
+                    t.styles[k].td = td.length > 0 ? td.join(' ') : 'none';
                 });
                 t.showLogo = $(`[data-logo-tpl="${i}"]`).checked;
-                t.logoStyles = {
-                    size: parseInt($(`[data-logosize-tpl="${i}"]`).value) || 64,
-                    margin: parseInt($(`[data-logomargin-tpl="${i}"]`).value) || 10,
+                t.logoStyles.size = parseInt($(`[data-logosize-tpl="${i}"]`).value) || 64;
+                t.logoStyles.margin = {
+                    top: parseInt($(`[data-logomargintop-tpl="${i}"]`).value) || 10,
+                    right: parseInt($(`[data-logomarginright-tpl="${i}"]`).value) || 10,
+                    bottom: 0, left: 0
                 };
                 log('save_template', t.name);
                 updateLocalDataAndSave();
@@ -1901,12 +1881,10 @@ if (applyFilterBtn) {
   const key = applyFilterBtn.dataset.applyFilter;
   const total = +applyFilterBtn.dataset.totalValues || Infinity;
 
-  // อ่านค่าที่ถูกติ๊ก
   const checkedValues = new Set(
     Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value)
   );
 
-  // ถ้าเลือกครบทุกค่า = ถือว่า "ไม่กรอง" -> เก็บเป็น Set ว่าง
   columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
 
   currentPage = 1;
