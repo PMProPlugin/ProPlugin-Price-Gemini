@@ -156,7 +156,7 @@
   </div>
 </section>
 
-<section id="cloudSetupView" class="hidden min-h-screen grid place-items-center">
+<section id="cloudSetupView" class="min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
       <div class="w-11 h-11 rounded-xl bg-brand-red grid place-items-center text-xl font-extrabold">P</div>
@@ -1866,35 +1866,37 @@ $$('button[data-saveu-idx]').forEach(b => {
 
 /* ================= STARTUP LOGIC ================= */
 async function initialCheck() {
+    // ซ่อนทุก Views หลักก่อน เพื่อให้แน่ใจว่าไม่มีหน้าซ้อนกัน
+    $('#setupView').classList.add('hidden');
+    $('#loginView').classList.add('hidden');
+    $('#appView').classList.add('hidden');
+    $('#cloudSetupView').classList.add('hidden');
+
     const gistId = localStorage.getItem(LS.GIST_ID);
     const token = localStorage.getItem(LS.TOKEN);
 
+    // กรณีมีข้อมูล Token ในเครื่อง
     if (gistId && token) {
         try {
             console.log("Found credentials, attempting to load from cloud...");
             await cloudLoad(gistId, token);
             console.log("Cloud data loaded successfully.");
-
-            const lastUser = localStorage.getItem(LS.LAST_USER);
-            const userToLogin = lastUser ? (appData.users || []).find(u => u.username === lastUser) : null;
             
-            if (userToLogin) {
-                console.log(`Found last user: ${lastUser}. Attempting auto-login.`);
-                performLogin(userToLogin);
-            } else {
-                console.log("No last user found or user not in data. Showing login screen.");
-                $('#cloudSetupView').classList.add('hidden');
-                $('#loginView').classList.remove('hidden');
-            }
-        } catch(e) {
-            console.error("Critical error during initial load:", e);
+            // ถ้าโหลดข้อมูลสำเร็จ ให้ไปหน้า Login
+            $('#loginView').classList.remove('hidden');
+
+        } catch (e) {
+            // ถ้าโหลดไม่สำเร็จ (เช่น Token ผิด) ให้ลบข้อมูลเก่าทิ้ง แล้วกลับไปหน้าตั้งค่าใหม่
+            console.error("Cloud load failed:", e);
             localStorage.removeItem(LS.GIST_ID);
             localStorage.removeItem(LS.TOKEN);
             localStorage.removeItem(LS.LAST_USER);
-            $('#cloudSetupView').classList.remove('hidden');
             alert("Cloud load failed, credentials have been cleared. Please set up again. Error: " + e.message);
+            $('#cloudSetupView').classList.remove('hidden');
         }
-    } else {
+    } 
+    // กรณีที่ไม่มีข้อมูล Token ในเครื่องเลย
+    else {
         console.log("No credentials found. Showing cloud setup screen.");
         $('#cloudSetupView').classList.remove('hidden');
     }
