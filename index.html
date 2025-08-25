@@ -80,56 +80,45 @@
   }
   table {
     table-layout: fixed;
-    border-collapse: collapse; /* Ensure borders connect */
+    border-collapse: collapse; /* <-- New Change for table borders */
   }
   #productTHead {
-    z-index: 20;
-  }
-  #productTHead th {
-    background-color: #18181b; /* Darker header */
-    border-bottom: 2px solid #E11D2E; /* Red accent bottom border */
-    border-right: 1px solid #27272a;
-    color: #f4f4f5; /* Lighter text for contrast */
-    font-weight: 600; /* Bolder header text */
-  }
-  #productTHead th:last-child {
-      border-right: none;
+    z-index: 20;  
   }
   #productBody {
     position: relative;
     z-index: 1;
   }
-  #productBody tr {
-      border-bottom: 1px solid #27272a; /* Horizontal grid lines */
-  }
-  #productBody tr:nth-child(odd) {
-      background-color: rgba(39, 39, 42, 0.4); /* Keep alternating rows but subtler */
-  }
-  #productBody tr:hover {
-      background-color: rgba(63, 63, 70, 0.5);
-  }
-  #productBody td {
-      border-right: 1px solid #27272a; /* Vertical grid lines */
-      color: #a1a1aa; /* Default text color for data */
-  }
-  #productBody td:first-child { /* Highlight SKU column */
-      color: #fafafa;
-      font-weight: 600;
-  }
-  #productBody td:last-child {
-      border-right: none;
-  }
-  /* Highlight for price columns */
-  .col-price {
-      background-color: rgba(24, 24, 27, 0.5);
-      color: #e4e4e7;
-  }
-  
   .style-btn {
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid #555; background-color: #333;
     display: grid; place-items: center;
   }
   .style-btn.active { background-color: #E11D2E; border-color: #ff5566; }
+
+  /* ===== NEW STYLE FOR TABLE UI ===== */
+  #productTHead {
+    background-color: #000000; /* Darker header */
+  }
+  #productTHead th {
+     border-right: 1px solid #3f3f46; /* Vertical lines for header */
+  }
+  #productTHead th:last-child {
+     border-right: none;
+  }
+  #productBody tr {
+     border-bottom: 1px solid #3f3f46; /* Horizontal lines for rows */
+  }
+  #productBody td {
+     border-right: 1px solid #3f3f46; /* Vertical lines for cells */
+     transition: background-color 0.2s ease;
+  }
+  #productBody td:last-child {
+      border-right: none;
+  }
+  #productBody tr:hover {
+      background-color: #1f1f22 !important; /* Hover effect for rows */
+  }
+  /* ===== END NEW STYLE ===== */
 
 </style>
 </head>
@@ -139,7 +128,7 @@
 <section id="setupView" class="hidden min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
+      <div class="w-11 h-11 rounded-xl bg-brand-red grid place-items-center text-xl font-extrabold">P</div>
       <div class="text-2xl font-semibold">First-Time Setup</div>
     </div>
     <div class="text-zinc-400 mb-4">Please create the primary 'host' account to begin.</div>
@@ -149,28 +138,28 @@
     <input id="setupPass" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="password" />
     <label class="text-sm text-zinc-400 mt-4 block">Confirm password</label>
     <input id="setupPassConfirm" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="confirm password" />
-    <button id="btnCreateHost" class="mt-6 w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create Host Account</button>
+    <button id="btnCreateHost" class="mt-6 w-full py-3 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700 font-semibold">Create Host Account</button>
   </div>
 </section>
 
 <section id="loginView" class="hidden min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
-      <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
+      <div class="w-11 h-11 rounded-xl bg-brand-red grid place-items-center text-xl font-extrabold">P</div>
       <div class="text-2xl font-semibold">ProPlugin • ProPricing</div>
     </div>
     <label class="text-sm text-zinc-400">Username</label>
-    <input id="loginUser" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="username" />
+    <input id="loginUser" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="username" />
     <label class="text-sm text-zinc-400 mt-4 block">Password</label>
-    <input id="loginPass" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="password" />
-    <button id="btnLogin" class="mt-6 w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Sign in</button>
+    <input id="loginPass" type="password" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="password" />
+    <button id="btnLogin" class="mt-6 w-full py-3 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700 font-semibold">Sign in</button>
   </div>
 </section>
 
 <section id="cloudSetupView" class="min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
-       <div class="w-11 h-11 rounded-xl bg-brand.red grid place-items-center text-xl font-extrabold">P</div>
+      <div class="w-11 h-11 rounded-xl bg-brand-red grid place-items-center text-xl font-extrabold">P</div>
       <div class="text-2xl font-semibold">Cloud Setup</div>
     </div>
     <p class="text-zinc-400 mb-4">Please set up GitHub Gist for cloud storage. You can create a new Gist or load from an existing one.</p>
@@ -179,17 +168,17 @@
     <label class="text-sm text-zinc-400 mt-4 block">Gist ID (optional for new Gist)</label>
     <input id="cloudGistId" class="w-full mt-1 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700" placeholder="e.g. a1b2c3d4..." />
     <div class="flex flex-col gap-4 mt-6">
-      <button id="btnCloudCreate" class="w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create New Gist</button>
+      <button id="btnCloudCreate" class="w-full py-3 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700 font-semibold">Create New Gist</button>
       <button id="btnCloudLoad" class="w-full py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 font-semibold">Load from Existing Gist</button>
     </div>
   </div>
 </section>
 
 <section id="appView" class="hidden min-h-screen">
-  <header class="sticky top-0 z-40 bg-brand.dark/95 backdrop-blur border-b border-zinc-800">
+  <header class="sticky top-0 z-40 bg-brand-dark/95 backdrop-blur border-b border-zinc-800">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
       <div class="flex items-center gap-3">
-        <div id="logoBox" class="w-10 h-10 rounded-xl bg-zinc-100 text-brand.dark font-black grid place-items-center overflow-hidden select-none">
+        <div id="logoBox" class="w-10 h-10 rounded-xl bg-zinc-100 text-brand-dark font-black grid place-items-center overflow-hidden select-none">
           <span id="logoFallback">P</span>
           <img id="logoImg" class="hidden w-full h-full object-contain" alt="logo">
         </div>
@@ -203,10 +192,10 @@
     </div>
     <div class="max-w-7xl mx-auto px-4 pb-4 flex flex-col lg:flex-row gap-3">
       <div class="relative flex-1">
-        <input id="searchInput" class="w-full text-xl sm:text-2xl px-5 py-4 rounded-2xl border border-zinc-700 bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-brand.red" placeholder="Search (SKU / Product Name)" />
+        <input id="searchInput" class="w-full text-xl sm:text-2xl px-5 py-4 rounded-2xl border border-zinc-700 bg-zinc-900 text-white focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="Search (SKU / Product Name)" />
         <div class="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500">🔎</div>
       </div>
-      <select id="channelSelect" class="px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand.red"></select>
+      <select id="channelSelect" class="px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-brand-red"></select>
       <div class="px-3 py-2 rounded-2xl bg-zinc-950 border border-zinc-700 flex items-center gap-2">
         <span class="text-sm text-zinc-400">Date range</span>
         <input id="dateStart" type="date" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
@@ -214,14 +203,14 @@
         <input id="dateEnd" type="date" class="px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700">
       </div>
       <button id="btnNewProduct" class="px-5 py-3 rounded-2xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-semibold">Add +</button>
-      <button id="btnPrintModal" class="px-5 py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Print</button>
+      <button id="btnPrintModal" class="px-5 py-3 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700 font-semibold">Print</button>
     </div>
   </header>
   <main class="max-w-7xl mx-auto px-4 py-6">
     <div class="overflow-auto border border-zinc-800 rounded-2xl">
       <table class="w-full text-sm">
-        <thead id="productTHead" class="sticky top-0"></thead>
-        <tbody id="productBody"></tbody>
+        <thead id="productTHead" class="bg-zinc-900/70 border-b-2 border-zinc-700 sticky top-0"></thead>
+        <tbody id="productBody" class="bg-zinc-900/40"></tbody>
       </table>
     </div>
     <div id="pagination" class="mt-4 flex justify-center items-center gap-2"></div>
@@ -241,7 +230,7 @@
       <button data-tab="cloud" class="set-tab only-host w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Cloud Sync</button>
       <button data-tab="history" class="set-tab only-host w-full text-left px-3 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Usage History</button>
       <div class="absolute bottom-3 left-3 right-3">
-        <button id="btnCloseSettings" class="w-full text-sm px-2 py-1.5 rounded-xl bg-brand.red hover:bg-red-600 border border-red-700">Close</button>
+        <button id="btnCloseSettings" class="w-full text-sm px-2 py-1.5 rounded-xl bg-brand-red hover:bg-red-600 border border-red-700">Close</button>
       </div>
     </aside>
     <section id="settingsContent" class="p-6 overflow-auto"></section>
@@ -267,13 +256,13 @@
           <div><label class="text-sm text-zinc-400">Costs</label><input id="edCosts" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400">Normal Price</label><input id="edNormal" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400">Promotion Price</label><input id="edPromo" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
-           <div><label class="text-sm text-zinc-400">Expires Date</label><input id="edExpire" type="date" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
+            <div><label class="text-sm text-zinc-400">Expires Date</label><input id="edExpire" type="date" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400">Marketplace Price</label><input id="edMarket" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400"><span id="edLabelT1">Dealer T1</span></label><input id="edT1" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400"><span id="edLabelT2">Dealer T2</span></label><input id="edT2" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
           <div><label class="text-sm text-zinc-400"><span id="edLabelT3">Dealer T3</span></label><input id="edT3" type="number" step="0.01" class="w-full mt-1 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></div>
         </div>
-        <button id="btnSaveEd" class="w-full mt-2 py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Save</button>
+        <button id="btnSaveEd" class="w-full mt-2 py-3 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700 font-semibold">Save</button>
       </div>
     </div>
   </div>
@@ -289,7 +278,7 @@
       <div class="sticky top-0 bg-zinc-950 border-b border-zinc-800 pb-3 z-10">
         <div class="grid grid-cols-[1fr_auto] gap-2">
           <select id="printTemplate" class="w-full px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-700"></select>
-          <button id="btnOpenPrint" class="px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Open Print Page</button>
+          <button id="btnOpenPrint" class="px-4 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700 font-semibold">Open Print Page</button>
         </div>
         <div class="mt-3 px-3 py-2 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center gap-2">
           <input id="printSearch" class="flex-1 bg-transparent outline-none" placeholder="Search in list…">
@@ -343,7 +332,7 @@ const defaultAppState = {
         { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
           styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
         { id:'t-card', name:'Card (9 per A4 portrait)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, details:{...defaultTextStyles, fs:9, color:'#bbbbbb'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
+          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, details:{...defaultTextStyles, fs:9}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
     ],
     dealerNames: defaultDealerNames,
     users: [],
@@ -588,7 +577,7 @@ function renderPagination(totalItems) {
   for (let i = 1; i <= totalPages; i++) {
     const btn = document.createElement('button');
     btn.textContent = i;
-    btn.className = `px-3 py-1 rounded-lg text-sm border ${currentPage === i ? 'bg-brand.red border-red-700' : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700'}`;
+    btn.className = `px-3 py-1 rounded-lg text-sm border ${currentPage === i ? 'bg-brand-red border-red-700' : 'bg-zinc-800 border-zinc-700 hover:bg-zinc-700'}`;
     btn.onclick = () => { currentPage = i; renderTable(); };
     pageBox.appendChild(btn);
   }
@@ -603,16 +592,16 @@ function renderTableHeader() {
         { key: 'brand', label: 'Brand', width: '120px', sortable: true },
         { key: 'category', label: 'Category', width: '120px', sortable: true },
         { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts', sortable: true },
-        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal col-price', sortable: true },
-        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo col-price', sortable: true },
+        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal', sortable: true },
+        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo', sortable: true },
         { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire', sortable: true },
-        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market col-price', sortable: true },
+        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market', sortable: true },
         { key: 'marketgp', label: 'Market GP%', width: '100px', class: 'col-marketgp', sortable: false },
-        { key: 't1', label: `<span id="lblT1">Dealer T1</span>`, width: '100px', class: 'col-t1 col-price', sortable: true },
+        { key: 't1', label: `<span id="lblT1">Dealer T1</span>`, width: '100px', class: 'col-t1', sortable: true },
         { key: 'gp1', label: 'GP% T1', width: '80px', class: 'col-gp1', sortable: false },
-        { key: 't2', label: `<span id="lblT2">Dealer T2</span>`, width: '100px', class: 'col-t2 col-price', sortable: true },
+        { key: 't2', label: `<span id="lblT2">Dealer T2</span>`, width: '100px', class: 'col-t2', sortable: true },
         { key: 'gp2', label: 'GP% T2', width: '80px', class: 'col-gp2', sortable: false },
-        { key: 't3', label: `<span id="lblT3">Dealer T3</span>`, width: '100px', class: 'col-t3 col-price', sortable: true },
+        { key: 't3', label: `<span id="lblT3">Dealer T3</span>`, width: '100px', class: 'col-t3', sortable: true },
         { key: 'gp3', label: 'GP% T3', width: '80px', class: 'col-gp3', sortable: false },
         { key: 'actions', label: 'Actions', width: '100px', class: 'col-actions', sortable: false }
     ];
@@ -635,18 +624,18 @@ function renderTableHeader() {
         if (['sku', 'description', 'brand', 'category'].includes(col.key)) {
             const isActive = columnFilters[col.key] && columnFilters[col.key].size > 0;
             content = `<div class="flex items-center justify-between w-full">
-                         <div>${label}</div>
-                         <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
-                       </div>
-                       <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>`;
+                          <div>${label}</div>
+                          <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
+                        </div>
+                        <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>`;
         } else {
             content = label;
         }
 
         headerHTML += `<th id="${col.id || ''}" class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
-                         ${content}
-                         <div class="resizer"></div>
-                       </th>`;
+                        ${content}
+                        <div class="resizer"></div>
+                      </th>`;
     });
     headerHTML += `</tr>`;
     thead.innerHTML = headerHTML;
@@ -664,6 +653,7 @@ function renderTable(){
 
   paginatedItems.forEach(p=>{
     const tr=document.createElement('tr');
+    tr.className='hover:bg-zinc-800/30';
     let isPromoExpired = p.expiresDate && new Date(p.expiresDate) < today;
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
     const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
@@ -680,16 +670,16 @@ function renderTable(){
       <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
       <td class="px-3 py-3 hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
-      <td class="px-3 py-3 col-normal col-price oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
-      <td class="px-3 py-3 col-promo col-price oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
+      <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
+      <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
       <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
-      <td class="px-3 py-3 col-market col-price oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
+      <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
       <td class="px-3 py-3 col-marketgp oneline" title="${gpM.toFixed(1)}%">${gpM.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t1 col-price oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
+      <td class="px-3 py-3 col-t1 oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
       <td class="px-3 py-3 col-gp1 oneline" title="${gp1.toFixed(1)}%">${gp1.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t2 col-price oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
+      <td class="px-3 py-3 col-t2 oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
       <td class="px-3 py-3 col-gp2 oneline" title="${gp2.toFixed(1)}%">${gp2.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t3 col-price oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
+      <td class="px-3 py-3 col-t3 oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
       <td class="px-3 py-3 col-gp3 oneline" title="${gp3.toFixed(1)}%">${gp3.toFixed(1)}%</td>
       <td class="px-3 py-3 col-actions">
           <div class="flex items-center gap-2">
@@ -797,7 +787,7 @@ function renderSettings(tab){
           <div class="font-semibold mb-2">Import Master File (.xlsx)</div>
           <input id="fileImportMaster" type="file" accept=".xlsx,.xls" class="w-full">
           <p class="text-xs text-zinc-400 mt-2">Columns: A SKU, B Desc, C Details, D Brand, E Category, F Costs, G Normal, H Marketplace, I D1, J D2, K D3</p>
-          <button id="btnDoImportMaster" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Import Master</button>
+          <button id="btnDoImportMaster" class="mt-4 px-4 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700">Import Master</button>
         </div>
         <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
           <div class="font-semibold mb-2">Export Master File (.xlsx)</div>
@@ -817,7 +807,7 @@ function renderSettings(tab){
           <div class="font-semibold mb-2">Import Promotion File (.xlsx)</div>
           <input id="fileImportPromo" type="file" accept=".xlsx,.xls" class="w-full">
           <p class="text-xs text-zinc-400 mt-2">Columns: A SKU, B Desc, C Normal, D Promotion, E Expires</p>
-          <button id="btnDoImportPromo" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Import Promotion</button>
+          <button id="btnDoImportPromo" class="mt-4 px-4 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700">Import Promotion</button>
         </div>
         <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
           <div>
@@ -843,7 +833,7 @@ function renderSettings(tab){
           <div class="font-semibold mb-2">Upload logo</div>
           <input type="file" id="logoFile" accept="image/*">
           <p class="text-xs text-zinc-400 mt-2">PNG/JPG/SVG. Used on default templates.</p>
-          <button id="btnSaveLogo" class="mt-4 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Save logo</button>
+          <button id="btnSaveLogo" class="mt-4 px-4 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700">Save logo</button>
           <button id="btnRemoveLogo" class="mt-4 ml-2 px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Remove</button>
         </div>
         <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
@@ -857,7 +847,7 @@ function renderSettings(tab){
     bindSettingsEvents(tab);
   }
   if(tab==='dealer'){
-     if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
+    if(!(isHost||isAdmin)){ box.innerHTML='<div class="text-zinc-400">Not allowed.</div>'; return; }
     const names = appData.dealerNames || {};
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-4">Dealer Settings</div>
@@ -867,7 +857,7 @@ function renderSettings(tab){
           <div><label class="text-xs text-zinc-400">Name for Dealer T2</label><input id="nameT2" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t2||'Dealer T2'}"></div>
           <div><label class="text-xs text-zinc-400">Name for Dealer T3</label><input id="nameT3" class="mt-1 w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" value="${names.t3||'Dealer T3'}"></div>
         </div>
-        <button id="btnSaveDealer" class="mt-2 px-4 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Save Names</button>
+        <button id="btnSaveDealer" class="mt-2 px-4 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700">Save Names</button>
       </div>
     `;
     bindSettingsEvents(tab);
@@ -877,7 +867,7 @@ function renderSettings(tab){
     box.innerHTML=`
       <div class="flex items-center justify-between">
         <div class="text-2xl font-semibold mb-2">User Management</div>
-        <button id="btnAddUser" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add User</button>
+        <button id="btnAddUser" class="px-3 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700">Add User</button>
       </div>
       <div id="addUserBox" class="hidden p-4 mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
         <div class="grid md:grid-cols-2 gap-3">
@@ -922,7 +912,7 @@ function renderSettings(tab){
         <td class="px-3 py-2 oneline">${u.username}</td>
         <td class="px-3 py-2">
           <select data-role-idx="${i}" class="w-full px-2 py-1 rounded-xl bg-zinc-900 border border-zinc-700" ${u.username==='host'?'disabled':''}>
-            ${(isHost?['Host','Admin','User']:['Admin','User']).map(r=><option ${u.role===r?'selected':''}>${r}</option>).join('')}
+          ${(isHost?['Host','Admin','User']:['Admin','User']).map(r=><option ${u.role===r?'selected':''}>${r}</option>).join('')}
           </select>
         </td>
         <td class="px-3 py-2 oneline">
@@ -952,7 +942,7 @@ function renderSettings(tab){
           <div class="text-2xl font-semibold">Template Management</div>
           <div class="text-sm text-zinc-400">All templates are fully customizable.</div>
         </div>
-        <button id="btnShowAddTpl" class="px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700">Add New Template</button>
+        <button id="btnShowAddTpl" class="px-3 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700">Add New Template</button>
       </div>
       
       <div id="addTplBox" class="hidden p-4 mb-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 space-y-3">
@@ -966,7 +956,7 @@ function renderSettings(tab){
           <input id="newTplName" class="w-full mt-1 px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-700" placeholder="e.g., My Custom A4">
         </div>
         <div class="flex gap-2">
-          <button id="btnCreateTpl" class="px-4 py-2 rounded-xl bg-brand.red hover:bg-red-600 border border-red-700">Create</button>
+          <button id="btnCreateTpl" class="px-4 py-2 rounded-xl bg-brand-red hover:bg-red-600 border border-red-700">Create</button>
           <button id="btnCancelTpl" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Cancel</button>
         </div>
       </div>
@@ -993,7 +983,7 @@ function renderSettings(tab){
 
       card.innerHTML = `
         <div class="flex justify-between items-start">
-          <input data-name-tpl="${i}" value="${t.name||'Untitled Template'}" class="bg-transparent text-white text-lg font-semibold px-2 py-1 outline-none border-b border-zinc-700 focus:border-brand.red">
+          <input data-name-tpl="${i}" value="${t.name||'Untitled Template'}" class="bg-transparent text-white text-lg font-semibold px-2 py-1 outline-none border-b border-zinc-700 focus:border-brand-red">
           <button class="ml-2 px-3 py-1 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700" data-del-tpl="${i}">Delete</button>
         </div>
         <div class="text-xs text-zinc-400 mb-3">ID: ${t.id||'-'} • Kind: ${t.kind||'-'}</div>
@@ -1046,7 +1036,7 @@ function renderSettings(tab){
             </div>
           `).join('')}
         </div>
-        <button class="mt-4 w-full px-3 py-2 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700" data-savetpl-idx="${i}">Save Template</button>
+        <button class="mt-4 w-full px-3 py-2 rounded-2xl bg-brand-red hover:bg-red-600 border border-red-700" data-savetpl-idx="${i}">Save Template</button>
       `;
       listBox.appendChild(card);
     });
@@ -1064,7 +1054,7 @@ function renderSettings(tab){
     bindSettingsEvents(tab);
   }
   if(tab==='history'){
-     if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
+    if(!isHost){ box.innerHTML='<div class="text-zinc-400">Host only.</div>'; return; }
     const logs=appData.logs || [];
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-2">Usage History</div>
@@ -1305,7 +1295,6 @@ function renderPreview(item, tpl) {
   };
 }
 
-// ==================== CHANGED JS (renderTagInnerHTML) START ====================
 function renderTagInnerHTML(p, tpl){
   const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
   const styleInline = (o) => {
@@ -1314,30 +1303,34 @@ function renderTagInnerHTML(p, tpl){
   };
   const content = `
     <div style="position:absolute; top:0; left:0; right:0; bottom:0; padding:${innerPadding}; display:flex; flex-direction:column;">
-        <div style="${styleInline(tpl.styles.sku)}" class="text-right text-elevate">${p.sku}</div>
-        <div style="font-weight:800;line-height:1.2; ${styleInline(tpl.styles.description)}" class="text-elevate">${p.description}</div>
-        <div class="space-y-1">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
-            <div class="flex gap-2 items-start text-elevate" style="${styleInline(tpl.styles.details)}"><span>•</span><span>${t}</span></div>`).join('')}</div>
-        <div class="mt-auto flex items-end justify-between">
-            <div style="${styleInline(tpl.styles.expire)}" class="text-elevate">Expire : ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
-            <div class="text-right">
-            <div style="${styleInline(tpl.styles.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
-            <div style="font-weight:900; ${styleInline(tpl.styles.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
-            </div>
-        </div>
+      <div style="${styleInline(tpl.styles.sku)}" class="text-right text-elevate">${p.sku}</div>
+      <div style="font-weight:800;line-height:1.2; ${styleInline(tpl.styles.description)}" class="text-elevate">${p.description}</div>
+      <div class="space-y-1">${(p.details||'').split(/\n+/).filter(Boolean).slice(0,5).map(t=>`
+        <div class="flex gap-2 items-start text-elevate" style="${styleInline(tpl.styles.details)}"><span>•</span><span>${t}</span></div>`).join('')}</div>
+      <div class="mt-auto flex items-end justify-between">
+          <div style="${styleInline(tpl.styles.expire)}" class="text-elevate">Expire : ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
+          <div class="text-right">
+          <div style="${styleInline(tpl.styles.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
+          <div style="font-weight:900; ${styleInline(tpl.styles.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
+          </div>
+      </div>
     </div>
   `;
   if(tpl.kind === 'ACC' || tpl.kind === 'CARD'){
     const s=tpl.styles;
-    const detailsHTML = (p.details||'').split(/\n+/).filter(Boolean).slice(0,3).map(line => 
-      `<div style="line-height:1.2;">${ellip(line, 50)}</div>`
+    // ===== MODIFICATION FOR CARD TEMPLATE =====
+    const detailsHtml = (p.details || '').split(/\n+/).filter(Boolean).slice(0, 2).map(line => 
+        `<div style="display: flex; gap: 4px; align-items: start; ${styleInline(s.details)}">
+             <span style="line-height: 1.4;">•</span>
+             <span style="text-align: left; flex: 1;">${line}</span>
+         </div>`
     ).join('');
 
     return `
       <div style="position:absolute;left:6mm;top:4mm;${styleInline(s.sku)}" class="text-elevate">${p.sku}</div>
-      <div style="position:absolute; top:12mm; left:6mm; right:6mm; text-align:center;">
+      <div style="display:flex; flex-direction: column; align-items:center;justify-content:center;text-align:center;height:100%;padding:14mm 8mm 22mm 8mm; box-sizing: border-box;" class="text-elevate">
           <div style="${styleInline(s.description)};max-width:100%;word-break:break-word">${ellip(p.description, 44)}</div>
-          <div style="margin-top:2mm; text-align:center; ${styleInline(s.details)}">${detailsHTML}</div>
+          <div style="margin-top: 5px; width: 100%;">${detailsHtml}</div>
       </div>
       <div style="position:absolute;left:6mm;bottom:4mm;${styleInline(s.expire)}" class="text-elevate">Expire ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
       <div style="position:absolute;right:6mm;bottom:4mm;text-align:right">
@@ -1345,10 +1338,10 @@ function renderTagInnerHTML(p, tpl){
           <div style="font-weight:900;${styleInline(s.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
       </div>
     `;
+    // ===== END MODIFICATION =====
   }
   return content;
 }
-// ==================== CHANGED JS (renderTagInnerHTML) END ====================
 
 
 function baseSize(kind){
@@ -1457,7 +1450,7 @@ function openFilterDropdown(key) {
       </label>
       <div id="filter-values-${key}" class="max-h-60 overflow-auto rounded border border-zinc-800"></div>
       <div class="flex gap-2 mt-2">
-        <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600" data-total-values="${allValues.length}">Apply</button>
+        <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand-red hover:bg-red-600" data-total-values="${allValues.length}">Apply</button>
         <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
       </div>
     </div>
