@@ -4,7 +4,9 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>ProPlugin • ProPricing</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
+
 <script src="https://cdn.tailwindcss.com"></script>
 <script>
   tailwind.config = {
@@ -18,8 +20,10 @@
     }
   }
 </script>
+
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
+
 <style>
   :root { color-scheme: dark; }
   html,body{ height:100%; background:#0b0b0c }
@@ -76,22 +80,62 @@
   }
   table {
     table-layout: fixed;
+    border-collapse: collapse; /* Ensure borders connect */
   }
   #productTHead {
-    z-index: 20; 
+    z-index: 20;
+  }
+  #productTHead th {
+    background-color: #18181b; /* Darker header */
+    border-bottom: 2px solid #E11D2E; /* Red accent bottom border */
+    border-right: 1px solid #27272a;
+    color: #f4f4f5; /* Lighter text for contrast */
+    font-weight: 600; /* Bolder header text */
+  }
+  #productTHead th:last-child {
+      border-right: none;
   }
   #productBody {
     position: relative;
     z-index: 1;
   }
+  #productBody tr {
+      border-bottom: 1px solid #27272a; /* Horizontal grid lines */
+  }
+  #productBody tr:nth-child(odd) {
+      background-color: rgba(39, 39, 42, 0.4); /* Keep alternating rows but subtler */
+  }
+  #productBody tr:hover {
+      background-color: rgba(63, 63, 70, 0.5);
+  }
+  #productBody td {
+      border-right: 1px solid #27272a; /* Vertical grid lines */
+      color: #a1a1aa; /* Default text color for data */
+  }
+  #productBody td:first-child { /* Highlight SKU column */
+      color: #fafafa;
+      font-weight: 600;
+  }
+  #productBody td:last-child {
+      border-right: none;
+  }
+  /* Highlight for price columns */
+  .col-price {
+      background-color: rgba(24, 24, 27, 0.5);
+      color: #e4e4e7;
+  }
+  
   .style-btn {
     width: 28px; height: 28px; border-radius: 6px; border: 1px solid #555; background-color: #333;
     display: grid; place-items: center;
   }
   .style-btn.active { background-color: #E11D2E; border-color: #ff5566; }
+
 </style>
 </head>
+
 <body class="text-white font-sans">
+
 <section id="setupView" class="hidden min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
@@ -108,6 +152,7 @@
     <button id="btnCreateHost" class="mt-6 w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Create Host Account</button>
   </div>
 </section>
+
 <section id="loginView" class="hidden min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
@@ -121,6 +166,7 @@
     <button id="btnLogin" class="mt-6 w-full py-3 rounded-2xl bg-brand.red hover:bg-red-600 border border-red-700 font-semibold">Sign in</button>
   </div>
 </section>
+
 <section id="cloudSetupView" class="min-h-screen grid place-items-center">
   <div class="w-full max-w-md bg-zinc-900/80 border border-zinc-800 rounded-2xl p-8 shadow-soft">
     <div class="flex items-center gap-3 mb-6">
@@ -138,6 +184,7 @@
     </div>
   </div>
 </section>
+
 <section id="appView" class="hidden min-h-screen">
   <header class="sticky top-0 z-40 bg-brand.dark/95 backdrop-blur border-b border-zinc-800">
     <div class="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
@@ -173,13 +220,14 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <div class="overflow-auto border border-zinc-800 rounded-2xl">
       <table class="w-full text-sm">
-        <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800 sticky top-0"></thead>
-        <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-900/40"></tbody>
+        <thead id="productTHead" class="sticky top-0"></thead>
+        <tbody id="productBody"></tbody>
       </table>
     </div>
     <div id="pagination" class="mt-4 flex justify-center items-center gap-2"></div>
   </main>
 </section>
+
 <div id="settingsPanel" class="hidden fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm">
   <div class="absolute inset-4 bg-zinc-950/95 border border-zinc-800 rounded-2xl overflow-hidden grid grid-cols-[260px_1fr]">
     <aside class="bg-zinc-900/60 border-r border-zinc-800 p-3 space-y-2">
@@ -199,6 +247,7 @@
     <section id="settingsContent" class="p-6 overflow-auto"></section>
   </div>
 </div>
+
 <div id="editorModal" class="hidden fixed inset-0 z-[70] bg-black/70">
   <div class="absolute inset-6 bg-zinc-950 border border-zinc-800 rounded-2xl overflow-hidden">
     <div class="flex items-center justify-between p-4 border-b border-zinc-800">
@@ -229,6 +278,7 @@
     </div>
   </div>
 </div>
+
 <div id="printModal" class="hidden fixed inset-0 z-[80] bg-black/70">
   <div class="absolute inset-6 bg-zinc-950 border border-zinc-800 rounded-2xl grid grid-rows-[auto_1fr] grid-cols-[480px_1fr] min-h-0">
     <div class="col-span-2 sticky top-0 z-10 bg-zinc-950 border-b border-zinc-800 p-4 flex items-center justify-between">
@@ -265,6 +315,7 @@ const LS = {
 };
 const defaultDealerNames = {t1:'Dealer T1', t2:'Dealer T2', t3:'Dealer T3'};
 const Channels = ['Flagship','Marketplace','Dealer'];
+
 const sampleProducts = [{
   sku:'MP-00010',
   brand:'iCon Pro Audio',
@@ -274,9 +325,11 @@ const sampleProducts = [{
   costs:4200, normalPrice:7990, promoPrice:5990, expiresDate:'2099-09-09',
   marketplacePrice:5990, dealer1:5600, dealer2:5400, dealer3:5200
 }];
+
 const defaultMargin = { top: 0, right: 0, bottom: 0, left: 0 };
 const defaultFontStyle = { fw: 'normal', fs: 'normal', td: 'none' };
 const defaultTextStyles = { fs: 14, color: '#ffffff', margin: defaultMargin, ...defaultFontStyle };
+
 const defaultAppState = {
     version: 3.2,
     products: sampleProducts,
@@ -288,22 +341,26 @@ const defaultAppState = {
         { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: { top: 6, right: 6, bottom: 6, left: 6 } },
           styles:{ sku:{...defaultTextStyles, fs:12}, description:{...defaultTextStyles, fs:22}, details:{...defaultTextStyles, fs:12}, price:{...defaultTextStyles, fs:48}, oldPrice:{...defaultTextStyles, fs:16, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:11} } },
         { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, details:{...defaultTextStyles, fs:10, color:'#cccccc'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
+          styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
         { id:'t-card', name:'Card (9 per A4 portrait)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, details:{...defaultTextStyles, fs:9, color:'#cccccc'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
+          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, details:{...defaultTextStyles, fs:9, color:'#bbbbbb'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
     ],
     dealerNames: defaultDealerNames,
     users: [],
     logo: '',
     logs: []
 };
+
+
 let appData = null;
 let currentUser = null;
 let editingIndex = -1;
 let currentPage = 1;
 const itemsPerPage = 20;
+
 let sortState = { key: 'sku', direction: 'asc' };
 let columnFilters = {};
+
 /* ================= UTILITIES ================= */
 const $  = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
@@ -324,12 +381,14 @@ async function hashPassword(password) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 const ellip = (s,max=40)=> !s ? '' : (s.length<=max? s : s.slice(0,max-3)+'...');
+
 function log(action, meta = '') {
   if (!appData) return;
   if(!appData.logs) appData.logs = [];
   appData.logs.unshift({ ts: new Date().toISOString(), user: currentUser?.username || '-', action, meta });
   if (appData.logs.length > 3000) appData.logs.pop();
 }
+
 function updateLocalDataAndSave(newData) {
     if (newData) appData = newData;
     renderTableHeader();
@@ -349,6 +408,7 @@ function updateLocalDataAndSave(newData) {
         cloudSave(gistId, token).catch(e => console.error("Auto-save failed:", e));
     }
 }
+
 /* ================= CLOUD SYNC (GitHub Gist) ================= */
 async function gistRequest(method, path, body, token){
   if(!token) throw new Error('GitHub Token is required for this operation.');
@@ -379,21 +439,25 @@ async function cloudLoad(gistId, token){
   localStorage.setItem(LS.GIST_ID, gistId);
   localStorage.setItem(LS.TOKEN, token);
 }
+
 /* ================= AUTH ================= */
 function performLogin(user) {
     currentUser = user;
     localStorage.setItem(LS.LAST_USER, user.username);
     columnFilters = {};
+
     $('#setupView').classList.add('hidden');
     $('#loginView').classList.add('hidden');
     $('#cloudSetupView').classList.add('hidden');
     $('#appView').classList.remove('hidden');
+
     $('#roleBadge').textContent = `${currentUser.role} • ${currentUser.username}`;
     
     initFiltersForUser();
     bindAppEvents();
     updateLocalDataAndSave();
 }
+
 async function login(){
   const u = $('#loginUser').value.trim();
   const p = $('#loginPass').value;
@@ -401,8 +465,10 @@ async function login(){
   const pHash = await hashPassword(p);
   const found = appData.users.find(x => x.username === u && x.passwordHash === pHash);
   if(!found) return alert('Invalid credentials');
+
   performLogin(found);
 }
+
 function logout(){
   log('logout');
   currentUser = null;
@@ -414,12 +480,14 @@ function logout(){
   $('#loginUser').value = '';
   $('#loginPass').value = '';
 }
+
 /* ================= UI VISIBILITY ================= */
 function updateRoleBasedVisibility() {
     if (!currentUser) return;
     const canEdit = ['Host', 'Admin'].includes(currentUser.role);
     $$('.col-actions').forEach(el => el.classList.toggle('hidden', !canEdit));
 }
+
 function updateColumnVisibility(){
   const ch = $('#channelSelect').value;
   const show = {
@@ -432,6 +500,7 @@ function updateColumnVisibility(){
   Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
   updateRoleBasedVisibility();
 }
+
 function initFiltersForUser(){
   const sel=$('#channelSelect');
   const currentChannel = sel.value;
@@ -442,6 +511,7 @@ function initFiltersForUser(){
   $('#btnPrintModal').classList.toggle('hidden', !currentUser.canPrint);
   updateColumnVisibility();
 }
+
 /* ================= APPLY DEALER NAMES ================= */
 function applyDealerNamesToUI(){
     const dealerNames = appData?.dealerNames || defaultDealerNames;
@@ -455,12 +525,14 @@ function applyDealerNamesToUI(){
         }
     });
 }
+
 /* ================= TABLE & PAGINATION ================= */
 function filteredProducts(){
   if (!appData) return [];
   const q=$('#searchInput').value.trim().toLowerCase();
   const ds=$('#dateStart').value, de=$('#dateEnd').value;
   const isFlagship = $('#channelSelect').value==='Flagship';
+
   const filtered = (appData.products || []).filter(p=>{
     const generalSearchHit = !q || (p.sku||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q);
     const columnFilterHit = Object.keys(columnFilters).every(key => {
@@ -479,6 +551,7 @@ function filteredProducts(){
     }
     return generalSearchHit && columnFilterHit && dateOk;
   });
+
   // Sorting logic
   const { key: sortKey, direction } = sortState;
   const dataKeyMap = {
@@ -486,21 +559,27 @@ function filteredProducts(){
       t1: 'dealer1', t2: 'dealer2', t3: 'dealer3'
   };
   const dataKey = dataKeyMap[sortKey] || sortKey;
+
   filtered.sort((a, b) => {
       const valA = a[dataKey];
       const valB = b[dataKey];
+
       if (valA == null || valA === '') return 1;
       if (valB == null || valB === '') return -1;
+
       let comparison = 0;
       if (typeof valA === 'number' && typeof valB === 'number') {
           comparison = valA - valB;
       } else {
           comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
       }
+
       return direction === 'asc' ? comparison : -comparison;
   });
+
   return filtered;
 }
+
 function renderPagination(totalItems) {
   const pageBox = $('#pagination');
   pageBox.innerHTML = '';
@@ -514,6 +593,7 @@ function renderPagination(totalItems) {
     pageBox.appendChild(btn);
   }
 }
+
 function renderTableHeader() {
     const thead = $('#productTHead');
     const columns = [
@@ -523,26 +603,26 @@ function renderTableHeader() {
         { key: 'brand', label: 'Brand', width: '120px', sortable: true },
         { key: 'category', label: 'Category', width: '120px', sortable: true },
         { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts', sortable: true },
-        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal', sortable: true },
-        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo', sortable: true },
+        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal col-price', sortable: true },
+        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo col-price', sortable: true },
         { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire', sortable: true },
-        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market', sortable: true },
+        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market col-price', sortable: true },
         { key: 'marketgp', label: 'Market GP%', width: '100px', class: 'col-marketgp', sortable: false },
-        { key: 't1', label: `<span id="lblT1">Dealer T1</span>`, width: '100px', class: 'col-t1', sortable: true },
+        { key: 't1', label: `<span id="lblT1">Dealer T1</span>`, width: '100px', class: 'col-t1 col-price', sortable: true },
         { key: 'gp1', label: 'GP% T1', width: '80px', class: 'col-gp1', sortable: false },
-        { key: 't2', label: `<span id="lblT2">Dealer T2</span>`, width: '100px', class: 'col-t2', sortable: true },
+        { key: 't2', label: `<span id="lblT2">Dealer T2</span>`, width: '100px', class: 'col-t2 col-price', sortable: true },
         { key: 'gp2', label: 'GP% T2', width: '80px', class: 'col-gp2', sortable: false },
-        { key: 't3', label: `<span id="lblT3">Dealer T3</span>`, width: '100px', class: 'col-t3', sortable: true },
+        { key: 't3', label: `<span id="lblT3">Dealer T3</span>`, width: '100px', class: 'col-t3 col-price', sortable: true },
         { key: 'gp3', label: 'GP% T3', width: '80px', class: 'col-gp3', sortable: false },
         { key: 'actions', label: 'Actions', width: '100px', class: 'col-actions', sortable: false }
     ];
     
-    // --- CHANGE HERE 1 ---
-    let headerHTML = `<tr class="[&>th]:px-3 [&>th]:py-3 [&>th]:border-r [&>th]:border-zinc-700 [&>th]:last:border-r-0 text-left">`;
+    let headerHTML = `<tr class="[&>th]:px-3 [&>th]:py-3 text-left">`;
     columns.forEach(col => {
         let thClass = col.class || '';
         let thAttrs = '';
         let label = col.label;
+
         if (col.sortable) {
             thClass += ' cursor-pointer hover:bg-zinc-800 transition-colors';
             thAttrs += ` data-sort-key="${col.key}"`;
@@ -555,22 +635,24 @@ function renderTableHeader() {
         if (['sku', 'description', 'brand', 'category'].includes(col.key)) {
             const isActive = columnFilters[col.key] && columnFilters[col.key].size > 0;
             content = `<div class="flex items-center justify-between w-full">
-              <div>${label}</div>
-              <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
-            </div>
-            <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>`;
+                         <div>${label}</div>
+                         <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
+                       </div>
+                       <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>`;
         } else {
             content = label;
         }
+
         headerHTML += `<th id="${col.id || ''}" class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
-            ${content}
-            <div class="resizer"></div>
-        </th>`;
+                         ${content}
+                         <div class="resizer"></div>
+                       </th>`;
     });
     headerHTML += `</tr>`;
     thead.innerHTML = headerHTML;
     makeTableResizable();
 }
+
 function renderTable(){
   const body=$('#productBody'); body.innerHTML='';
   if(!appData) return;
@@ -579,10 +661,9 @@ function renderTable(){
   const paginatedItems = allFiltered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
   paginatedItems.forEach(p=>{
     const tr=document.createElement('tr');
-    // --- CHANGE HERE 2 ---
-    tr.className='border-b border-zinc-800 hover:bg-zinc-800/30 [&>td]:border-r [&>td]:border-zinc-800 [&>td]:last:border-r-0';
     let isPromoExpired = p.expiresDate && new Date(p.expiresDate) < today;
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
     const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
@@ -591,6 +672,7 @@ function renderTable(){
     const gp2 = gpPct(p.dealer2, p.costs);
     const gp3 = gpPct(p.dealer3, p.costs);
     const detailsOneLine=(p.details||'').replace(/\n+/g,' • ');
+
     tr.innerHTML = `
       <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.description}">${p.description || '-'}</td>
@@ -598,16 +680,16 @@ function renderTable(){
       <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
       <td class="px-3 py-3 hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
-      <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
-      <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
+      <td class="px-3 py-3 col-normal col-price oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
+      <td class="px-3 py-3 col-promo col-price oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
       <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
-      <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
+      <td class="px-3 py-3 col-market col-price oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
       <td class="px-3 py-3 col-marketgp oneline" title="${gpM.toFixed(1)}%">${gpM.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t1 oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
+      <td class="px-3 py-3 col-t1 col-price oneline" title="${money(p.dealer1)}">${money(p.dealer1)}</td>
       <td class="px-3 py-3 col-gp1 oneline" title="${gp1.toFixed(1)}%">${gp1.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t2 oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
+      <td class="px-3 py-3 col-t2 col-price oneline" title="${money(p.dealer2)}">${money(p.dealer2)}</td>
       <td class="px-3 py-3 col-gp2 oneline" title="${gp2.toFixed(1)}%">${gp2.toFixed(1)}%</td>
-      <td class="px-3 py-3 col-t3 oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
+      <td class="px-3 py-3 col-t3 col-price oneline" title="${money(p.dealer3)}">${money(p.dealer3)}</td>
       <td class="px-3 py-3 col-gp3 oneline" title="${gp3.toFixed(1)}%">${gp3.toFixed(1)}%</td>
       <td class="px-3 py-3 col-actions">
           <div class="flex items-center gap-2">
@@ -622,6 +704,8 @@ function renderTable(){
   bindTableEvents();
   updateColumnVisibility();
 }
+
+
 /* ================= EDITOR ================= */
 function openEditor(sku = null) {
   if(!['Host','Admin'].includes(currentUser.role)) return;
@@ -671,6 +755,7 @@ async function saveEditor() {
     dealer2:parseFloat($('#edT2').value)||0, 
     dealer3:parseFloat($('#edT3').value)||0
   };
+
   if (editingIndex > -1) {
     const oldProduct = appData.products[editingIndex];
     appData.products[editingIndex] = {...oldProduct, ...newProductData};
@@ -685,6 +770,7 @@ async function saveEditor() {
   closeEditor();
   updateLocalDataAndSave();
 }
+
 /* ================= SETTINGS ================= */
 function openSettings(tab){
   if(!['Host','Admin'].includes(currentUser.role)) return;
@@ -692,14 +778,16 @@ function openSettings(tab){
   renderSettings(tab);
 }
 function fileToBase64(f){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=rej; r.readAsDataURL(f); }); }
+
 function renderSettings(tab){
   const box=$('#settingsContent');
   $$('.set-tab').forEach(b=>b.classList.remove('ring-2','ring-brand.red'));
-  const btn=$(`.set-tab[data-tab="${tab}"]`); if(btn) btn.classList.add('ring-2','ring-brand.red');
+  const btn = $(`.set-tab[data-tab="${tab}"]`); if(btn) btn.classList.add('ring-2','ring-brand.red');
   const isHost=currentUser.role==='Host';
   const isAdmin=currentUser.role==='Admin';
   $$('.only-host').forEach(el=>el.classList.toggle('hidden', !isHost));
   $$('.only-host-admin').forEach(el=>el.classList.toggle('hidden', !(isHost||isAdmin)));
+
   if(tab==='data'){
     box.innerHTML=`
       <div class="text-2xl font-semibold mb-2">Manage Master Data</div>
@@ -803,7 +891,7 @@ function renderSettings(tab){
             <label class="text-sm"><input type="checkbox" id="nuCanPrint" checked> Can Print</label>
           </div>
           <div class="md:col-span-2">
-            ${Channels.map(ch=>`<label class="mr-3 text-sm"><input type="checkbox" class="nuCh" value="${ch}" ${ch==='Flagship'?'checked':''}> ${ch}</label>`).join('')}
+            ${Channels.map(ch=><label class="mr-3 text-sm"><input type="checkbox" class="nuCh" value="${ch}" ${ch==='Flagship'?'checked':''}> ${ch}</label>).join('')}
           </div>
         </div>
         <div class="mt-3"><button id="nuCreate" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Create</button></div>
@@ -834,11 +922,11 @@ function renderSettings(tab){
         <td class="px-3 py-2 oneline">${u.username}</td>
         <td class="px-3 py-2">
           <select data-role-idx="${i}" class="w-full px-2 py-1 rounded-xl bg-zinc-900 border border-zinc-700" ${u.username==='host'?'disabled':''}>
-          ${(isHost?['Host','Admin','User']:['Admin','User']).map(r=>`<option ${u.role===r?'selected':''}>${r}</option>`).join('')}
+            ${(isHost?['Host','Admin','User']:['Admin','User']).map(r=><option ${u.role===r?'selected':''}>${r}</option>).join('')}
           </select>
         </td>
         <td class="px-3 py-2 oneline">
-          ${Channels.map(ch=>`<label class="mr-2"><input type="checkbox" data-ch-idx="${i}|${ch}" ${(u.channels||[]).includes(ch)?'checked':''}> <span class="text-xs">${ch}</span></label>`).join('')}
+          ${Channels.map(ch=><label class="mr-2"><input type="checkbox" data-ch-idx="${i}|${ch}" ${(u.channels||[]).includes(ch)?'checked':''}> <span class="text-xs">${ch}</span></label>).join('')}
         </td>
         <td class="px-3 py-2 text-center"><input type="checkbox" data-cost-idx="${i}" ${u.canSeeCosts?'checked':''}></td>
         <td class="px-3 py-2 text-center"><input type="checkbox" data-print-idx="${i}" ${u.canPrint?'checked':''}></td>
@@ -882,6 +970,7 @@ function renderSettings(tab){
           <button id="btnCancelTpl" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700">Cancel</button>
         </div>
       </div>
+
       <div id="tplList" class="grid lg:grid-cols-2 gap-6 mt-2"></div>
     `;
     const listBox = $('#tplList'); listBox.innerHTML='';
@@ -892,6 +981,7 @@ function renderSettings(tab){
       // Ensure data structure integrity for older templates
       t.logoStyles = t.logoStyles || { size: 64, margin: { top: 10, right: 10, bottom: 10, left: 10 } };
       if(typeof t.logoStyles.margin !== 'object') t.logoStyles.margin = { top: t.logoStyles.margin, right: t.logoStyles.margin, bottom:0, left:0 };
+
       t.styles = t.styles || {};
       ['sku','description','details','price','oldPrice','expire'].forEach(k=>{
         t.styles[k] = t.styles[k] || { ...defaultTextStyles };
@@ -900,6 +990,7 @@ function renderSettings(tab){
         t.styles[k].fs = t.styles[k].fs || 'normal';
         t.styles[k].td = t.styles[k].td || 'none';
       });
+
       card.innerHTML = `
         <div class="flex justify-between items-start">
           <input data-name-tpl="${i}" value="${t.name||'Untitled Template'}" class="bg-transparent text-white text-lg font-semibold px-2 py-1 outline-none border-b border-zinc-700 focus:border-brand.red">
@@ -988,6 +1079,8 @@ function renderSettings(tab){
     `;
   }
 }
+
+
 /* ================= IMPORT / EXPORT ================= */
 async function doImportMaster(){
   const fi=$('#fileImportMaster'); if(!fi.files[0]) return alert('Choose a file');
@@ -1088,6 +1181,7 @@ function showExpiredPromoReport() {
     alert(`--- Expired Promotions Report ---\n\n${reportText}`);
     log('report_expired_promo', `${expiredProducts.length} items`);
 }
+
 /* ================= PRINT FLOW & OTHERS ================= */
 function togglePrintModal(show){ $('#printModal').classList.toggle('hidden', !show); }
 function buildPrintList(){
@@ -1137,6 +1231,7 @@ function fillTemplateDropdown(){
     renderPreview(firstItem, appData.templates.find(t=>t.id===dd.value)); 
   };
 }
+
 function generateSingleTagHTML(p, tpl) {
     const logo = appData.logo || '';
     let pad = '10mm';
@@ -1144,14 +1239,15 @@ function generateSingleTagHTML(p, tpl) {
     else if(tpl.kind === 'A6') { pad = '8mm'; }
     else if(tpl.kind === 'ACC') { pad = '6mm'; }
     else if(tpl.kind === 'CARD') { pad = '4mm'; }
+
     const style = `
         <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
         <style>
-          html,body { margin: 0; padding: 0; font-family:'Kanit','Prompt',sans-serif; width: 100%; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          .tag { width: 100%; height: 100%; padding:${pad}; box-sizing:border-box; position:relative; display: flex; align-items: center; justify-content: center; }
-          .card { position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid #1f1f22; background-color:${tpl.imageData ? 'transparent' : (tpl.kind==='ACC'?'#000':'#0b0b0c')}; color:#fff; background-image: ${tpl.imageData ? `url(${tpl.imageData})` : 'none'}; background-size: cover; background-position: center; }
-          .logo { position:absolute; }
-          .text-elevate { text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
+            html,body { margin: 0; padding: 0; font-family:'Kanit','Prompt',sans-serif; width: 100%; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .tag { width: 100%; height: 100%; padding:${pad}; box-sizing:border-box; position:relative; display: flex; align-items: center; justify-content: center; }
+            .card { position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid #1f1f22; background-color:${tpl.imageData ? 'transparent' : (tpl.kind==='ACC'?'#000':'#0b0b0c')}; color:#fff; background-image: ${tpl.imageData ? `url(${tpl.imageData})` : 'none'}; background-size: cover; background-position: center; }
+            .logo { position:absolute; }
+            .text-elevate { text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
         </style>
     `;
     let logoTag = '';
@@ -1165,6 +1261,7 @@ function generateSingleTagHTML(p, tpl) {
     
     return `<!doctype html><html><head><title>Preview</title>${style}</head><body style="margin:0;padding:0;">${tagHTML}</body></html>`;
 }
+
 function renderPreview(item, tpl) {
   const box = $('#previewBox');
   box.innerHTML = '';
@@ -1172,9 +1269,11 @@ function renderPreview(item, tpl) {
     box.innerHTML = '<div class="text-zinc-500">No items or template selected</div>';
     return;
   }
+
   const size = baseSize(tpl.kind);
   const aspectW = size.w;
   const aspectH = size.h;
+
   const iframe = document.createElement('iframe');
   iframe.style.width = `${aspectW}px`;
   iframe.style.height = `${aspectH}px`;
@@ -1183,6 +1282,7 @@ function renderPreview(item, tpl) {
   iframe.scrolling = 'no';
   
   iframe.srcdoc = generateSingleTagHTML(item, tpl);
+
   box.appendChild(iframe);
   
   function fit() {
@@ -1204,6 +1304,8 @@ function renderPreview(item, tpl) {
       ro.observe(box);
   };
 }
+
+// ==================== CHANGED JS (renderTagInnerHTML) START ====================
 function renderTagInnerHTML(p, tpl){
   const innerPadding = tpl.kind === 'IMAGE' ? '20mm' : '10mm';
   const styleInline = (o) => {
@@ -1225,31 +1327,30 @@ function renderTagInnerHTML(p, tpl){
         </div>
     </div>
   `;
-  // --- CHANGE HERE 3 ---
   if(tpl.kind === 'ACC' || tpl.kind === 'CARD'){
-      const s = tpl.styles;
-      const detailsHTML = (p.details || '').split(/\n+/).filter(Boolean).slice(0, 2).map(t => `
-        <div style="${styleInline(s.details)}; display:flex; gap: 4px; align-items: flex-start; line-height: 1.1;">
-          <span>•</span>
-          <span>${ellip(t, 50)}</span>
-        </div>
-      `).join('');
+    const s=tpl.styles;
+    const detailsHTML = (p.details||'').split(/\n+/).filter(Boolean).slice(0,3).map(line => 
+      `<div style="line-height:1.2;">${ellip(line, 50)}</div>`
+    ).join('');
 
-      return `
+    return `
       <div style="position:absolute;left:6mm;top:4mm;${styleInline(s.sku)}" class="text-elevate">${p.sku}</div>
-      <div style="display:flex; flex-direction:column; justify-content:center; text-align:center; height:100%; padding:10mm 8mm;" class="text-elevate">
+      <div style="position:absolute; top:12mm; left:6mm; right:6mm; text-align:center;">
           <div style="${styleInline(s.description)};max-width:100%;word-break:break-word">${ellip(p.description, 44)}</div>
-          <div style="margin-top: 5px; text-align: left; width: 100%;">${detailsHTML}</div>
+          <div style="margin-top:2mm; text-align:center; ${styleInline(s.details)}">${detailsHTML}</div>
       </div>
       <div style="position:absolute;left:6mm;bottom:4mm;${styleInline(s.expire)}" class="text-elevate">Expire ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
       <div style="position:absolute;right:6mm;bottom:4mm;text-align:right">
           <div style="${styleInline(s.oldPrice)}" class="line-through text-elevate">${money(p.normalPrice)}.-</div>
           <div style="font-weight:900;${styleInline(s.price)}" class="text-elevate">${money(p.promoPrice)}.-</div>
       </div>
-      `;
+    `;
   }
   return content;
 }
+// ==================== CHANGED JS (renderTagInnerHTML) END ====================
+
+
 function baseSize(kind){
   if(kind==='A4') return {w:744,h:1052};
   if(kind==='A5') return {w:526,h:744};
@@ -1257,6 +1358,7 @@ function baseSize(kind){
   if(kind==='CARD') return {w:265, h:374}; // 70mm x 99mm for 3x3 on A4 portrait
   return {w:640,h:320}; // ACC or default for IMAGE
 }
+
 function openPrintTab(list,tpl){
   const items=[]; list.forEach(({p,qty})=>{ for(let i=0;i<qty;i++) items.push(p); });
   if(!items.length){ alert('Select at least one SKU.'); return; }
@@ -1270,6 +1372,7 @@ function openPrintTab(list,tpl){
   else if(tpl.kind==='A6'){ cols=2; rows=2; pad='8mm'; pageSize='A4'; }
   else if(tpl.kind==='CARD'){ cols=3; rows=3; pad='4mm'; pageSize='A4'; }
   else { cols=2; rows=6; pad='6mm'; pageSize='A4'; }
+
   const style=`
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&family=Prompt:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -1285,6 +1388,7 @@ function openPrintTab(list,tpl){
   position: fixed !important;
   z-index: 9999 !important;
 }
+
     </style>
   `;
   const perSheet = cols*rows;
@@ -1305,13 +1409,15 @@ function openPrintTab(list,tpl){
   w.document.close();
   w.focus(); 
   setTimeout(() => w.print(), 500);
-  log('open_print', `${items.length} tags, tpl=${tpl.name}`);
+  log('open_print', `${items.length} tags`, `tpl=${tpl.name}`);
 }
+
 function closeAllFilterDropdowns(exceptKey = null) {
   const g = $('#global-filter-dropdown');
   if (g && (!exceptKey || g.dataset.key !== exceptKey)) g.style.display = 'none';
   $$('.filter-dropdown').forEach(d => { d.style.display = 'none'; });
 }
+
 function openFilterDropdown(key) {
   let g = document.querySelector('#global-filter-dropdown');
   if (!g) {
@@ -1322,17 +1428,22 @@ function openFilterDropdown(key) {
   }
   g.style.position = 'fixed';
   g.style.zIndex = '9999';
+
   const btn = document.querySelector(`.filter-btn[data-filter-key="${key}"]`);
   if (!btn) return;
+
   const isVisible = g.style.display === 'block' && g.dataset.key === String(key);
   closeAllFilterDropdowns(key);
   if (isVisible) { g.style.display = 'none'; return; }
+
   const allValues = [...new Set((appData.products || [])
     .map(p => (p[key] ?? '').toString())
     .filter(Boolean))];
+
   let sortDir = 'asc';
   let viewValues = [...allValues].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   const currentFilter = columnFilters[key] || new Set();
+
   g.dataset.key = key;
   g.innerHTML = `
     <div class="filter-dropdown-content">
@@ -1354,6 +1465,7 @@ function openFilterDropdown(key) {
   const $valsBox = g.querySelector(`#filter-values-${key}`);
   const $selectAll = g.querySelector(`#filter-select-all-${key}`);
   const $search = g.querySelector(`#filter-search-${key}`);
+
   function renderList() {
     $valsBox.innerHTML = '';
     const q = ($search.value || '').toString().trim().toLowerCase();
@@ -1371,6 +1483,7 @@ function openFilterDropdown(key) {
     $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(cb => cb.checked);
     visibleChecks.forEach(cb => { cb.onchange = () => { $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(x => x.checked); }; });
   }
+
   g.querySelector(`#filter-sort-asc-${key}`).onclick = () => { sortDir = 'asc'; renderList(); };
   g.querySelector(`#filter-sort-desc-${key}`).onclick = () => { sortDir = 'desc'; renderList(); };
   $search.oninput = () => renderList();
@@ -1384,6 +1497,7 @@ function openFilterDropdown(key) {
   g.style.display = 'block';
   renderList();
 }
+
 function makeTableResizable() {
     const header = $('#productTHead');
     if (!header) return;
@@ -1414,6 +1528,8 @@ function makeTableResizable() {
         }
     });
 }
+
+
 /* ================= EVENTS BINDING ================= */
 function bindAuthEvents() {
     $('#btnCreateHost').onclick = async () => {
@@ -1433,8 +1549,10 @@ function bindAuthEvents() {
             } catch (err) { alert('Failed to save host account: ' + err.message); }
         } else { alert('Error: Gist credentials not found.'); }
     };
+
     $('#btnLogin').onclick = login;
     $('#loginPass').onkeydown = (e) => { if (e.key === 'Enter') login(); };
+
     $('#btnCloudCreate').onclick = async () => {
         const token = $('#cloudToken').value.trim();
         if (!token) return alert('GitHub Token is required.');
@@ -1446,6 +1564,7 @@ function bindAuthEvents() {
             $('#setupView').classList.remove('hidden');
         } catch (err) { alert('Error creating Gist: ' + err.message); }
     };
+
     $('#btnCloudLoad').onclick = async () => {
         const token = $('#cloudToken').value.trim();
         const gistId = $('#cloudGistId').value.trim();
@@ -1458,6 +1577,7 @@ function bindAuthEvents() {
         } catch (err) { alert('Error loading from Gist: ' + err.message); }
     };
 }
+
 function bindAppEvents() {
     $('#btnLogout').onclick = logout;
     $('#btnNewProduct').onclick = () => openEditor();
@@ -1469,10 +1589,12 @@ function bindAppEvents() {
         renderPreview(filteredProducts()[0], (appData.templates||[])[0]);
         togglePrintModal(true);
     };
+
     $('#searchInput').oninput = () => { currentPage = 1; renderTable(); };
     $('#dateStart').onchange = () => { currentPage = 1; renderTable(); };
     $('#dateEnd').onchange = () => { currentPage = 1; renderTable(); };
     $('#channelSelect').onchange = () => { updateColumnVisibility(); currentPage = 1; renderTable(); };
+
     $('#btnCloseSettings').onclick = () => $('#settingsPanel').classList.add('hidden');
     $$('.set-tab').forEach(b => b.onclick = () => openSettings(b.dataset.tab));
     $('#btnCloseEditor').onclick = closeEditor;
@@ -1484,11 +1606,13 @@ function bindAppEvents() {
         const tpl = appData.templates.find(t => t.id === $('#printTemplate').value) || appData.templates[0];
         openPrintTab(list, tpl);
     };
+
     $('#productTHead').addEventListener('click', (e) => {
         const headerCell = e.target.closest('th[data-sort-key]');
         if (!headerCell) return;
         
         const key = headerCell.dataset.sortKey;
+
         if (sortState.key === key) {
             sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
         } else {
@@ -1500,6 +1624,7 @@ function bindAppEvents() {
         renderTable();
     });
 }
+
 function bindTableEvents() {
     $$('button[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
     $$('button[data-del]').forEach(b => b.onclick = () => {
@@ -1510,6 +1635,7 @@ function bindTableEvents() {
             updateLocalDataAndSave();
         }
     });
+
     $$('.filter-btn').forEach(btn => {
         btn.onclick = (e) => {
             e.stopPropagation();
@@ -1517,6 +1643,7 @@ function bindTableEvents() {
         }
     });
 }
+
 function bindSettingsEvents(tab) {
     if (tab === 'data') {
         $('#btnDoImportMaster').onclick=doImportMaster;
@@ -1568,15 +1695,18 @@ function bindSettingsEvents(tab) {
             openSettings('users');
             alert('User created');
         };
+
 $$('button[data-saveu-idx]').forEach(b => {
   b.onclick = async (e) => {
     const i = +e.target.dataset.saveuIdx;
     const u = appData.users[i];
     if (!u) return;
+
     if (currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host')) {
       alert('Admin cannot modify Host accounts.');
       return;
     }
+
     const roleSel = $(`select[data-role-idx="${i}"]`);
     const newRole = roleSel ? roleSel.value : u.role;
     if (currentUser.role === 'Admin' && newRole === 'Host') {
@@ -1585,23 +1715,29 @@ $$('button[data-saveu-idx]').forEach(b => {
     } else {
       u.role = newRole;
     }
+
     u.canSeeCosts = $(`input[data-cost-idx="${i}"]`).checked;
     u.canPrint    = $(`input[data-print-idx="${i}"]`).checked;
+
     const newPass = $(`input[data-pass-idx="${i}"]`).value.trim();
     if (!(currentUser.role === 'Admin' && (u.role === 'Host' || u.username === 'host'))) {
       if (newPass) { u.passwordHash = await hashPassword(newPass); }
     }
+
     u.channels = Channels.filter(ch => $(`input[data-ch-idx="${i}|${ch}"]`).checked);
+
     if (currentUser.username === u.username) {
       currentUser = u;
       initFiltersForUser();
     }
+
     log('update_user', u.username);
     updateLocalDataAndSave();
     alert('Saved.');
     openSettings('users');
   };
 });
+
         $$('button[data-delu-idx]').forEach(b => {
             b.onclick = (e) => {
                 const i = +e.target.dataset.deluIdx;
@@ -1632,11 +1768,13 @@ $$('button[data-saveu-idx]').forEach(b => {
                 });
             }
         };
+
         $('#btnCancelTpl').onclick = () => addTplBox.classList.add('hidden');
         $('#btnCreateTpl').onclick = () => {
             const kind = $('#newTplKind').value;
             const name = $('#newTplName').value.trim();
             if (!name) { return alert('Please enter a template name.'); }
+
             const baseTemplate = defaultAppState.templates.find(t => t.kind === kind);
             const newTpl = JSON.parse(JSON.stringify(baseTemplate));
             newTpl.id = 'user-' + Math.random().toString(36).slice(2, 10);
@@ -1653,6 +1791,7 @@ $$('button[data-saveu-idx]').forEach(b => {
         $$('[data-style-tpl]').forEach(btn => {
           btn.onclick = () => btn.classList.toggle('active');
         });
+
         $$('[data-savetpl-idx]').forEach(btn => {
             btn.onclick = () => {
                 const i = +btn.dataset.savetplIdx;
@@ -1730,15 +1869,19 @@ $$('button[data-saveu-idx]').forEach(b => {
         };
     }
 }
+
+
 /* ================= STARTUP LOGIC ================= */
 async function initialCheck() {
     const gistId = localStorage.getItem(LS.GIST_ID);
     const token = localStorage.getItem(LS.TOKEN);
+
     if (gistId && token) {
         try {
             console.log("Found credentials, attempting to load from cloud...");
             await cloudLoad(gistId, token);
             console.log("Cloud data loaded successfully.");
+
             const lastUser = localStorage.getItem(LS.LAST_USER);
             const userToLogin = lastUser ? (appData.users || []).find(u => u.username === lastUser) : null;
             
@@ -1763,6 +1906,8 @@ async function initialCheck() {
         $('#cloudSetupView').classList.remove('hidden');
     }
 }
+
+
 function init() {
   bindAuthEvents();
   
@@ -1775,10 +1920,13 @@ function init() {
 if (applyFilterBtn) {
   const key = applyFilterBtn.dataset.applyFilter;
   const total = +applyFilterBtn.dataset.totalValues || Infinity;
+
   const checkedValues = new Set(
     Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value)
   );
+
   columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
+
   currentPage = 1;
   closeAllFilterDropdowns();
   updateLocalDataAndSave();
@@ -1802,6 +1950,7 @@ if (applyFilterBtn) {
   
   initialCheck();
 }
+
 init();
 </script>
 </body>
