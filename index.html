@@ -1255,6 +1255,13 @@ function openPrintTab(list,tpl){
       .card{ position:relative; width:100%; height:100%; border-radius:12px; overflow:hidden; border:2px solid #1f1f22; background-color:${tpl.imageData ? 'transparent' : (tpl.kind==='ACC'?'#000':'#0b0b0c')}; color:#fff; background-image: ${tpl.imageData ? `url(${tpl.imageData})` : 'none'}; background-size: cover; background-position: center; }
       .logo{ position:absolute; }
       .text-elevate{ text-shadow: 0 1px 2px rgba(0,0,0,.9), 0 0 1px rgba(0,0,0,.7); }
+      
+      /* Floating filter dropdown (portal to body) */
+#global-filter-dropdown.filter-dropdown {
+  position: fixed !important;
+  z-index: 9999 !important; /* สูงกว่า editor (z-70) / print (z-80) */
+}
+
     </style>
   `;
   const perSheet = cols*rows;
@@ -1278,65 +1285,72 @@ function openPrintTab(list,tpl){
   log('open_print', `${items.length} tags, tpl=${tpl.name}`);
 }
 
-/* ================= FILTER & RESIZE LOGIC ================= */
 function closeAllFilterDropdowns(exceptKey = null) {
-    $$('.filter-dropdown').forEach(dropdown => {
-        if (!exceptKey || dropdown.id !== `filter-dropdown-${exceptKey}`) {
-            dropdown.style.display = 'none';
-        }
-    });
+  const g = $('#global-filter-dropdown');
+  if (g && (!exceptKey || g.dataset.key !== exceptKey)) g.style.display = 'none';
+  // เผื่อมีของเก่าใน <th> ค้างอยู่
+  $$('.filter-dropdown').forEach(d => { d.style.display = 'none'; });
 }
+
 function openFilterDropdown(key) {
-    const dropdown = $(`#filter-dropdown-${key}`);
-    if(!dropdown) return;
-    const isVisible = dropdown.style.display === 'block';
-    closeAllFilterDropdowns(key);
-    if (isVisible) {
-        dropdown.style.display = 'none';
-        return;
+  // สร้าง global dropdown (ครั้งแรก)
+  let g = $('#global-filter-dropdown');
+  if (!g) {
+    g = document.createElement('div');
+    g.id = 'global-filter-dropdown';
+    g.className = 'filter-dropdown';
+    document.body.appendChild(g);
+  }
+
+  const btn = $(`.filter-btn[data-filter-key="${key}"]`);
+  if (!btn) return;
+
+  const isVisible = g.style.display === 'block' && g.dataset.key === key;
+  closeAllFilterDropdowns(key);
+  if (isVisible) { g.style.display = 'none'; return; }
+
+  // สร้างเนื้อหา (Select All / Apply / Clear)
+  const uniqueValues = [...new Set((appData.products || [])
+    .map(p => (p[key] || '').toString()).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b, undefined, { numeric: true }));
+
+  let html = `<div class="filter-dropdown-content">
+      <label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded">
+        <input type="checkbox" id="filter-select-all-${key}"> (Select All)
+      </label>`;
+  const currentFilter = columnFilters[key] || new Set();
+  uniqueValues.forEach(value => {
+    const isChecked = currentFilter.size === 0 || currentFilter.has(value);
+    html += `<label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded" title="${value}">
+      <input type="checkbox" class="filter-item-${key}" value="${value}" ${isChecked ? 'checked' : ''}> ${ellip(value, 25)}
+    </label>`;
+  });
+  html += `</div>
+    <div class="flex gap-2 mt-2">
+      <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600">Apply</button>
+      <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
+    </div>`;
+
+  g.innerHTML = html;
+  g.dataset.key = key;
+
+  // จัดวางตำแหน่งแบบ fixed เทียบปุ่ม
+  const r = btn.getBoundingClientRect();
+  g.style.left = `${r.left}px`;
+  g.style.top  = `${r.bottom + 4}px`;
+  g.style.display = 'block';
+
+  // โฟกัส + Enter = Apply
+  g.setAttribute('tabindex', -1);
+  g.focus();
+  g.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      $(`button[data-apply-filter="${key}"]`).click();
     }
-
-    const uniqueValues = [...new Set((appData.products || []).map(p => (p[key] || '').toString()).filter(Boolean))].sort((a,b) => a.localeCompare(b, undefined, {numeric: true}));
-    
-    let contentHTML = `<div class="filter-dropdown-content">
-        <label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded">
-            <input type="checkbox" id="filter-select-all-${key}"> (Select All)
-        </label>`;
-
-    const currentFilter = columnFilters[key] || new Set();
-    uniqueValues.forEach(value => {
-        const isChecked = currentFilter.size === 0 || currentFilter.has(value);
-        contentHTML += `<label class="flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded" title="${value}">
-            <input type="checkbox" class="filter-item-${key}" value="${value}" ${isChecked ? 'checked' : ''}> ${ellip(value, 25)}
-        </label>`;
-    });
-
-    contentHTML += `</div>
-        <div class="flex gap-2 mt-2">
-            <button data-apply-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-brand.red hover:bg-red-600">Apply</button>
-            <button data-clear-filter="${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-700 hover:bg-zinc-600">Clear</button>
-        </div>`;
-    
-    dropdown.innerHTML = contentHTML;
-    dropdown.style.display = 'block';
-    
-    dropdown.setAttribute('tabindex', -1);
-    dropdown.focus();
-    dropdown.onkeydown = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            $(`button[data-apply-filter="${key}"]`).click();
-        }
-    };
-
-    const selectAllCheckbox = $(`#filter-select-all-${key}`);
-    const allItemsCheckboxes = $$(`.filter-item-${key}`);
-    selectAllCheckbox.checked = allItemsCheckboxes.every(cb => cb.checked);
-    
-    selectAllCheckbox.onchange = (e) => {
-        allItemsCheckboxes.forEach(cb => cb.checked = e.target.checked);
-    };
+  };
 }
+
 
 function makeTableResizable() {
     const header = $('#productTHead');
