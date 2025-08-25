@@ -1525,8 +1525,7 @@ function makeTableResizable() {
 
 /* ================= EVENTS BINDING ================= */
 function bindAuthEvents() {
-    // ใช้ ?.addEventListener ซึ่งเป็นวิธีที่ปลอดภัยกว่า ถ้าหา Element ไม่เจอจะไม่ Error
-    $('#btnCreateHost')?.addEventListener('click', async () => {
+    $('#btnCreateHost').onclick = async () => {
         const pass = $('#setupPass').value;
         if (pass !== $('#setupPassConfirm').value || !pass) return alert('Passwords do not match or are empty.');
         if (pass.length < 4) return alert('Password must be at least 4 characters long.');
@@ -1542,35 +1541,7 @@ function bindAuthEvents() {
                 $('#loginView').classList.remove('hidden');
             } catch (err) { alert('Failed to save host account: ' + err.message); }
         } else { alert('Error: Gist credentials not found.'); }
-    });
-
-    $('#btnLogin')?.addEventListener('click', login);
-    $('#loginPass')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
-
-    $('#btnCloudCreate')?.addEventListener('click', async () => {
-        const token = $('#cloudToken').value.trim();
-        if (!token) return alert('GitHub Token is required.');
-        try {
-            const gistId = await cloudCreateGist(token, defaultAppState);
-            alert('Gist created: ' + gistId + '\nPlease create the host account.');
-            appData = JSON.parse(JSON.stringify(defaultAppState));
-            $('#cloudSetupView').classList.add('hidden');
-            $('#setupView').classList.remove('hidden');
-        } catch (err) { alert('Error creating Gist: ' + err.message); }
-    });
-
-    $('#btnCloudLoad')?.addEventListener('click', async () => {
-        const token = $('#cloudToken').value.trim();
-        const gistId = $('#cloudGistId').value.trim();
-        if (!token || !gistId) return alert('Token and Gist ID are required.');
-        try {
-            await cloudLoad(gistId, token);
-            alert('Loaded from Gist. Please log in.');
-            $('#cloudSetupView').classList.add('hidden');
-            $('#loginView').classList.remove('hidden');
-        } catch (err) { alert('Error loading from Gist: ' + err.message); }
-    });
-}
+    };
 
     $('#btnLogin').onclick = login;
     $('#loginPass').onkeydown = (e) => { if (e.key === 'Enter') login(); };
@@ -1895,37 +1866,35 @@ $$('button[data-saveu-idx]').forEach(b => {
 
 /* ================= STARTUP LOGIC ================= */
 async function initialCheck() {
-    // ซ่อนทุก Views หลักก่อน เพื่อให้แน่ใจว่าไม่มีหน้าซ้อนกัน
-    $('#setupView').classList.add('hidden');
-    $('#loginView').classList.add('hidden');
-    $('#appView').classList.add('hidden');
-    $('#cloudSetupView').classList.add('hidden');
-
     const gistId = localStorage.getItem(LS.GIST_ID);
     const token = localStorage.getItem(LS.TOKEN);
 
-    // กรณีมีข้อมูล Token ในเครื่อง
     if (gistId && token) {
         try {
             console.log("Found credentials, attempting to load from cloud...");
             await cloudLoad(gistId, token);
             console.log("Cloud data loaded successfully.");
-            
-            // ถ้าโหลดข้อมูลสำเร็จ ให้ไปหน้า Login
-            $('#loginView').classList.remove('hidden');
 
-        } catch (e) {
-            // ถ้าโหลดไม่สำเร็จ (เช่น Token ผิด) ให้ลบข้อมูลเก่าทิ้ง แล้วกลับไปหน้าตั้งค่าใหม่
-            console.error("Cloud load failed:", e);
+            const lastUser = localStorage.getItem(LS.LAST_USER);
+            const userToLogin = lastUser ? (appData.users || []).find(u => u.username === lastUser) : null;
+            
+            if (userToLogin) {
+                console.log(`Found last user: ${lastUser}. Attempting auto-login.`);
+                performLogin(userToLogin);
+            } else {
+                console.log("No last user found or user not in data. Showing login screen.");
+                $('#cloudSetupView').classList.add('hidden');
+                $('#loginView').classList.remove('hidden');
+            }
+        } catch(e) {
+            console.error("Critical error during initial load:", e);
             localStorage.removeItem(LS.GIST_ID);
             localStorage.removeItem(LS.TOKEN);
             localStorage.removeItem(LS.LAST_USER);
-            alert("Cloud load failed, credentials have been cleared. Please set up again. Error: " + e.message);
             $('#cloudSetupView').classList.remove('hidden');
+            alert("Cloud load failed, credentials have been cleared. Please set up again. Error: " + e.message);
         }
-    } 
-    // กรณีที่ไม่มีข้อมูล Token ในเครื่องเลย
-    else {
+    } else {
         console.log("No credentials found. Showing cloud setup screen.");
         $('#cloudSetupView').classList.remove('hidden');
     }
