@@ -311,6 +311,7 @@ let editingIndex = -1;
 let currentPage = 1;
 const itemsPerPage = 20;
 
+let sortState = { key: 'sku', direction: 'asc' };
 let columnFilters = {};
 
 /* ================= UTILITIES ================= */
@@ -485,7 +486,7 @@ function filteredProducts(){
   const ds=$('#dateStart').value, de=$('#dateEnd').value;
   const isFlagship = $('#channelSelect').value==='Flagship';
 
-  return (appData.products || []).filter(p=>{
+  const filtered = (appData.products || []).filter(p=>{
     const generalSearchHit = !q || (p.sku||'').toLowerCase().includes(q) || (p.description||'').toLowerCase().includes(q);
     const columnFilterHit = Object.keys(columnFilters).every(key => {
         if (!columnFilters[key] || columnFilters[key].size === 0) return true;
@@ -503,6 +504,33 @@ function filteredProducts(){
     }
     return generalSearchHit && columnFilterHit && dateOk;
   });
+
+  // Sorting logic
+  const { key: sortKey, direction } = sortState;
+  const dataKeyMap = {
+      normal: 'normalPrice', promo: 'promoPrice', expire: 'expiresDate', market: 'marketplacePrice',
+      t1: 'dealer1', t2: 'dealer2', t3: 'dealer3'
+  };
+  const dataKey = dataKeyMap[sortKey] || sortKey;
+
+  filtered.sort((a, b) => {
+      const valA = a[dataKey];
+      const valB = b[dataKey];
+
+      if (valA == null || valA === '') return 1;
+      if (valB == null || valB === '') return -1;
+
+      let comparison = 0;
+      if (typeof valA === 'number' && typeof valB === 'number') {
+          comparison = valA - valB;
+      } else {
+          comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' });
+      }
+
+      return direction === 'asc' ? comparison : -comparison;
+  });
+
+  return filtered;
 }
 
 function renderPagination(totalItems) {
@@ -522,38 +550,53 @@ function renderPagination(totalItems) {
 function renderTableHeader() {
     const thead = $('#productTHead');
     const columns = [
-        { key: 'sku', label: 'SKU', width: '120px' },
-        { key: 'description', label: 'Description', width: '200px' },
-        { key: 'details', label: 'Details', width: '200px' },
-        { key: 'brand', label: 'Brand', width: '120px' },
-        { key: 'category', label: 'Category', width: '120px' },
-        { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts' },
-        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal' },
-        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo' },
-        { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire' },
-        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market' },
-        { key: 'marketgp', label: 'Market GP%', width: '100px', class: 'col-marketgp' },
-        { key: 't1', label: `<span id="lblT1"></span>`, width: '100px', class: 'col-t1' },
-        { key: 'gp1', label: 'GP% T1', width: '80px', class: 'col-gp1' },
-        { key: 't2', label: `<span id="lblT2"></span>`, width: '100px', class: 'col-t2' },
-        { key: 'gp2', label: 'GP% T2', width: '80px', class: 'col-gp2' },
-        { key: 't3', label: `<span id="lblT3"></span>`, width: '100px', class: 'col-t3' },
-        { key: 'gp3', label: 'GP% T3', width: '80px', class: 'col-gp3' },
-        { key: 'actions', label: 'Actions', width: '100px', class: 'col-actions' }
+        { key: 'sku', label: 'SKU', width: '120px', sortable: true },
+        { key: 'description', label: 'Description', width: '200px', sortable: true },
+        { key: 'details', label: 'Details', width: '200px', sortable: false },
+        { key: 'brand', label: 'Brand', width: '120px', sortable: true },
+        { key: 'category', label: 'Category', width: '120px', sortable: true },
+        { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts', sortable: true },
+        { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal', sortable: true },
+        { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo', sortable: true },
+        { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire', sortable: true },
+        { key: 'market', label: 'Marketplace', width: '100px', class: 'col-market', sortable: true },
+        { key: 'marketgp', label: 'Market GP%', width: '100px', class: 'col-marketgp', sortable: false },
+        { key: 't1', label: `<span id="lblT1">Dealer T1</span>`, width: '100px', class: 'col-t1', sortable: true },
+        { key: 'gp1', label: 'GP% T1', width: '80px', class: 'col-gp1', sortable: false },
+        { key: 't2', label: `<span id="lblT2">Dealer T2</span>`, width: '100px', class: 'col-t2', sortable: true },
+        { key: 'gp2', label: 'GP% T2', width: '80px', class: 'col-gp2', sortable: false },
+        { key: 't3', label: `<span id="lblT3">Dealer T3</span>`, width: '100px', class: 'col-t3', sortable: true },
+        { key: 'gp3', label: 'GP% T3', width: '80px', class: 'col-gp3', sortable: false },
+        { key: 'actions', label: 'Actions', width: '100px', class: 'col-actions', sortable: false }
     ];
     
     let headerHTML = `<tr class="[&>th]:px-3 [&>th]:py-3 text-left">`;
     columns.forEach(col => {
-        let content = col.label;
-        if (['sku', 'description', 'details', 'brand', 'category'].includes(col.key)) {
+        let thClass = col.class || '';
+        let thAttrs = '';
+        let label = col.label;
+
+        if (col.sortable) {
+            thClass += ' cursor-pointer hover:bg-zinc-800 transition-colors';
+            thAttrs += ` data-sort-key="${col.key}"`;
+            if (sortState.key === col.key) {
+                label += sortState.direction === 'asc' ? ' <span class="text-zinc-400">▲</span>' : ' <span class="text-zinc-400">▼</span>';
+            }
+        }
+        
+        let content;
+        if (['sku', 'description', 'brand', 'category'].includes(col.key)) {
             const isActive = columnFilters[col.key] && columnFilters[col.key].size > 0;
-            content = `<div class="flex items-center">
-              <span>${col.label}</span>
+            content = `<div class="flex items-center justify-between w-full">
+              <div>${label}</div>
               <button class="filter-btn ${isActive ? 'active' : ''}" data-filter-key="${col.key}">▼</button>
             </div>
             <div id="filter-dropdown-${col.key}" class="filter-dropdown"></div>`;
+        } else {
+            content = label;
         }
-        headerHTML += `<th id="${col.id || ''}" class="${col.class || ''}" style="width:${col.width}; position: relative;">
+
+        headerHTML += `<th id="${col.id || ''}" class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
             ${content}
             <div class="resizer"></div>
         </th>`;
@@ -713,7 +756,7 @@ function renderSettings(tab){
         <div class="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/40">
           <div class="font-semibold mb-2">Export Master File (.xlsx)</div>
           <button id="btnExportMaster" class="px-4 py-2 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700">Export Master</button>
-          <p class="text-xs text-zinc-400 mt-2">Exports all product data without promotion columns.</p>
+          <p class="text-xs text-zinc-400 mt-2">Exports a file compatible with the import format (without GP% columns).</p>
         </div>
       </div>
     `;
@@ -963,105 +1006,58 @@ function renderSettings(tab){
   }
 }
 
+
+/* ================= IMPORT / EXPORT ================= */
 async function doImportMaster(){
-  const fi = $('#fileImportMaster'); if (!fi.files[0]) return alert('Choose a file');
+  const fi=$('#fileImportMaster'); if(!fi.files[0]) return alert('Choose a file');
   try {
-    const data = await fi.files[0].arrayBuffer();
-    const wb = XLSX.read(data, { type:'array' }); const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
-
-    // หา Header row จากคำว่า "SKU"
+    const data=await fi.files[0].arrayBuffer();
+    const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     let headerRowIndex = rows.findIndex(row => (row[0] || '').toString().toLowerCase().trim() === 'sku');
-    if (headerRowIndex === -1) return alert('Error: Cannot find header row "SKU".');
-
-    const header = rows[headerRowIndex].map(x => (x||'').toString());
-    const H = header.map(h => h.trim().toLowerCase());
-    const idx = (cands) => {
-      for (const name of cands) {
-        const j = H.indexOf(name.toLowerCase());
-        if (j !== -1) return j;
-      }
-      return -1;
-    };
-
-    // หา index ของแต่ละคอลัมน์จากชื่อหัวตาราง (รองรับหลายชื่อ)
-    const col = {
-      sku: 0,
-      description: idx(['description','รายละเอียด','desc']),
-      details: idx(['details','detail','spec','สเปค']),
-      brand: idx(['brand','แบรนด์']),
-      category: idx(['category','หมวดหมู่','cat']),
-      costs: idx(['costs','cost','ต้นทุน']),
-      normal: idx(['normal price','normal','flagship','flagship price','price']),
-      market: idx(['marketplace','marketplace price']),
-      d1: idx(['dealer t1','dealer1','dealer 1','t1 price']),
-      d2: idx(['dealer t2','dealer2','dealer 2','t2 price']),
-      d3: idx(['dealer t3','dealer3','dealer 3','t3 price']),
-    };
-
-    const start = headerRowIndex + 1;
-    const existingSkus = new Set(appData.products.map(p => p.sku));
-    const newItems = [];
+    if (headerRowIndex === -1) { return alert('Error: Cannot find header row "SKU".'); }
+    const start=headerRowIndex + 1;
+    const newItems=[], existingSkus = new Set(appData.products.map(p => p.sku));
     let skippedCount = 0;
-
-    const readStr = (r, i) => i>=0 ? (r[i] || '').toString().trim() : '';
-    const readNum = (r, i) => i>=0 ? (parseFloat(r[i]) || 0) : 0;
-
-    for (let i = start; i < rows.length; i++) {
-      const r = rows[i];
-      const sku = readStr(r, col.sku);
-      if (!sku) continue;
+    for(let i=start;i<rows.length;i++){
+      const r=rows[i]; const sku = (r[0]||'').toString().trim(); if(!sku) continue;
       if (existingSkus.has(sku)) { skippedCount++; continue; }
       existingSkus.add(sku);
-
       newItems.push({
         sku,
-        description: readStr(r, col.description),
-        details: readStr(r, col.details),
-        brand: readStr(r, col.brand),
-        category: readStr(r, col.category),
-        costs: readNum(r, col.costs),
-        normalPrice: readNum(r, col.normal),
-        marketplacePrice: readNum(r, col.market),
-        dealer1: readNum(r, col.d1),
-        dealer2: readNum(r, col.d2),
-        dealer3: readNum(r, col.d3),
-        promoPrice: 0,
-        expiresDate: ''
+        description: (r[1] || '').toString().trim(), details: (r[2] || '').toString().trim(),
+        brand: (r[3] || '').toString().trim(), category: (r[4] || '').toString().trim(),
+        costs: parseFloat(r[5] || 0) || 0, normalPrice: parseFloat(r[6] || 0) || 0,
+        marketplacePrice: parseFloat(r[7] || 0) || 0, dealer1: parseFloat(r[8] || 0) || 0,
+        dealer2: parseFloat(r[9] || 0) || 0, dealer3: parseFloat(r[10] || 0) || 0,
+        promoPrice: 0, expiresDate: ''
       });
     }
-
-    if (!newItems.length && skippedCount === 0)
-      return alert('No new valid products found to import.');
-
-    appData.products = [...newItems, ...appData.products];
-    log('import_master', `${newItems.length} rows (skipped duplicates: ${skippedCount})`);
+    if(!newItems.length && skippedCount === 0) return alert('No new valid products found to import.');
+    appData.products=[...newItems, ...appData.products];
+    log('import_master', `${newItems.length} rows`);
+    alert(`Import complete.\n- New products added: ${newItems.length}\n- Existing SKUs skipped: ${skippedCount}`);
     updateLocalDataAndSave();
-    alert(`Master import complete.\n- New products: ${newItems.length}\n- Duplicates skipped: ${skippedCount}`);
-  } catch (e) {
-    alert('An error occurred during import: ' + e.message);
-  }
+  } catch(e){ alert('An error occurred during import: ' + e.message); }
 }
-
 
 async function doExportMaster(){
   const wb=await XlsxPopulate.fromBlankAsync(); const sh=wb.sheet(0).name('MasterPriceData');
-  const header=['SKU','Description','Details','Brand','Category','Costs','Normal Price','Marketplace Price','Market GP%','Dealer T1','GP% T1','Dealer T2','GP% T2','Dealer T3','GP% T3'];
+  const header=['SKU','Description','Details','Brand','Category','Costs','Normal Price','Marketplace Price','Dealer T1','Dealer T2','Dealer T3'];
   const dataRows = (appData.products || []).map(p=>[
-    p.sku,p.description,p.details,p.brand,p.category,p.costs,p.normalPrice,
-    p.marketplacePrice, +gpPct(p.marketplacePrice,p.costs).toFixed(2),
-    p.dealer1, +gpPct(p.dealer1,p.costs).toFixed(2), p.dealer2, +gpPct(p.dealer2,p.costs).toFixed(2),
-    p.dealer3, +gpPct(p.dealer3,p.costs).toFixed(2)
+    p.sku, p.description, p.details, p.brand, p.category, p.costs, p.normalPrice,
+    p.marketplacePrice, p.dealer1, p.dealer2, p.dealer3
   ]);
   sh.cell('A1').value([header,...dataRows]);
   sh.row(1).style({bold:true});
-  if(dataRows.length > 0) sh.range(`F2:F${dataRows.length+1}`).style({fill:'FFCCFFCC'});
-  [15,30,40,20,20,12,14,16,14,14,12,14,12,14,12].forEach((w,i)=>sh.column(i+1).width(w));
+  if(dataRows.length > 0) sh.range(`F2:K${dataRows.length+1}`).style({fill:'FFFFFFCC'});
+  [15,30,40,20,20,12,14,16,14,14,14].forEach((w,i)=>sh.column(i+1).width(w));
   const blob=await wb.outputAsync();
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url; a.download='master_price_data.xlsx'; a.click(); a.remove(); URL.revokeObjectURL(url);
   log('export_master', `${appData.products.length} rows`);
 }
+
 async function doImportPromo() {
     const fi = $('#fileImportPromo'); if (!fi.files[0]) return alert('Choose a file');
     try {
@@ -1344,8 +1340,9 @@ function closeAllFilterDropdowns(exceptKey = null) {
 }
 
 
+// --- REPLACE: openFilterDropdown(key)
 function openFilterDropdown(key) {
-  // ensure portal
+  // 1) Ensure global portal dropdown (fixed + super high z-index)
   let g = document.querySelector('#global-filter-dropdown');
   if (!g) {
     g = document.createElement('div');
@@ -1354,7 +1351,7 @@ function openFilterDropdown(key) {
     document.body.appendChild(g);
   }
   g.style.position = 'fixed';
-  g.style.zIndex = '9999';
+  g.style.zIndex = '9999'; // อยู่หน้าสุดจริงๆ
 
   const btn = document.querySelector(`.filter-btn[data-filter-key="${key}"]`);
   if (!btn) return;
@@ -1363,29 +1360,21 @@ function openFilterDropdown(key) {
   closeAllFilterDropdowns(key);
   if (isVisible) { g.style.display = 'none'; return; }
 
-  // all values in this column
+  // 2) เตรียมค่าทั้งหมด + สถานะเดิม
   const allValues = [...new Set((appData.products || [])
     .map(p => (p[key] ?? '').toString())
     .filter(Boolean))];
 
-  // current selected (empty Set = no filter)
-  const currentFilter = columnFilters[key] || new Set();
-  // keep temporary selection so it persists across Sort/Search
-  let tempSelected = currentFilter.size ? new Set(currentFilter) : new Set(allValues);
-
-  // expose on portal for Apply handler
-  g._tempSelectedKey = key;
-  g._tempSelectedSet = tempSelected;
-  g._allValues = allValues;
-
   let sortDir = 'asc';
-  let viewValues = [...allValues];
+  let viewValues = [...allValues].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+  const currentFilter = columnFilters[key] || new Set(); // ถ้าว่าง = ถือว่าเลือกทุกค่า
 
+  // 3) สร้าง UI: Search + Sort + Select All + รายการค่า + ปุ่ม Apply/Clear
   g.dataset.key = key;
   g.innerHTML = `
     <div class="filter-dropdown-content">
-      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none w-full"
-             placeholder="Search values… (Excel-like)" />
+      <input id="filter-search-${key}" class="px-2 py-1 rounded bg-zinc-800 border border-zinc-700 outline-none"
+             placeholder="Search values… (like Excel)" />
 
       <div class="flex gap-2 my-1">
         <button id="filter-sort-asc-${key}" class="flex-1 px-2 py-1 text-xs rounded bg-zinc-800 border border-zinc-700 hover:bg-zinc-700">Sort A–Z</button>
@@ -1405,27 +1394,26 @@ function openFilterDropdown(key) {
     </div>
   `;
 
+  // 4) ฟังก์ชัน render รายการค่า (คง state เดิม + ค้นหา + เรียง)
   const $valsBox = g.querySelector(`#filter-values-${key}`);
   const $selectAll = g.querySelector(`#filter-select-all-${key}`);
   const $search = g.querySelector(`#filter-search-${key}`);
 
-  function computeDisplay() {
+  function renderList() {
+    // เคลียร์ + วาดตาม viewValues (หลังค้นหา + เรียง)
+    $valsBox.innerHTML = '';
     const q = ($search.value || '').toString().trim().toLowerCase();
     let display = viewValues.filter(v => v.toLowerCase().includes(q));
+
+    // เรียงทิศทาง
     display.sort((a,b)=> sortDir==='asc'
       ? a.localeCompare(b,undefined,{numeric:true})
       : b.localeCompare(a,undefined,{numeric:true})
     );
-    return display;
-  }
 
-  function renderList() {
-    $valsBox.innerHTML = '';
-    const display = computeDisplay();
-
-    // render according to tempSelected
+    // วาด checkbox แต่ละค่า
     for (const v of display) {
-      const checked = tempSelected.has(v);
+      const checked = (currentFilter.size===0) ? true : currentFilter.has(v);
       const row = document.createElement('label');
       row.className = 'flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded';
       row.title = v;
@@ -1436,51 +1424,46 @@ function openFilterDropdown(key) {
       $valsBox.appendChild(row);
     }
 
-    // sync Select All for visible items
-    const visibleChecks = Array.from($valsBox.querySelectorAll(\`.filter-item-\${key}\`));
+    // อัปเดตสถานะ Select All (เฉพาะที่ "มองเห็น" ตาม search)
+    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
     $selectAll.checked = visibleChecks.length > 0 && visibleChecks.every(cb => cb.checked);
 
-    // on each change -> update tempSelected and Select All
+    // เมื่อติ๊กแต่ละตัว ให้ sync สถานะ Select All
     visibleChecks.forEach(cb => {
       cb.onchange = () => {
-        if (cb.checked) tempSelected.add(cb.value);
-        else tempSelected.delete(cb.value);
-        g._tempSelectedSet = tempSelected;
         const allOn = visibleChecks.length > 0 && visibleChecks.every(x => x.checked);
         $selectAll.checked = allOn;
       };
     });
   }
 
-  // controls
+  // 5) Bind controls
   g.querySelector(`#filter-sort-asc-${key}`).onclick = () => { sortDir = 'asc'; renderList(); };
   g.querySelector(`#filter-sort-desc-${key}`).onclick = () => { sortDir = 'desc'; renderList(); };
-  $search.oninput = () => renderList();
 
-  // Enter => Apply
+  $search.oninput = () => renderList();
+  // Enter = Apply
   g.setAttribute('tabindex', -1);
   g.onkeydown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      g.querySelector(\`[data-apply-filter="\${key}"]\`).click();
+      g.querySelector(`[data-apply-filter="${key}"]`).click();
     }
   };
 
-  // Select All affects only visible items
+  // Select All = เลือก/ปลดเฉพาะรายการที่ "มองเห็น"
   $selectAll.onchange = (e) => {
-    const display = computeDisplay();
-    if (e.target.checked) display.forEach(v => tempSelected.add(v));
-    else display.forEach(v => tempSelected.delete(v));
-    g._tempSelectedSet = tempSelected;
-    renderList();
+    const visibleChecks = Array.from($valsBox.querySelectorAll(`.filter-item-${key}`));
+    visibleChecks.forEach(cb => cb.checked = e.target.checked);
   };
 
-  // place dropdown under the button
+  // 6) จัดวาง dropdown (fixed) ให้อยู่ใต้ปุ่มฟิลเตอร์
   const r = btn.getBoundingClientRect();
-  g.style.left = \`\${r.left}px\`;
-  g.style.top  = \`\${r.bottom + 4}px\`;
+  g.style.left = `${r.left}px`;
+  g.style.top  = `${r.bottom + 4}px`;
   g.style.display = 'block';
 
+  // ครั้งแรกต้อง render รายการ
   renderList();
 }
 
@@ -1535,6 +1518,7 @@ function bindAuthEvents() {
         if (pass.length < 4) return alert('Password must be at least 4 characters long.');
         if (!appData) appData = JSON.parse(JSON.stringify(defaultAppState));
         appData.users = [{ username: 'host', passwordHash: await hashPassword(pass), role: 'Host', channels: [...Channels], canSeeCosts: true, canPrint: true }];
+        const gistId = localStorage.getItem(LS.GIST_ID);
         const token = localStorage.getItem(LS.TOKEN);
         if(gistId && token) {
             try {
@@ -1596,15 +1580,30 @@ function bindAppEvents() {
     $('#btnCloseEditor').onclick = closeEditor;
     $('#btnSaveEd').onclick = saveEditor;
     $('#btnClosePrintModal').onclick = () => togglePrintModal(false);
-$('#btnOpenPrint').onclick = () => {
-  const picks = $$('#printList input[type="checkbox"]:checked').map(c => c.dataset.sel);
-  const list = picks.map(sku => ({
-    p: appData.products.find(x => x.sku === sku),
-    qty: parseInt($(`[data-qty="${sku}"]`).value, 10) || 1
-  })).filter(item => item.p);
-  const tpl = appData.templates.find(t => t.id === $('#printTemplate').value) || appData.templates[0];
-  openPrintTab(list, tpl);
-};
+    $('#btnOpenPrint').onclick = () => {
+        const picks = $$('#printList input[type="checkbox"]:checked').map(c => c.dataset.sel);
+        const list = picks.map(sku => ({ p: appData.products.find(p => p.sku === sku), qty: parseInt($(`[data-qty="${sku}"]`).value) || 1 })).filter(item => item.p);
+        const tpl = appData.templates.find(t => t.id === $('#printTemplate').value) || appData.templates[0];
+        openPrintTab(list, tpl);
+    };
+
+    // Table sorting handler
+    $('#productTHead').addEventListener('click', (e) => {
+        const headerCell = e.target.closest('th[data-sort-key]');
+        if (!headerCell) return;
+        
+        const key = headerCell.dataset.sortKey;
+
+        if (sortState.key === key) {
+            sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+            sortState.key = key;
+            sortState.direction = 'asc';
+        }
+        
+        renderTableHeader();
+        renderTable();
+    });
 }
 
 function bindTableEvents() {
@@ -1891,43 +1890,38 @@ async function initialCheck() {
 
 function init() {
   bindAuthEvents();
+  
   document.addEventListener('click', (e) => {
-  if (!e.target.closest('.filter-dropdown')) {
-    closeAllFilterDropdowns();
-  }
+      if (!e.target.closest('.filter-dropdown')) {
+          closeAllFilterDropdowns();
+      }
+      
+      const applyFilterBtn = e.target.closest('[data-apply-filter]');
+if (applyFilterBtn) {
+  const key = applyFilterBtn.dataset.applyFilter;
+  const total = +applyFilterBtn.dataset.totalValues || Infinity;
 
-  const applyFilterBtn = e.target.closest('[data-apply-filter]');
-  if (applyFilterBtn) {
-    const key = applyFilterBtn.dataset.applyFilter;
-    const g = document.querySelector('#global-filter-dropdown');
+  // อ่านค่าที่ถูกติ๊ก
+  const checkedValues = new Set(
+    Array.from(document.querySelectorAll(`.filter-item-${key}:checked`)).map(cb => cb.value)
+  );
 
-    // ใช้ชุดที่เลือกค้างไว้บน portal (รองรับหลัง Sort/Search)
-    const tempSet = (g && g._tempSelectedSet)
-      ? new Set(g._tempSelectedSet)
-      : new Set($$(`.filter-item-${key}:checked`).map(cb => cb.value));
+  // ถ้าเลือกครบทุกค่า = ถือว่า "ไม่กรอง" -> เก็บเป็น Set ว่าง
+  columnFilters[key] = (checkedValues.size >= total) ? new Set() : checkedValues;
 
-    const total = (g && g._allValues) ? g._allValues.length : tempSet.size;
-
-    // ถ้าเลือกครบทุกค่า = ไม่กรอง -> เก็บ Set ว่าง
-    columnFilters[key] = (tempSet.size >= total) ? new Set() : tempSet;
-
-    currentPage = 1;
-    closeAllFilterDropdowns();
-    updateLocalDataAndSave(); // re-render ตาราง
-  }
-
-  const clearFilterBtn = e.target.closest('[data-clear-filter]');
-  if (clearFilterBtn) {
-    const key = clearFilterBtn.dataset.clearFilter;
-    const g = document.querySelector('#global-filter-dropdown');
-    delete columnFilters[key];
-    if (g) g._tempSelectedSet = new Set();
-    currentPage = 1;
-    closeAllFilterDropdowns();
-    updateLocalDataAndSave();
-  }
-});
-
+  currentPage = 1;
+  closeAllFilterDropdowns();
+  updateLocalDataAndSave();
+}
+      const clearFilterBtn = e.target.closest('[data-clear-filter]');
+      if (clearFilterBtn) {
+          const key = clearFilterBtn.dataset.clearFilter;
+          if(columnFilters[key]) columnFilters[key].clear();
+          currentPage = 1;
+          closeAllFilterDropdowns();
+          updateLocalDataAndSave();
+      }
+  });
   
   window.addEventListener('keydown', e => { 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { 
