@@ -1539,26 +1539,57 @@ function bindSettingsEvents(tab) {
             updateLocalDataAndSave();
             openSettings('users');
             alert('User created');
+          // UI guard: ถ้าเป็น Admin ให้ปิดการพิมพ์รหัสผ่านของบัญชี host
+if (currentUser.role === 'Admin') {
+  const idxHost = (appData.users || []).findIndex(u => u.username === 'host');
+  if (idxHost > -1) {
+    const inp = document.querySelector(`input[data-pass-idx="${idxHost}"]`);
+    if (inp) {
+      inp.disabled = true;
+      inp.placeholder = 'Only Host can change this';
+      inp.classList.add('opacity-60', 'cursor-not-allowed');
+      inp.title = 'Only Host can change this';
+    }
+  }
+}
+
         };
 
-        $$('button[data-saveu-idx]').forEach(b => {
-            b.onclick = async (e) => {
-                const i = +e.target.dataset.saveuIdx;
-                const u = appData.users[i];
-                if(!u) return;
-                u.role = $(`select[data-role-idx="${i}"]`).value;
-                u.canSeeCosts = $(`input[data-cost-idx="${i}"]`).checked;
-                u.canPrint = $(`input[data-print-idx="${i}"]`).checked;
-                const newPass = $(`input[data-pass-idx="${i}"]`).value.trim();
-                if (newPass) { u.passwordHash = await hashPassword(newPass); }
-                u.channels = Channels.filter(ch => $(`input[data-ch-idx="${i}|${ch}"]`).checked);
-                if (currentUser.username === u.username) { currentUser = u; initFiltersForUser(); }
-                log('update_user', u.username);
-                updateLocalDataAndSave();
-                alert('Saved.');
-                openSettings('users');
-            };
-        });
+$$('button[data-saveu-idx]').forEach(b => {
+  b.onclick = async (e) => {
+    const i = +e.target.dataset.saveuIdx;
+    const u = appData.users[i];
+    if (!u) return;
+
+    // 1) อัปเดต role/สิทธิ์อื่น ๆ
+    u.role = $(`select[data-role-idx="${i}"]`).value;
+    u.canSeeCosts = $(`input[data-cost-idx="${i}"]`).checked;
+    u.canPrint = $(`input[data-print-idx="${i}"]`).checked;
+
+    // 2) จัดการรหัสผ่าน — บล็อก Admin แก้รหัส host
+    const passEl = $(`input[data-pass-idx="${i}"]`);
+    const newPass = (passEl?.value || '').trim();
+    const adminChangingHost = (currentUser.role === 'Admin' && u.username === 'host');
+    if (adminChangingHost) {
+      if (newPass) alert('Only Host can change the Host password.');
+      if (passEl) passEl.value = ''; // เคลียร์เพื่อป้องกันการเซฟ
+    } else if (newPass) {
+      u.passwordHash = await hashPassword(newPass);
+    }
+
+    // 3) ช่องทาง (Channels)
+    u.channels = Channels.filter(ch => $(`input[data-ch-idx="${i}|${ch}"]`).checked);
+
+    // 4) ถ้าแก้ข้อมูลของตัวเอง ให้ refresh currentUser
+    if (currentUser.username === u.username) { currentUser = u; initFiltersForUser(); }
+
+    log('update_user', u.username);
+    updateLocalDataAndSave();
+    alert('Saved.');
+    openSettings('users');
+  };
+});
+
 
         $$('button[data-delu-idx]').forEach(b => {
             b.onclick = (e) => {
