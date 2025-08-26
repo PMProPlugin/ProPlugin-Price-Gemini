@@ -80,6 +80,10 @@
   }
   table {
     table-layout: fixed;
+    border-collapse: collapse; /* NEW */
+  }
+  table th, table td {
+    border: 1px solid #3f3f46; /* NEW: border-zinc-700 */
   }
   #productTHead {
     z-index: 20; 
@@ -183,8 +187,8 @@
   <main class="max-w-7xl mx-auto px-4 py-6">
     <div class="overflow-auto border border-zinc-800 rounded-2xl">
       <table class="w-full text-sm">
-        <thead id="productTHead" class="bg-zinc-900/70 border-b border-zinc-800 sticky top-0"></thead>
-        <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-900/40"></tbody>
+        <thead id="productTHead" class="bg-zinc-900/70 border-b-2 border-zinc-700 sticky top-0"></thead>
+        <tbody id="productBody" class="[&>tr:nth-child(odd)]:bg-zinc-800/60"></tbody>
       </table>
     </div>
     <div id="pagination" class="mt-4 flex justify-center items-center gap-2"></div>
@@ -304,9 +308,9 @@ const defaultAppState = {
         { id:'t-a6',  name:'A6 (4 per sheet)', kind:'A6',  showLogo:true, imageData:null, logoStyles: { size: 40, margin: { top: 6, right: 6, bottom: 6, left: 6 } },
           styles:{ sku:{...defaultTextStyles, fs:12}, description:{...defaultTextStyles, fs:22}, details:{...defaultTextStyles, fs:12}, price:{...defaultTextStyles, fs:48}, oldPrice:{...defaultTextStyles, fs:16, color:'#ff4d4f'}, expire:{...defaultTextStyles, fs:11} } },
         { id:'t-acc', name:'Accessories (12 per sheet)', kind:'ACC', showLogo:true, imageData:null, logoStyles: { size: 30, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
+          styles:{ sku:{...defaultTextStyles, fs:11, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:15, align:'center'}, details:{...defaultTextStyles, fs:10, color:'#cccccc'}, price:{...defaultTextStyles, fs:22}, oldPrice:{...defaultTextStyles, fs:12, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:10} } },
         { id:'t-card', name:'Card (9 per A4 portrait)', kind:'CARD', showLogo:true, imageData:null, logoStyles: { size: 24, margin: { top: 4, right: 4, bottom: 4, left: 4 } },
-          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
+          styles:{ sku:{...defaultTextStyles, fs:10, margin:{...defaultMargin, top:2}}, description:{...defaultTextStyles, fs:14, align:'center'}, details:{...defaultTextStyles, fs:9, color:'#cccccc'}, price:{...defaultTextStyles, fs:20}, oldPrice:{...defaultTextStyles, fs:11, color:'#B91C1C'}, expire:{...defaultTextStyles, fs:9} } }
     ],
     dealerNames: defaultDealerNames,
     users: [],
@@ -445,6 +449,12 @@ function logout(){
 }
 
 /* ================= UI VISIBILITY ================= */
+function updateCostsVisibility() {
+    if (!currentUser) return;
+    const canSee = currentUser.canSeeCosts;
+    $$('.col-costs').forEach(el => el.classList.toggle('hidden', !canSee));
+}
+
 function updateRoleBasedVisibility() {
     if (!currentUser) return;
     const canEdit = ['Host', 'Admin'].includes(currentUser.role);
@@ -462,6 +472,7 @@ function updateColumnVisibility(){
   const map={ 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
   Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
   updateRoleBasedVisibility();
+  updateCostsVisibility();
 }
 
 function initFiltersForUser(){
@@ -565,7 +576,7 @@ function renderTableHeader() {
         { key: 'details', label: 'Details', width: '200px', sortable: false },
         { key: 'brand', label: 'Brand', width: '120px', sortable: true },
         { key: 'category', label: 'Category', width: '120px', sortable: true },
-        { key: 'costs', label: 'Costs', width: '80px', class: 'hidden', id: 'thCosts', sortable: true },
+        { key: 'costs', label: 'Costs', width: '80px', class: 'col-costs', sortable: true }, // MODIFIED
         { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal', sortable: true },
         { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo', sortable: true },
         { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire', sortable: true },
@@ -606,7 +617,7 @@ function renderTableHeader() {
             content = label;
         }
 
-        headerHTML += `<th id="${col.id || ''}" class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
+        headerHTML += `<th class="${thClass}" style="width:${col.width}; position: relative;" ${thAttrs}>
             ${content}
             <div class="resizer"></div>
         </th>`;
@@ -627,7 +638,7 @@ function renderTable(){
 
   paginatedItems.forEach(p=>{
     const tr=document.createElement('tr');
-    tr.className='border-b border-zinc-800 hover:bg-zinc-800/30';
+    tr.className='hover:bg-zinc-700/70'; // MODIFIED
     let isPromoExpired = p.expiresDate && new Date(p.expiresDate) < today;
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
     const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
@@ -643,8 +654,7 @@ function renderTable(){
       <td class="px-3 py-3 oneline" title="${detailsOneLine}">${detailsOneLine}</td>
       <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
-      <td class="px-3 py-3 hidden oneline" title="${money(p.costs)}">${money(p.costs)}</td>
-      <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
+      <td class="px-3 py-3 col-costs oneline" title="${money(p.costs)}">${money(p.costs)}</td> <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
       <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
       <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
       <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
@@ -1293,11 +1303,16 @@ function renderTagInnerHTML(p, tpl){
     </div>
   `;
   if(tpl.kind === 'ACC' || tpl.kind === 'CARD'){
-      const s=tpl.styles;
+      const s = tpl.styles;
+      const detailsLines = (p.details || '').split(/\n+/).filter(Boolean).slice(0, 2)
+          .map(line => `<div style="font-size: ${(s.details.fs || 9)}px; color: ${(s.details.color || '#cccccc')}; margin-top: 2px; line-height: 1.2;">• ${ellip(line, 40)}</div>`)
+          .join('');
+
       return `
       <div style="position:absolute;left:6mm;top:4mm;${styleInline(s.sku)}" class="text-elevate">${p.sku}</div>
-      <div style="display:flex;align-items:center;justify-content:center;text-align:center;height:100%;padding:10mm 8mm;" class="text-elevate">
+      <div style="display:flex; flex-direction: column; align-items:center; justify-content:center; text-align:center; height:100%; padding:10mm 8mm;" class="text-elevate">
           <div style="${styleInline(s.description)};max-width:100%;word-break:break-word">${ellip(p.description, 44)}</div>
+          <div style="margin-top: 4px; max-width: 100%;">${detailsLines}</div>
       </div>
       <div style="position:absolute;left:6mm;bottom:4mm;${styleInline(s.expire)}" class="text-elevate">Expire ${p.expiresDate?toDateInput(p.expiresDate):''}</div>
       <div style="position:absolute;right:6mm;bottom:4mm;text-align:right">
