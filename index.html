@@ -468,8 +468,9 @@ function updateColumnVisibility(){
       market: ch === 'Marketplace', marketgp: ch === 'Marketplace',
       t1: ch === 'Dealer', gp1: ch === 'Dealer', t2: ch === 'Dealer',
       gp2: ch === 'Dealer', t3: ch === 'Dealer', gp3: ch === 'Dealer',
+      details: ch === 'Flagship' // NEW
   };
-  const map={ 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
+  const map={ 'col-details':show.details, 'col-normal':show.normal,'col-promo':show.promo,'col-expire':show.expire,'col-market':show.market,'col-marketgp':show.marketgp,'col-t1':show.t1,'col-gp1':show.gp1,'col-t2':show.t2,'col-gp2':show.gp2,'col-t3':show.t3,'col-gp3':show.gp3 };
   Object.entries(map).forEach(([cls,v])=> $$('.'+cls).forEach(el=>el.classList.toggle('hidden',!v)));
   updateRoleBasedVisibility();
   updateCostsVisibility();
@@ -573,10 +574,10 @@ function renderTableHeader() {
     const columns = [
         { key: 'sku', label: 'SKU', width: '120px', sortable: true },
         { key: 'description', label: 'Description', width: '200px', sortable: true },
-        { key: 'details', label: 'Details', width: '200px', sortable: false },
+        { key: 'details', label: 'Details', width: '200px', class: 'col-details', sortable: false }, // MODIFIED
         { key: 'brand', label: 'Brand', width: '120px', sortable: true },
         { key: 'category', label: 'Category', width: '120px', sortable: true },
-        { key: 'costs', label: 'Costs', width: '80px', class: 'col-costs', sortable: true }, // MODIFIED
+        { key: 'costs', label: 'Costs', width: '80px', class: 'col-costs', sortable: true },
         { key: 'normal', label: 'Normal', width: '80px', class: 'col-normal', sortable: true },
         { key: 'promo', label: 'Promotion', width: '80px', class: 'col-promo', sortable: true },
         { key: 'expire', label: 'Expire Date', width: '100px', class: 'col-expire', sortable: true },
@@ -638,7 +639,7 @@ function renderTable(){
 
   paginatedItems.forEach(p=>{
     const tr=document.createElement('tr');
-    tr.className='hover:bg-zinc-700/70'; // MODIFIED
+    tr.className='hover:bg-zinc-700/70';
     let isPromoExpired = p.expiresDate && new Date(p.expiresDate) < today;
     const displayedPromoPrice = isPromoExpired ? '-' : money(p.promoPrice);
     const promoPriceTitle = isPromoExpired ? 'Promotion Expired' : money(p.promoPrice);
@@ -651,10 +652,11 @@ function renderTable(){
     tr.innerHTML = `
       <td class="px-3 py-3 oneline" title="${p.sku}">${p.sku || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.description}">${p.description || '-'}</td>
-      <td class="px-3 py-3 oneline" title="${detailsOneLine}">${detailsOneLine}</td>
-      <td class="px-3 py-3 oneline" title="${p.brand}">${p.brand || '-'}</td>
+      <td class="px-3 py-3 oneline col-details" title="${detailsOneLine}">${detailsOneLine}</td>
+      <td class="px-3 py-3 oneline" style="color: #E11D2E;" title="${p.brand}">${p.brand || '-'}</td>
       <td class="px-3 py-3 oneline" title="${p.category}">${p.category || '-'}</td>
-      <td class="px-3 py-3 col-costs oneline" title="${money(p.costs)}">${money(p.costs)}</td> <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
+      <td class="px-3 py-3 col-costs oneline" title="${money(p.costs)}">${money(p.costs)}</td>
+      <td class="px-3 py-3 col-normal oneline" title="${money(p.normalPrice)}">${money(p.normalPrice)}</td>
       <td class="px-3 py-3 col-promo oneline" title="${promoPriceTitle}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};"><span style="text-decoration:${isPromoExpired ? 'line-through' : 'none'};">${displayedPromoPrice}</span></td>
       <td class="px-3 py-3 col-expire oneline" title="${toDateInput(p.expiresDate)}" style="color:${isPromoExpired ? '#666' : '#E11D2E'};">${toDateInput(p.expiresDate)}</td>
       <td class="px-3 py-3 col-market oneline" title="${money(p.marketplacePrice)}">${money(p.marketplacePrice)}</td>
