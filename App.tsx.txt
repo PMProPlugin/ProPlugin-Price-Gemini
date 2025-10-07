@@ -1,0 +1,64 @@
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAuthStore } from '@store/useAuthStore';
+import { Wifi, WifiOff, Settings as SettingsIcon, LogOut, Receipt, Store } from 'lucide-react';
+import StatusBadge from '@components/StatusBadge';
+import { useSettingsStore } from '@store/useSettingsStore';
+import dayjs from 'dayjs';
+
+export default function App() {
+  const nav = useNavigate();
+  const loc = useLocation();
+  const { user, logout } = useAuthStore();
+  const settings = useSettingsStore();
+
+  useEffect(() => {
+    if (!user && loc.pathname !== '/login') nav('/login');
+  }, [user, loc.pathname, nav]);
+
+  return (
+    <div className="min-h-screen grid grid-rows-[auto,1fr]">
+      <header className="bg-white shadow-sm px-4 py-2 flex items-center gap-3">
+        <Store className="text-blue-600" />
+        <div className="font-semibold text-lg">
+          {settings.storeProfile.name || 'My Music Store'} — POS 01
+        </div>
+        <div className="text-sm text-gray-500 ml-2">{dayjs().format('DD/MM/YYYY HH:mm')}</div>
+        <div className="ml-auto flex items-center gap-4">
+          <StatusBadge online />
+          {user && <div className="text-sm">👤 {user.name} ({user.role})</div>}
+          <button
+            className="btn-icon"
+            aria-label="Reports"
+            onClick={() => nav('/reports')}
+            title="Reports"
+          >
+            <Receipt />
+          </button>
+          <button
+            className="btn-icon"
+            aria-label="Settings"
+            onClick={() => nav('/settings')}
+            title="Settings"
+          >
+            <SettingsIcon />
+          </button>
+          {user && (
+            <button
+              className="btn-outline px-3 py-1 rounded-xl"
+              onClick={() => {
+                logout();
+                nav('/login');
+              }}
+            >
+              <LogOut className="inline-block mr-1" /> Logout
+            </button>
+          )}
+        </div>
+      </header>
+      <main className="p-3">
+        <Outlet />
+      </main>
+    </div>
+  );
+}

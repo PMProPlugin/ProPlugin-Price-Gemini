@@ -1,0 +1,29 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import Sell from '@app/routes/sell';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { vi } from 'vitest';
+
+vi.mock('@services/bcClient', async (orig) => {
+  const mod = await orig();
+  return { ...mod, bc: { ...mod.bc, listAllItems: () => mod.bc.listAllItems() } };
+});
+
+function wrap(ui: React.ReactNode) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      {ui}
+    </QueryClientProvider>
+  );
+}
+
+test('add item by barcode updates totals', async () => {
+  render(wrap(<Sell />));
+  const input = screen.getByPlaceholderText(/Scan barcode/i);
+  fireEvent.change(input, { target: { value: '1234567890123' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+
+  // Wait a tick for React state
+  await new Promise((r) => setTimeout(r, 300));
+
+  expect(screen.getByText(/Focusrite Scarlett/i)).toBeInTheDocument();
+});

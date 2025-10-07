@@ -1,0 +1,25 @@
+export default function ShortcutHelp() {
+  const rows = [
+    ['F2', 'Add item (from search)'],
+    ['F3', 'Focus barcode'],
+    ['F4', 'Discount'],
+    ['F8', 'Open payment'],
+    ['F9', 'Hold/Resume'],
+    ['Ctrl+/', 'Shortcut help'],
+    ['Esc', 'Close / clear']
+  ];
+  return (
+    <div className="rounded-xl border p-3 bg-white">
+      <h3 className="font-semibold mb-2">Keyboard Shortcuts</h3>
+      <div className="grid grid-cols-[100px,1fr] gap-x-3 gap-y-1 text-sm">
+        {rows.map(([k, v]) => (
+          <Fragment key={k as string}>
+            <div className="font-mono">{k}</div>
+            <div>{v}</div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+import { Fragment } from 'react';

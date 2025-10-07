@@ -1,0 +1,110 @@
+import { useEffect, useMemo, useState } from 'react';
+import dayjs from 'dayjs';
+import { useCartStore } from '@store/useCartStore';
+import { formatCurrency } from '@utils/currency';
+import { useSettingsStore } from '@store/useSettingsStore';
+
+type SaleLite = ReturnType<typeof useCartStore.getState>['history'][number];
+
+export default function Reports() {
+  const s = useSettingsStore();
+  const history = useCartStore((st) => st.history);
+  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
+
+  const todays = useMemo(() => {
+    return history.filter((h) => dayjs(h.datetime).format('YYYY-MM-DD') === date);
+  }, [history, date]);
+
+  const totals = todays.reduce(
+    (acc, sale) => {
+      acc.count += 1;
+      acc.grand += sale.grandTotal;
+      sale.payments.forEach((p) => (acc.payments[p.type] = (acc.payments[p.type] || 0) + p.amount));
+      acc.vat += sale.vat;
+      acc.discounts += sale.discountTotal || 0;
+      return acc;
+    },
+    { count: 0, grand: 0, vat: 0, discounts: 0, payments: {} as Record<string, number> }
+  );
+
+  function exportCSV() {
+    const header = [
+      'number',
+      'datetime',
+      'cashierId',
+      'subtotal',
+      'vat',
+      'grandTotal',
+      'paymentType',
+      'paymentAmount'
+    ];
+    const rows = todays.flatMap((s) =>
+      s.payments.map((p) => [
+        s.number,
+        s.datetime,
+        s.cashierId,
+        s.subtotal,
+        s.vat,
+        s.grandTotal,
+        p.type,
+        p.amount
+      ])
+    );
+    const csv = [header, ...rows].map((r) => r?.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `z-report-${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  useEffect(() => {
+    // ensure load persisted history
+    useCartStore.getState().loadHistory();
+  }, []);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-4">Day-end (Z-report) — {date}</h2>
+      <div className="flex gap-3 items-end">
+        <label>
+          <span className="text-sm">Date</span>
+          <input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="input"
+          />
+        </label>
+        <button className="btn-outline" onClick={exportCSV}>
+          Export CSV
+        </button>
+      </div>
+      <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Stat label="Sales count" value={String(totals.count)} />
+        <Stat label="Grand Total" value={formatCurrency(totals.grand, s.currency)} />
+        <Stat label="VAT" value={formatCurrency(totals.vat, s.currency)} />
+        <Stat label="Discounts" value={formatCurrency(totals.discounts, s.currency)} />
+      </div>
+      <div className="mt-6">
+        <h3 className="font-semibold mb-2">Payments</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Object.entries(totals.payments).map(([k, v]) => (
+            <Stat key={k} label={k} value={formatCurrency(v, s.currency)} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border p-4">
+      <div className="text-sm text-gray-500">{label}</div>
+      <div className="text-xl font-bold">{value}</div>
+    </div>
+  );
+}

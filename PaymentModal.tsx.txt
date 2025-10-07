@@ -1,0 +1,109 @@
+import { useCartStore } from '@store/useCartStore';
+import { useSettingsStore } from '@store/useSettingsStore';
+import { formatCurrency } from '@utils/currency';
+import { useState } from 'react';
+import { X } from 'lucide-react';
+import { bc } from '@services/bcClient';
+
+type Row = { id: string; type: 'CASH' | 'CARD' | 'TRANSFER' | 'EWALLET'; amount: number; ref?: string };
+
+export default function PaymentModal({ onClose, onComplete }: { onClose: () => void; onComplete: () => void }) {
+  const { grandTotal, createSaleDraftAndFinalize, clearCart } = useCartStore();
+  const settings = useSettingsStore();
+
+  const [rows, setRows] = useState<Row[]>([{ id: crypto.randomUUID(), type: 'CASH', amount: grandTotal }]);
+
+  const paid = rows.reduce((s, r) => s + (Number.isFinite(r.amount) ? r.amount : 0), 0);
+  const change = Math.max(0, paid - grandTotal);
+  const due = Math.max(0, grandTotal - paid);
+
+  function addRow() {
+    setRows((r) => [...r, { id: crypto.randomUUID(), type: 'CASH', amount: 0 }]);
+  }
+  function updateRow(id: string, patch: Partial<Row>) {
+    setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  }
+  function removeRow(id: string) {
+    setRows((rs) => rs.filter((r) => r.id !== id));
+  }
+
+  async function completePayment() {
+    if (due > 0) return alert('Amount due not zero.');
+    await createSaleDraftAndFinalize(
+      rows.map((r) => ({ id: r.id, type: r.type, amount: r.amount, ref: r.ref }))
+    );
+    clearCart();
+    onComplete();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50" onKeyDown={(e) => e.key === 'Escape' && onClose()}>
+      <div className="bg-white rounded-2xl shadow-lg w-[96vw] max-w-[720px] p-4">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-xl font-bold">Payment</h3>
+          <button className="btn-icon" onClick={onClose} aria-label="Close"><X /></button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="md:col-span-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th>Type</th><th>Ref</th><th className="text-right">Amount</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-b last:border-0">
+                    <td>
+                      <select className="input" value={r.type} onChange={(e) => updateRow(r.id, { type: e.target.value as Row['type'] })}>
+                        <option value="CASH">Cash</option>
+                        <option value="CARD">Card</option>
+                        <option value="TRANSFER">Transfer</option>
+                        <option value="EWALLET">E-Wallet</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input className="input" placeholder="Ref (optional)" value={r.ref || ''} onChange={(e) => updateRow(r.id, { ref: e.target.value })}/>
+                    </td>
+                    <td className="text-right">
+                      <input className="input text-right w-40" type="number" step="0.01" value={r.amount}
+                        onChange={(e) => updateRow(r.id, { amount: parseFloat(e.target.value || '0') })}/>
+                    </td>
+                    <td className="text-right"><button className="btn-icon" onClick={() => removeRow(r.id)}><X /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <button className="btn-outline mt-2" onClick={addRow}>Add split</button>
+          </div>
+
+          <div className="bg-gray-50 rounded-xl p-3">
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Grand Total</span><span>{formatCurrency(grandTotal, settings.currency)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-500">
+              <span>Paid</span><span>{formatCurrency(paid, settings.currency)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-semibold mt-1">
+              <span>{due > 0 ? 'Due' : 'Change'}</span>
+              <span>{formatCurrency(due > 0 ? due : change, settings.currency)}</span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[100, 500, 1000].map((n) => (
+                <button key={n} className="btn" onClick={() => setRows([{ id: crypto.randomUUID(), type: 'CASH', amount: n }])}>
+                  {formatCurrency(n, settings.currency)}
+                </button>
+              ))}
+            </div>
+
+            <button className="btn-primary w-full mt-3" onClick={completePayment} disabled={due > 0}>
+              Complete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

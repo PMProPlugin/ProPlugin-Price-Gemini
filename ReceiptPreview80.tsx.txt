@@ -1,0 +1,78 @@
+import { useCartStore } from '@store/useCartStore';
+import { useSettingsStore } from '@store/useSettingsStore';
+import { formatCurrency } from '@utils/currency';
+import dayjs from 'dayjs';
+import { X, Printer } from 'lucide-react';
+
+export default function ReceiptPreview80({ onClose }: { onClose: () => void }) {
+  const last = useCartStore((s) => s.history.at(-1));
+  const s = useSettingsStore();
+
+  if (!last) {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-bold">Receipt</h3>
+          <button className="btn-icon" onClick={onClose}><X /></button>
+        </div>
+        <div>No recent sale.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-bold">Receipt</h3>
+        <div className="flex gap-2">
+          <button className="btn" onClick={() => window.print()}><Printer className="mr-1" /> Print</button>
+          <button className="btn-outline" onClick={onClose}><X /></button>
+        </div>
+      </div>
+
+      <div className="receipt-80 mx-auto bg-white text-sm">
+        <div className="text-center">
+          <div className="font-bold text-base">{s.storeProfile.name || 'My Music Store'}</div>
+          <div>{s.storeProfile.address || 'Bangkok'}</div>
+          <div>Tax ID: {s.storeProfile.taxId || '-'}</div>
+        </div>
+        <div className="mt-2 grid grid-cols-2">
+          <div>No: {last.number}</div>
+          <div className="text-right">{dayjs(last.datetime).format('DD/MM/YYYY HH:mm')}</div>
+          <div>Cashier: {last.cashierId}</div>
+          <div className="text-right">{last.customer?.name || ''}</div>
+        </div>
+        <hr className="my-2" />
+        <div>
+          {last.lines.map((l) => (
+            <div key={l.id} className="mb-1">
+              <div>{l.name}</div>
+              <div className="flex justify-between mono">
+                <span>{l.qty} x {formatCurrency(l.unitPrice, s.currency)}</span>
+                <span>{formatCurrency(l.lineTotal, s.currency)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <hr className="my-2" />
+        <div className="mono">
+          <div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(last.subtotal, s.currency)}</span></div>
+          <div className="flex justify-between"><span>VAT {Math.round(s.vatRate*100)}%</span><span>{formatCurrency(last.vat, s.currency)}</span></div>
+          <div className="flex justify-between font-bold text-base"><span>Total</span><span>{formatCurrency(last.grandTotal, s.currency)}</span></div>
+        </div>
+        <div className="mt-2">
+          <div className="font-semibold">Payments</div>
+          <div className="mono">
+            {last.payments.map((p) => (
+              <div key={p.id} className="flex justify-between">
+                <span>{p.type}{p.ref ? ` (${p.ref})` : ''}</span>
+                <span>{formatCurrency(p.amount, s.currency)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="text-center mt-4">ขอบคุณที่อุดหนุน / Thank you!</div>
+      </div>
+    </div>
+  );
+}

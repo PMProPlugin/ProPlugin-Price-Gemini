@@ -1,0 +1,72 @@
+import { useSettingsStore } from '@store/useSettingsStore';
+
+export default function Settings() {
+  const s = useSettingsStore();
+  return (
+    <div className="max-w-3xl bg-white rounded-2xl shadow-lg p-6">
+      <h2 className="text-xl font-bold mb-4">Settings (Mock)</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="block">
+          <span className="text-sm">Store Name</span>
+          <input
+            className="input"
+            value={s.storeProfile.name}
+            onChange={(e) => s.setStoreProfile({ ...s.storeProfile, name: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm">TAX ID</span>
+          <input
+            className="input"
+            value={s.storeProfile.taxId || ''}
+            onChange={(e) => s.setStoreProfile({ ...s.storeProfile, taxId: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm">Address</span>
+          <input
+            className="input"
+            value={s.storeProfile.address || ''}
+            onChange={(e) => s.setStoreProfile({ ...s.storeProfile, address: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm">VAT Rate</span>
+          <input
+            type="number"
+            step="0.01"
+            className="input"
+            value={s.vatRate}
+            onChange={(e) => s.setVatRate(parseFloat(e.target.value || '0.07'))}
+          />
+        </label>
+        <label className="block">
+          <span className="text-sm">VAT Included</span>
+          <select
+            className="input"
+            value={s.vatIncluded ? '1' : '0'}
+            onChange={(e) => s.setVatIncluded(e.target.value === '1')}
+          >
+            <option value="1">Yes</option>
+            <option value="0">No (add on top)</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="text-sm">Rounding Step</span>
+          <input
+            type="number"
+            step="0.01"
+            className="input"
+            value={s.roundingStep}
+            onChange={(e) => s.setRoundingStep(parseFloat(e.target.value || '0'))}
+          />
+        </label>
+      </div>
+      <div className="mt-4">
+        <button className="btn-outline" onClick={() => s.reset()}>
+          Reset to defaults
+        </button>
+      </div>
+    </div>
+  );
+}

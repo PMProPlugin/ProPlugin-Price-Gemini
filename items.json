@@ -1,0 +1,12 @@
+[
+  {"id":"i1","sku":"FOC-2I2-4G","barcode":"1234567890123","name":"Focusrite Scarlett 2i2 4th Gen","brand":"Focusrite","category":"Audio Interface","price":7990,"vatIncluded":true,"stockQty":12},
+  {"id":"i2","sku":"SE-V7","barcode":"1234567890456","name":"sE Electronics V7","brand":"sE Electronics","category":"Microphone","price":3990,"vatIncluded":true,"stockQty":34},
+  {"id":"i3","sku":"YAM-F310","barcode":"1234567890789","name":"Yamaha F310 Acoustic Guitar","brand":"Yamaha","category":"Guitar","price":3990,"vatIncluded":true,"stockQty":5},
+  {"id":"i4","sku":"ROLAND-GO","barcode":"1234567891000","name":"Roland GO:KEYS","brand":"Roland","category":"Keyboard","price":9900,"vatIncluded":true,"stockQty":2},
+  {"id":"i5","sku":"AKG-K240","barcode":"1234567891001","name":"AKG K240 Studio Headphones","brand":"AKG","category":"Headphones","price":2990,"vatIncluded":true,"stockQty":18},
+  {"id":"i6","sku":"SHURE-SM58","barcode":"1234567891002","name":"Shure SM58","brand":"Shure","category":"Microphone","price":3990,"vatIncluded":true,"stockQty":40},
+  {"id":"i7","sku":"BOSS-DS1","barcode":"1234567891003","name":"BOSS DS-1 Distortion","brand":"BOSS","category":"Pedal","price":1990,"vatIncluded":true,"stockQty":8},
+  {"id":"i8","sku":"BEHR-UM2","barcode":"1234567891004","name":"Behringer U-Phoria UM2","brand":"Behringer","category":"Audio Interface","price":1990,"vatIncluded":true,"stockQty":26},
+  {"id":"i9","sku":"YAM-APX600","barcode":"1234567891005","name":"Yamaha APX600","brand":"Yamaha","category":"Guitar","price":11900,"vatIncluded":true,"stockQty":3},
+  {"id":"i10","sku":"KORG-NTS1","barcode":"1234567891006","name":"Korg NTS-1","brand":"Korg","category":"Synth","price":3490,"vatIncluded":true,"stockQty":1}
+]

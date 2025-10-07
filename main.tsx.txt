@@ -1,0 +1,35 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import App from './app/App';
+import Login from './app/routes/login';
+import Sell from './app/routes/sell';
+import Settings from './app/routes/settings';
+import Reports from './app/routes/reports';
+import './index.css';
+import './styles/print.css';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <App />,
+    children: [
+      { path: '/', element: <Sell /> },
+      { path: '/login', element: <Login /> },
+      { path: '/sell', element: <Sell /> },
+      { path: '/settings', element: <Settings /> },
+      { path: '/reports', element: <Reports /> }
+    ]
+  }
+]);
+
+const qc = new QueryClient();
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <QueryClientProvider client={qc}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  </React.StrictMode>
+);

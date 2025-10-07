@@ -1,0 +1,218 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { bc } from '@services/bcClient';
+import { Search, Plus, Percent, CreditCard, Save, Undo2, HelpCircle } from 'lucide-react';
+import CartTable from '@components/CartTable';
+import PaymentModal from '@components/PaymentModal';
+import CustomerPicker from '@components/CustomerPicker';
+import ReceiptPreview80 from '@components/ReceiptPreview80';
+import { useCartStore } from '@store/useCartStore';
+import { useSettingsStore } from '@store/useSettingsStore';
+import { formatCurrency } from '@utils/currency';
+import { registerHotkeys } from '@utils/hotkeys';
+
+export default function Sell() {
+  const barcodeRef = useRef<HTMLInputElement>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [showCustomer, setShowCustomer] = useState(false);
+  const [showReceipt, setShowReceipt] = useState(false);
+  const {
+    lines,
+    addItemByBarcode,
+    subtotal,
+    vat,
+    grandTotal,
+    clearCart,
+    orderDiscount,
+    setOrderDiscount,
+    attachCustomer,
+    customer
+  } = useCartStore();
+  const settings = useSettingsStore();
+  useEffect(() => {
+    const unregister = registerHotkeys({
+      onFocusBarcode: () => barcodeRef.current?.focus(),
+      onOpenPayment: () => setShowPayment(true),
+      onDiscount: () => handleOrderDiscount(),
+      onHold: () => {
+        useCartStore.getState().holdSale();
+        alert('Sale held.');
+      },
+      onHelp: () => alert(hotkeyHelpText())
+    });
+    return unregister;
+  }, []);
+
+  const { data: items } = useQuery({
+    queryKey: ['items'],
+    queryFn: () => bc.listAllItems()
+  });
+
+  function hotkeyHelpText() {
+    return [
+      'F2 Add item (from search)',
+      'F3 Focus barcode',
+      'F4 Discount',
+      'F8 Payment',
+      'F9 Hold/Resume',
+      'Ctrl+/ Shortcuts',
+      'Esc Close/clear'
+    ].join('\n');
+  }
+
+  const [scanTerm, setScanTerm] = useState('');
+  async function handleScanEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' && scanTerm.trim()) {
+      const ok = await addItemByBarcode(scanTerm.trim());
+      if (!ok) alert('Item not found');
+      setScanTerm('');
+    }
+  }
+
+  function handleOrderDiscount() {
+    const v = window.prompt('Order discount: enter % or amount (e.g., 10% or 100)');
+    if (!v) return;
+    if (v.endsWith('%')) {
+      const pct = parseFloat(v.slice(0, -1));
+      if (!isNaN(pct)) setOrderDiscount({ type: 'PERCENT', value: pct });
+    } else {
+      const amt = parseFloat(v);
+      if (!isNaN(amt)) setOrderDiscount({ type: 'AMOUNT', value: amt });
+    }
+  }
+
+  useEffect(() => {
+    // load held sale if any
+    const restored = useCartStore.getState().resumeSaleIfAny();
+    if (restored) {
+      alert('Resumed held sale.');
+    }
+  }, []);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-[2fr,1fr] gap-4">
+      {/* Left: Actions + Cart */}
+      <div className="bg-white rounded-2xl shadow-lg p-4">
+        <div className="flex gap-2 items-center">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              ref={barcodeRef}
+              className="w-full pl-10 pr-3 py-3 rounded-xl border"
+              placeholder="Scan barcode / type SKU / search… (F3)"
+              value={scanTerm}
+              onChange={(e) => setScanTerm(e.target.value)}
+              onKeyDown={handleScanEnter}
+              aria-label="Barcode or search input"
+            />
+          </div>
+          <button
+            className="btn"
+            title="Add custom item"
+            onClick={() => {
+              const name = window.prompt('Custom item name');
+              const price = Number(window.prompt('Price (THB)') || '0');
+              if (name && price > 0) {
+                useCartStore.getState().addCustomItem(name, price);
+              }
+            }}
+          >
+            <Plus className="mr-1" /> Custom
+          </button>
+          <button className="btn" onClick={handleOrderDiscount} title="Order discount (F4)">
+            <Percent className="mr-1" /> Discount
+          </button>
+        </div>
+
+        <div className="mt-4">
+          <CartTable />
+        </div>
+
+        <div className="mt-4 flex gap-2">
+          <button
+            className="btn-outline"
+            onClick={() => {
+              useCartStore.getState().holdSale();
+              alert('Sale held (saved to localStorage).');
+            }}
+            title="Hold (F9)"
+          >
+            <Save className="mr-1" /> Hold
+          </button>
+          <button
+            className="btn-outline"
+            onClick={() => {
+              const ok = useCartStore.getState().resumeSaleIfAny();
+              if (!ok) alert('No held sale');
+            }}
+            title="Resume (F9)"
+          >
+            <Undo2 className="mr-1" /> Resume
+          </button>
+          <button className="btn-outline" onClick={() => alert(hotkeyHelpText())} title="Help">
+            <HelpCircle className="mr-1" /> Shortcuts
+          </button>
+        </div>
+      </div>
+
+      {/* Right: Summary */}
+      <div className="bg-white rounded-2xl shadow-lg p-4 space-y-3">
+        <div className="flex justify-between">
+          <span className="text-sm text-gray-500">Customer</span>
+          <button className="btn-link" onClick={() => setShowCustomer(true)}>
+            {customer ? customer.name : 'Select / Add'}
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-lg">
+          <div className="text-gray-600">Subtotal</div>
+          <div className="text-right">{formatCurrency(subtotal, settings.currency)}</div>
+          <div className="text-gray-600">
+            VAT {Math.round(settings.vatRate * 100)}% {settings.vatIncluded ? '(incl.)' : '(excl.)'}
+          </div>
+          <div className="text-right">{formatCurrency(vat, settings.currency)}</div>
+          <div className="text-gray-900 font-bold">Grand Total</div>
+          <div className="text-right text-2xl font-bold">
+            {formatCurrency(grandTotal, settings.currency)}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button className="btn-primary w-full" onClick={() => setShowPayment(true)} title="Pay (F8)">
+            <CreditCard className="mr-1" /> Pay
+          </button>
+          <button className="btn w-full" onClick={() => clearCart()} title="Void">
+            Void
+          </button>
+        </div>
+      </div>
+
+      {showPayment && (
+        <PaymentModal
+          onClose={() => setShowPayment(false)}
+          onComplete={() => {
+            setShowPayment(false);
+            setShowReceipt(true);
+          }}
+        />
+      )}
+
+      {showCustomer && (
+        <CustomerPicker
+          onClose={() => setShowCustomer(false)}
+          onSelect={(c) => {
+            attachCustomer(c);
+            setShowCustomer(false);
+          }}
+        />
+      )}
+
+      {showReceipt && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-4 w-[90vw] max-w-[420px]">
+            <ReceiptPreview80 onClose={() => setShowReceipt(false)} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

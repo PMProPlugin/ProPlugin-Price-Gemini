@@ -1,0 +1,44 @@
+import { useEffect } from 'react';
+import { useAuthStore } from '@store/useAuthStore';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { bc } from '@services/bcClient';
+
+export default function Login() {
+  const nav = useNavigate();
+  const { user, login } = useAuthStore();
+  const { data: users } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => bc.listUsers()
+  });
+
+  useEffect(() => {
+    if (user) nav('/sell');
+  }, [user, nav]);
+
+  return (
+    <div className="max-w-2xl mx-auto mt-16 bg-white rounded-2xl shadow-lg p-6">
+      <h1 className="text-2xl font-bold mb-4">Select User</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {(users || []).map((u) => (
+          <button
+            key={u.id}
+            className="p-4 rounded-2xl border hover:shadow focus-visible:shadow outline-none text-left"
+            onClick={async () => {
+              const pin = window.prompt(`Enter PIN for ${u.name}`);
+              if (pin === u.pin) {
+                login(u);
+                nav('/sell');
+              } else {
+                alert('Invalid PIN');
+              }
+            }}
+          >
+            <div className="text-lg font-semibold">{u.name}</div>
+            <div className="text-sm text-gray-500">{u.role}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}

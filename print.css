@@ -1,0 +1,29 @@
+/* Print variants for 80mm and A4 */
+@media print {
+  @page {
+    size: auto;
+    margin: 6mm;
+  }
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* 80mm thermal */
+.receipt-80 {
+  width: 80mm;
+  font-family: 'Kanit', system-ui, sans-serif;
+}
+.receipt-80 .mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* A4 */
+.receipt-a4 {
+  width: 210mm;
+  margin: 0 auto;
+}

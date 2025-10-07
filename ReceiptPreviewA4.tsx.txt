@@ -1,0 +1,8 @@
+export default function ReceiptPreviewA4() {
+  return (
+    <div className="receipt-a4 bg-white p-8">
+      <h2 className="text-2xl font-bold">A4 Tax Invoice (Mock)</h2>
+      <p className="text-gray-500">Coming soon - structure mirrors 80mm but with customer address and signature sections.</p>
+    </div>
+  );
+}
