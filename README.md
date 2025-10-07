@@ -1,2 +1,0 @@
-#ProPlugin
-Pricing for Pro
